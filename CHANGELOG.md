@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-05-08
+
+### Security
+- 为商品添加、更新、删除接口添加 Token 验证中间件
+- 添加越权检查：用户只能更新/删除自己发布的商品（返回 403 Forbidden）
+- 修复 authMiddleware 密钥不一致导致 Token 验证失败的问题
+
+### Fixed
+- 修复添加商品时缺少必填字段返回 500 错误的问题（现在正确返回 400 Bad Request）
+- 修复添加商品时价格为负数返回 500 错误的问题（现在正确返回 400 Bad Request）
+- 修复更新商品时价格为负数返回 200 的问题（现在正确返回 400 Bad Request）
+- 修复 Get Products by User 接口返回 500 错误的问题（修复了查询字段名不匹配）
+
+### Added
+- 商品创建时自动关联当前登录用户信息（uploadedBy）
+
+---
+
 ## [1.1.0] - 2026-04-28
 
 ### Fixed

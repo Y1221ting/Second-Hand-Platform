@@ -3,11 +3,32 @@ const Product = require("../models/Product");
 // Create a product
 exports.createProduct = async (req, res) => {
   try {
+    // 1. Validate required fields
+    if (!req.body.name || !req.body.description || !req.body.price || !req.body.images) {
+      return res.status(400).json({ message: "Missing required fields: name, description, price, images" });
+    }
+
+    // 2. Validate price is positive
+    if (req.body.price <= 0) {
+      return res.status(400).json({ message: "Price must be greater than 0" });
+    }
+
+    // 3. Add uploader info from authenticated user
+    req.body.uploadedBy = {
+      id: req.user._id.toString(),
+      name: req.user.name,
+      college: req.user.college || "",
+    };
+
     const product = new Product(req.body);
     await product.save();
     res.status(201).json(product);
   } catch (error) {
     console.error(error);
+    // Handle validation errors
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: error.message });
+    }
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -40,15 +61,31 @@ exports.getProductById = async (req, res) => {
 // Update a product by ID
 exports.updateProductById = async (req, res) => {
   try {
-    const product = await Product.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    res.status(200).json(product);
+
+    // Check if the user is the owner of the product
+    if (product.uploadedBy.id !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Forbidden: You can only update your own products" });
+    }
+
+    // Validate price if it's being updated
+    if (req.body.price !== undefined && req.body.price <= 0) {
+      return res.status(400).json({ message: "Price must be greater than 0" });
+    }
+
+    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
+    res.status(200).json(updatedProduct);
   } catch (error) {
     console.error(error);
+    // Handle validation errors
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: error.message });
+    }
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -56,10 +93,17 @@ exports.updateProductById = async (req, res) => {
 // Delete a product by ID
 exports.deleteProductById = async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product = await Product.findById(req.params.id);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+
+    // Check if the user is the owner of the product
+    if (product.uploadedBy.id !== req.user._id.toString()) {
+      return res.status(403).json({ message: "Forbidden: You can only delete your own products" });
+    }
+
+    await Product.findByIdAndDelete(req.params.id);
     res.status(200).json({ message: "Product successfully deleted" });
   } catch (error) {
     console.error(error);
@@ -70,19 +114,20 @@ exports.deleteProductById = async (req, res) => {
 exports.getProductsByUser = async (req, res) => {
   try {
     const userId = req.params.userId;
-    // Validate userId (you can add more validation checks as needed)
-    if (!userId) {
-      return res.status(400).json({ error: "Invalid user ID" });
+    
+    // Validate userId format
+    if (!userId || userId.length !== 24) {
+      return res.status(400).json({ message: "Invalid user ID format" });
     }
 
     // Fetch products listed by the user
-    const products = await Product.find({ "uploadedBy._id": userId });
+    const products = await Product.find({ "uploadedBy.id": userId });
 
     // Return the products in the response
     res.status(200).json(products);
   } catch (error) {
     console.error("Error fetching user products:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
