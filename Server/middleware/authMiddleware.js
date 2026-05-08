@@ -11,8 +11,8 @@ const authMiddleware = async (req, res, next) => {
     }
 
     // 2. Verify token
-    // Note: Use the same secret as in your .env or auth.js
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "MySecretKey2024SecondHandProject");
+    // Note: Use the same secret as in auth.js
+    const decoded = jwt.verify(token, "your-secret-key");
     
     // 3. Find user
     const user = await User.findById(decoded.userId);
