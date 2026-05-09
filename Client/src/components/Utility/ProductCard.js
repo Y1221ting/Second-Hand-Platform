@@ -31,6 +31,9 @@ const ProductCard = ({ product }) => {
           ? `${product.name.slice(0, 40)}...`
           : product.name}
       </h3>
+      <p className="text-sm text-gray-400 mb-1">
+        库存: {product.quantity || 0}
+      </p>
       <div>
         <p className="text-sm text-gray-300">
           Uploaded by - {product.uploadedBy.name}
@@ -40,11 +43,20 @@ const ProductCard = ({ product }) => {
         <div className="flex justify-between items-center mt-2">
           <button
             className={`flex items-center px-4 py-2 rounded ${
-              clickedButtonId === product._id
+              product.status === "sold_out" || product.quantity <= 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : clickedButtonId === product._id
                 ? "bg-green-500"
                 : "bg-yellow-500 hover:bg-yellow-600"
             } text-gray-800 transition duration-300 transform`}
-            onClick={() => handleAddToCart(product)}
+            onClick={() => {
+              if (product.status !== "sold_out" && product.quantity > 0) {
+                handleAddToCart(product);
+              } else {
+                alert("该商品已售罄");
+              }
+            }}
+            disabled={product.status === "sold_out" || product.quantity <= 0}
           >
             <span
               className={`mr-2 ${
@@ -53,7 +65,9 @@ const ProductCard = ({ product }) => {
             >
               <FaShoppingCart />
             </span>
-            Buy now
+            {product.status === "sold_out" || product.quantity <= 0
+              ? "已售罄"
+              : "Buy now"}
           </button>
           <p className="text-xl mx-auto">
             ₹{parseFloat(product.price.$numberDecimal).toFixed(2)}

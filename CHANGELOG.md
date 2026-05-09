@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - 新增商品库存管理功能（quantity 字段）
 - 新增商品购买接口（POST /api/products/:id/purchase），自动扣减库存
-- 前端商品详情页显示库存数量
+- 前端商品详情页和列表页显示库存数量
 - 前端购买按钮根据库存状态显示"已售罄"或"立即购买"
 
 ### Changed
