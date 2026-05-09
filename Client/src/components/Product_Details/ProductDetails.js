@@ -28,10 +28,16 @@ const ProductDetails = ({ productId }) => {
       );
       
       if (response.ok) {
+        const result = await response.json();
         alert("Purchase successful!");
-        // Refresh product details
-        const updatedProduct = await response.json();
-        setProductDetails(updatedProduct.product);
+        // Refresh product details by fetching from API again
+        const refreshResponse = await fetch(
+          `${process.env.REACT_APP_BASE_URL}/api/products/${productId}`
+        );
+        if (refreshResponse.ok) {
+          const refreshedData = await refreshResponse.json();
+          setProductDetails(refreshedData);
+        }
       } else {
         const errorData = await response.json();
         alert(errorData.message || "Purchase failed");
