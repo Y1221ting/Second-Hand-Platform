@@ -49,9 +49,14 @@ const ProductSchema = new mongoose.Schema({
   specifications: [SpecificationSchema], // Embed specifications as an array of objects
   status: {
     type: String,
-    enum: ["unsold", "sold"],
-    default: "unsold", // Default value is "unsold"
+    enum: ["unsold", "sold", "sold_out"],
+    default: "unsold",
     required: true,
+  },
+  quantity: {
+    type: Number,
+    default: 1,
+    min: 0,
   },
   createdAt: {
     type: Date,

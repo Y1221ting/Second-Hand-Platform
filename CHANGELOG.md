@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-05-09
+
+### Added
+- 新增商品库存管理功能（quantity 字段）
+- 新增商品购买接口（POST /api/products/:id/purchase），自动扣减库存
+- 前端商品详情页显示库存数量
+- 前端购买按钮根据库存状态显示"已售罄"或"立即购买"
+
+### Changed
+- 修改购买逻辑：从删除商品改为扣减库存并更新状态
+- 商品状态新增 `sold_out`（售罄）枚举值
+- 购买成功后自动刷新商品详情，不再跳转首页
+
+### Fixed
+- 修复购买功能直接删除商品导致数据丢失的问题
+- 修复前端购买按钮未处理售罄状态的问题
+
+---
+
 ## [1.2.0] - 2026-05-08
 
 ### Security

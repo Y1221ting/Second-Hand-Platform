@@ -245,3 +245,38 @@ exports.updateProductStatus = async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
+
+// Purchase a product (handle inventory)
+exports.purchaseProduct = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Check if product is active and has stock
+    if (product.status === "inactive") {
+      return res.status(400).json({ message: "Product is inactive" });
+    }
+    if (product.status === "sold_out" || product.quantity <= 0) {
+      return res.status(400).json({ message: "Product is sold out" });
+    }
+
+    // Decrease quantity
+    product.quantity -= 1;
+
+    // If quantity reaches 0, mark as sold_out
+    if (product.quantity === 0) {
+      product.status = "sold_out";
+    } else {
+      product.status = "sold";
+    }
+
+    await product.save();
+
+    res.status(200).json({ message: "Purchase successful", product });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};

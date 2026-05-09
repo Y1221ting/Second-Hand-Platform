@@ -15,17 +15,31 @@ const ProductDetails = ({ productId }) => {
   const [isDialogOpen, setDialogOpen] = useState(false);
 
   const handleConfirmPurchase = async (userData) => {
-    alert("Purchase confirmed!");
-    const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/api/products/${productId}`,
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/products/${productId}/purchase`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+      
+      if (response.ok) {
+        alert("Purchase successful!");
+        // Refresh product details
+        const updatedProduct = await response.json();
+        setProductDetails(updatedProduct.product);
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || "Purchase failed");
       }
-    );
-    navigate("/home");
+    } catch (error) {
+      console.error("Purchase error:", error);
+      alert("Network error, please try again");
+    }
     setDialogOpen(false);
   };
 
@@ -90,14 +104,26 @@ const ProductDetails = ({ productId }) => {
           <p className="text-2xl font-semibold mt-4">
             ₹{parseFloat(productDetails.price.$numberDecimal).toFixed(2)}
           </p>
+          <p className="text-gray-600 mt-2">
+            Stock: {productDetails.quantity || 0}
+          </p>
           <div className="buy-now-button-container">
             <button
               className={`mt-8 flex items-center px-5 py-3 rounded text-lg ${
-                clickedButtonId === productDetails._id
+                productDetails.status === "sold_out" || productDetails.quantity <= 0
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : clickedButtonId === productDetails._id
                   ? "bg-green-500"
                   : "bg-yellow-500 hover:bg-yellow-600"
               } text-gray-800 transition duration-300 transform`}
-              onClick={() => handleAddToCart(productDetails._id)}
+              onClick={() => {
+                if (productDetails.status !== "sold_out" && productDetails.quantity > 0) {
+                  handleAddToCart(productDetails._id);
+                } else {
+                  alert("This product is sold out");
+                }
+              }}
+              disabled={productDetails.status === "sold_out" || productDetails.quantity <= 0}
             >
               <span
                 className={`mr-2 ${
@@ -106,7 +132,9 @@ const ProductDetails = ({ productId }) => {
               >
                 <FaShoppingCart />
               </span>
-              Buy now
+              {productDetails.status === "sold_out" || productDetails.quantity <= 0
+                ? "Sold Out"
+                : "Buy now"}
             </button>
             <Dialog
               isOpen={isDialogOpen}
