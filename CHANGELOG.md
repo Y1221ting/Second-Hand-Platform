@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file.
 - 修复购买功能直接删除商品导致数据丢失的问题
 - 修复前端购买按钮未处理售罄状态的问题
 - 修复前端购买成功后数据不刷新的问题（现在购买后会自动重新获取商品详情）
+- 修复商品卡片布局错乱问题（库存信息与上传者信息同行显示）
 
 ---
 

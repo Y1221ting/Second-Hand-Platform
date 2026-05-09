@@ -31,14 +31,15 @@ const ProductCard = ({ product }) => {
           ? `${product.name.slice(0, 40)}...`
           : product.name}
       </h3>
-      <p className="text-sm text-gray-400 mb-1">
-        库存: {product.quantity || 0}
-      </p>
-      <div>
+      <div className="flex items-center justify-between mb-1">
         <p className="text-sm text-gray-300">
           Uploaded by - {product.uploadedBy.name}
         </p>
-        <p className="text-sm text-gray-300">{product.uploadedBy.college}</p>
+        <p className="text-sm text-gray-400">
+          库存: {product.quantity || 0}
+        </p>
+      </div>
+      <p className="text-sm text-gray-300">{product.uploadedBy.college}</p>
 
         <div className="flex justify-between items-center mt-2">
           <button
