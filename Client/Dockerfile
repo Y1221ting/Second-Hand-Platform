@@ -1,6 +1,9 @@
 # Frontend Dockerfile
 FROM node:18-alpine AS build
 
+ARG REACT_APP_BASE_URL
+ENV REACT_APP_BASE_URL=$REACT_APP_BASE_URL
+
 WORKDIR /app
 
 COPY package*.json ./
