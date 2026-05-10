@@ -3,6 +3,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
+const aiRoutes = require("./routes/aiRoutes");
 const connectDB = require("./config/db");
 
 connectDB();
@@ -21,6 +22,7 @@ app.use(
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/ai", aiRoutes);
 
 // Start the server
 const port = process.env.PORT || 8000;

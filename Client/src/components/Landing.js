@@ -23,27 +23,26 @@ const LandingPage = () => {
           className="text-3xl md:text-5xl font-bold mb-6 animate__animated animate__fadeInDown text-white"
           style={{ WebkitTextStroke: "1px black" }}
         >
-          College Marketplace
+          校园二手市场
           <br />
-          Connecting Students, Empowering Deals!
+          连接同学，实惠交易！
         </h1>
         <p className="w-2/3 text-lg text-gray-100 md:text-xl mb-8 animate__animated animate__fadeInUp px-4">
-          Buy and sell items within your college community. Seniors can pass
-          down their belongings to freshers, reducing costs and environmental
-          impact.
+          在校园社区内买卖闲置物品。学长学姐可以将物品传递给学弟学妹，
+          降低成本，减少浪费。
         </p>
         <Link
           to="/register"
           className="w-64 mx-auto text-lg bg-yellow-500 hover:bg-gray-900 text-gray-900 hover:text-white font-semibold py-4 px-8 rounded-3xl flex items-center justify-center space-x-2 transition duration-300 animate__animated animate__pulse hover:animate-pulse"
         >
-          Get Started
+          立即开始
           <FaArrowRight className="text-xl ml-2" />
         </Link>
         <Link
           to="/home"
           className="my-4 text-white hover:text-yellow-500 text-xl font-semibold animate__animated animate__pulse transition-all"
         >
-          Explore
+          浏览商品
         </Link>
       </div>
     </div>

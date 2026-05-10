@@ -127,7 +127,7 @@ const UserProfile = () => {
       <Navbar />
       <div className="w-4/5 mx-auto py-4">
         <h1 className="text-3xl font-semibold text-gray-900 mb-4">
-          User Profile
+          用户资料
         </h1>
         {userData && (
           <UserDetails

@@ -26,7 +26,8 @@ services:
     environment:
       - MONGODB_URI=mongodb://admin:%40Yt1221wz@second-hand-mongodb:27017/second-hand?authSource=admin
       - PORT=8000
-      - CLIENT_URL=http://localhost:5000
+      - CLIENT_URL=http://8.162.24.145:5000
+      - QWEN_API_KEY=sk-8b143f7aef8a4d16ad7d00365486d2f6
     depends_on:
       - mongodb
     networks:
@@ -40,7 +41,7 @@ services:
       context: ./Client
       dockerfile: Dockerfile
       args:
-        - REACT_APP_BASE_URL=http://localhost:8000
+        - REACT_APP_BASE_URL=http://8.162.24.145:8000
     container_name: second-hand-frontend
     restart: always
     ports:

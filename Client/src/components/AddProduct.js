@@ -1,14 +1,14 @@
 // AddProduct.js
 import React, { useState } from "react";
-import Navbar from "./Utility/Navbar"; // Import your Navbar component
-import Footer from "./Utility/Footer"; // Import your Footer component
+import Navbar from "./Utility/Navbar";
+import Footer from "./Utility/Footer";
 import { useAuth } from "../context/authContext";
 import { useNavigate } from "react-router-dom";
+import { FaMagic } from "react-icons/fa";
 
 const AddProduct = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  // State to manage form fields
   const [formData, setFormData] = useState({
     name: "",
     category: "other",
@@ -17,12 +17,11 @@ const AddProduct = () => {
     images: [],
     specifications: [],
   });
-
-  // State to manage individual specification input fields
   const [specificationField, setSpecificationField] = useState({
     key: "",
     value: "",
   });
+  const [aiLoading, setAiLoading] = useState(false);
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -55,6 +54,44 @@ const AddProduct = () => {
       ...formData,
       specifications: updatedSpecifications,
     });
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!formData.name) {
+      alert("请先输入商品名称");
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/ai/generate-description`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            productName: formData.name,
+            category: formData.category,
+          }),
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setFormData({
+          ...formData,
+          description: data.description,
+        });
+      } else {
+        const error = await response.json();
+        alert(error.message || "生成失败，请稍后重试");
+      }
+    } catch (error) {
+      console.error("AI生成描述失败:", error);
+      alert("生成失败，请检查网络连接");
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   // Handle form submission
@@ -125,13 +162,13 @@ const AddProduct = () => {
       <Navbar />
       <div className="w-4/5 mx-auto py-4">
         <h1 className="text-3xl font-semibold text-gray-900 mb-4">
-          Add New Product
+          发布新商品
         </h1>
         <form onSubmit={handleSubmit}>
           {/* Product Name */}
           <div className="mb-4">
             <label htmlFor="name" className="block text-gray-600">
-              Product Name
+              商品名称
             </label>
             <input
               type="text"
@@ -147,7 +184,7 @@ const AddProduct = () => {
           {/* Product Category Dropdown */}
           <div className="mb-4">
             <label htmlFor="category" className="block text-gray-600">
-              Category
+              分类
             </label>
             <select
               id="category"
@@ -157,20 +194,35 @@ const AddProduct = () => {
               className="w-full border rounded-lg py-2 px-3"
               required
             >
-              <option value="other">Other</option>
-              <option value="electronics">Electronics</option>
-              <option value="mattress">Mattress</option>
-              <option value="air cooler">Air Cooler</option>
-              <option value="cycles">Cycles</option>
-              <option value="books">Books</option>
+              <option value="other">其他</option>
+              <option value="electronics">电子产品</option>
+              <option value="mattress">床垫</option>
+              <option value="air cooler">空调扇</option>
+              <option value="cycles">自行车</option>
+              <option value="books">书籍</option>
             </select>
           </div>
 
           {/* Product Description */}
           <div className="mb-4">
-            <label htmlFor="description" className="block text-gray-600">
-              Description
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="description" className="block text-gray-600">
+                描述
+              </label>
+              <button
+                type="button"
+                onClick={handleGenerateDescription}
+                disabled={aiLoading}
+                className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition duration-300 ${
+                  aiLoading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-purple-500 hover:bg-purple-600 text-white"
+                }`}
+              >
+                <FaMagic />
+                {aiLoading ? "生成中..." : "AI生成描述"}
+              </button>
+            </div>
             <textarea
               id="description"
               name="description"
@@ -184,7 +236,7 @@ const AddProduct = () => {
           {/* Product Price */}
           <div className="mb-4">
             <label htmlFor="price" className="block text-gray-600">
-              Price (in ₹)
+              价格（元）
             </label>
             <input
               type="number"
@@ -201,7 +253,7 @@ const AddProduct = () => {
           {/* Product Images */}
           <div className="mb-4">
             <label htmlFor="images" className="block text-gray-600">
-              Images
+              图片
             </label>
             <input
               type="file"
@@ -224,7 +276,7 @@ const AddProduct = () => {
           {/* Product Specifications */}
           <div className="mb-4">
             <label htmlFor="specifications" className="block text-gray-600">
-              Specifications
+              规格参数
             </label>
             {formData.specifications.map((spec, index) => (
               <div key={index} className="flex mb-2 justify-between">
@@ -249,7 +301,7 @@ const AddProduct = () => {
                   onClick={() => handleRemoveSpecification(index)}
                   className="w-32 bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition duration-300"
                 >
-                  Remove
+                  删除
                 </button>
               </div>
             ))}
@@ -266,7 +318,7 @@ const AddProduct = () => {
                   })
                 }
                 className="w-full md:w-[45%] border rounded-lg py-2 px-3 my-2 md:my-0"
-                placeholder="Key"
+                placeholder="键"
               />
               <input
                 type="text"
@@ -280,14 +332,14 @@ const AddProduct = () => {
                   })
                 }
                 className="w-full md:w-[45%] border rounded-lg py-2 px-3 my-2 md:my-0"
-                placeholder="Value"
+                placeholder="值"
               />
               <button
                 type="button"
                 onClick={handleAddSpecification}
                 className="w-full md:w-32 bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition duration-300"
               >
-                Add
+                添加
               </button>
             </div>
           </div>
@@ -298,7 +350,7 @@ const AddProduct = () => {
               type="submit"
               className="w-full py-2 px-4 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-300"
             >
-              Add Product
+              发布商品
             </button>
           </div>
         </form>

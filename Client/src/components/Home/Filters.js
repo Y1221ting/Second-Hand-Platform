@@ -32,26 +32,26 @@ const Filters = ({
           onClick={toggleFilters}
           className="bg-gray-800 text-white py-2 px-4 rounded hover:bg-yellow-500 hover:text-gray-900 transition-all"
         >
-          Filters
+          筛选
         </button>
       </h2>
       <div className={filtersClass}>
         <div className="mb-4">
-          <label className="text-gray-600 block mb-2">Search:</label>
+          <label className="text-gray-600 block mb-2">搜索：</label>
           <input
             type="text"
             className="bg-gray-800 text-white p-2 w-full border-2 border-transparent focus:border-white"
-            placeholder="Search..."
+            placeholder="搜索..."
             value={searchQuery}
             onChange={handleSearchQueryChange}
           />
         </div>
         <div className="mb-4">
-          <label className="text-gray-600 block mb-2">College:</label>
+          <label className="text-gray-600 block mb-2">学校：</label>
           <input
             type="text"
             className="bg-gray-800 text-white p-2 w-full border-2 border-transparent focus:border-white"
-            placeholder="Search College..."
+            placeholder="搜索学校..."
             value={collegeQuery}
             onChange={handleCollegeQueryChange}
           />
@@ -68,35 +68,35 @@ const Filters = ({
           </select>
         </div>
         <div className="mb-4">
-          <label className="text-gray-600 block mb-2">Sort By:</label>
+          <label className="text-gray-600 block mb-2">排序：</label>
           <select
             value={sortBy}
             onChange={handleSortChange}
             className="p-2 rounded bg-gray-800 text-white w-full"
           >
-            <option value="latest">Latest</option>
-            <option value="lowestPrice">Lowest Price</option>
-            <option value="highestPrice">Highest Price</option>
+            <option value="latest">最新</option>
+            <option value="lowestPrice">价格最低</option>
+            <option value="highestPrice">价格最高</option>
           </select>
         </div>
         <div className="mb-4">
-          <label className="text-gray-600 block mb-2">Category:</label>
+          <label className="text-gray-600 block mb-2">分类：</label>
           <select
             value={categoryFilter}
             onChange={handleCategoryFilterChange}
             className="p-2 rounded bg-gray-800 text-white w-full"
           >
-            <option value="">All</option>
-            <option value="electronics">Electronics</option>
-            <option value="mattress">Mattress</option>
-            <option value="air cooler">Air Cooler</option>
-            <option value="cycles">Cycles</option>
-            <option value="books">Books</option>
+            <option value="">全部</option>
+            <option value="electronics">电子产品</option>
+            <option value="mattress">床垫</option>
+            <option value="air cooler">空调扇</option>
+            <option value="cycles">自行车</option>
+            <option value="books">书籍</option>
             {/* Add more options for different categories */}
           </select>
         </div>
         <div className="mb-4">
-          <label className="text-gray-600 block mb-2">Price Range:</label>
+          <label className="text-gray-600 block mb-2">价格范围：</label>
           <input
             type="range"
             min={0}

@@ -80,7 +80,7 @@ const ProductCard = ({ product }) => {
             </span>
             {product.status === "sold_out" || product.quantity <= 0
               ? "已售罄"
-              : "Buy now"}
+              : "立即购买"}
           </button>
         )}
         <p className="text-xl mx-auto">

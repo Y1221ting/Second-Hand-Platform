@@ -29,7 +29,7 @@ const ProductDetails = ({ productId }) => {
       
       if (response.ok) {
         const result = await response.json();
-        alert("Purchase successful!");
+        alert("购买成功！");
         // Refresh product details by fetching from API again
         const refreshResponse = await fetch(
           `${process.env.REACT_APP_BASE_URL}/api/products/${productId}`
@@ -93,7 +93,7 @@ const ProductDetails = ({ productId }) => {
           <span className="text-xl">
             <FaEdit />
           </span>
-          <div>Edit</div>
+          <div>编辑</div>
         </Link>
       )}
       <div className="flex flex-col md:flex-row p-4">
@@ -111,7 +111,7 @@ const ProductDetails = ({ productId }) => {
             ₹{parseFloat(productDetails.price.$numberDecimal).toFixed(2)}
           </p>
           <p className="text-gray-600 mt-2">
-            Stock: {productDetails.quantity || 0}
+            库存: {productDetails.quantity || 0}
           </p>
           <div className="buy-now-button-container">
             {userId === productDetails.uploadedBy._id ? (
@@ -129,7 +129,7 @@ const ProductDetails = ({ productId }) => {
                   if (productDetails.status !== "sold_out" && productDetails.quantity > 0) {
                     handleAddToCart(productDetails._id);
                   } else {
-                    alert("This product is sold out");
+                    alert("该商品已售罄");
                   }
                 }}
                 disabled={productDetails.status === "sold_out" || productDetails.quantity <= 0}
@@ -142,8 +142,8 @@ const ProductDetails = ({ productId }) => {
                   <FaShoppingCart />
                 </span>
                 {productDetails.status === "sold_out" || productDetails.quantity <= 0
-                  ? "Sold Out"
-                  : "Buy now"}
+                  ? "已售罄"
+                  : "立即购买"}
               </button>
             )}
             <Dialog
@@ -154,13 +154,13 @@ const ProductDetails = ({ productId }) => {
             />
           </div>
           <div className="mt-8">
-            <h2 className="text-xl font-semibold">Description</h2>
+            <h2 className="text-xl font-semibold">描述</h2>
             <p className="text-gray-900 mt-2">{productDetails.description}</p>
           </div>
         </div>
       </div>
       <div className="mt-8 p-4">
-        <h2 className="text-xl font-semibold">Specifications</h2>
+        <h2 className="text-xl font-semibold">规格参数</h2>
         <div className="border-t border-gray-300 mt-2 pt-2">
           <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
             {productDetails.specifications.map((spec, index) => (

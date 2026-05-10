@@ -42,8 +42,8 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-96">
-        <h1 className="text-3xl font-semibold text-gray-900 mb-6">登录</h1>
+      <div className="bg-white p-8 rounded-lg shadow-lg sm:w-96 md:w-1/2">
+        <h1 className="text-3xl font-semibold text-gray-900 mb-4">登录</h1>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <input
@@ -55,7 +55,7 @@ const Login = () => {
               className="w-full py-2 px-4 rounded-lg bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
             />
           </div>
-          <div className="mb-6">
+          <div className="mb-4">
             <input
               type="password"
               name="password"
@@ -77,6 +77,7 @@ const Login = () => {
           <a href="/register" className="text-yellow-500 hover:text-gray-900">
             去注册
           </a>
+          .
         </p>
       </div>
     </div>

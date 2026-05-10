@@ -159,7 +159,7 @@ const ProductsList = () => {
 
   return (
     <div className="lg:w-4/5 mx-4 md:mx-auto py-4">
-      <h1 className="text-3xl font-semibold mb-4">All Products</h1>
+      <h1 className="text-3xl font-semibold mb-4">全部商品</h1>
       <div>
         {!isLoading ? (
           <div className="flex flex-col md:flex-row">

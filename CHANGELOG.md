@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] - 2026-05-10
+
+### Added
+- 新增AI商品描述生成功能（调用千问API）
+- 发布商品页面新增"AI生成描述"按钮，可根据商品名称自动生成描述
+- 新增 Server/services/aiService.js AI服务模块
+- 新增 Server/controllers/aiController.js AI控制器
+- 新增 Server/routes/aiRoutes.js AI路由
+
+---
+
+## [1.5.0] - 2026-05-10
+
+### Changed
+- 全站中文化：首页、商品列表页、筛选组件、商品卡片、侧边菜单、商品详情页、发布商品页、用户资料页等所有页面文字改为中文
+- 修复 docker-compose.yml 中 REACT_APP_BASE_URL 和 CLIENT_URL 配置，改为使用相对路径通过 Nginx 代理访问后端
+
+---
+
 ## [1.4.0] - 2026-05-10
 
 ### Changed

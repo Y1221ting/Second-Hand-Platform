@@ -37,13 +37,13 @@ const DrawerMenu = ({ isOpen, onClose, user, logout }) => {
           to={`/profile/${user.id}`}
           className="block text-gray-200 hover:text-yellow-500 py-2 transition duration-300"
         >
-          Profile
+          个人资料
         </Link>
         <Link
           to="/add-product"
           className="block text-gray-200 hover:text-yellow-500 py-2 transition duration-300"
         >
-          Add Product
+          发布商品
         </Link>
         <button
           onClick={() => {
@@ -53,7 +53,7 @@ const DrawerMenu = ({ isOpen, onClose, user, logout }) => {
           }}
           className="block text-gray-200 hover:text-yellow-500 py-2 w-full text-left transition duration-300"
         >
-          Sign Out
+          退出登录
         </button>
       </div>
     </div>
