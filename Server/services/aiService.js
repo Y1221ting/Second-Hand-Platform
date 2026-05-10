@@ -32,6 +32,39 @@ const generateDescription = async (productName, category) => {
   }
 };
 
+const recommendCategory = async (productName) => {
+  try {
+    const response = await axios.post(
+      "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+      {
+        model: "qwen-plus",
+        messages: [
+          {
+            role: "system",
+            content: "你是一个专业的二手商品分类助手。请根据商品名称，从以下分类中选择最合适的一个：electronics（电子产品）、mattress（床垫）、air cooler（空调扇）、cycles（自行车）、books（书籍）、other（其他）。只返回分类的英文名称，不要加任何解释。",
+          },
+          {
+            role: "user",
+            content: `请为以下商品推荐分类：${productName}`,
+          },
+        ],
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${process.env.QWEN_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    return response.data.choices[0].message.content.trim();
+  } catch (error) {
+    console.error("AI推荐分类失败:", error.response?.data || error.message);
+    throw new Error("AI推荐分类失败，请稍后重试");
+  }
+};
+
 module.exports = {
   generateDescription,
+  recommendCategory,
 };

@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] - 2026-05-10
+
+### Added
+- 新增AI智能分类功能，可根据商品名称自动推荐最合适的分类
+- 发布商品页面新增"AI推荐分类"按钮
+
+---
+
 ## [1.6.0] - 2026-05-10
 
 ### Added

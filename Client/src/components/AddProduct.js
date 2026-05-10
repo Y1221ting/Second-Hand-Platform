@@ -22,6 +22,7 @@ const AddProduct = () => {
     value: "",
   });
   const [aiLoading, setAiLoading] = useState(false);
+  const [categoryLoading, setCategoryLoading] = useState(false);
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -91,6 +92,43 @@ const AddProduct = () => {
       alert("生成失败，请检查网络连接");
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleRecommendCategory = async () => {
+    if (!formData.name) {
+      alert("请先输入商品名称");
+      return;
+    }
+    setCategoryLoading(true);
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BASE_URL}/api/ai/recommend-category`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            productName: formData.name,
+          }),
+        }
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setFormData({
+          ...formData,
+          category: data.category,
+        });
+      } else {
+        const error = await response.json();
+        alert(error.message || "推荐失败，请稍后重试");
+      }
+    } catch (error) {
+      console.error("AI推荐分类失败:", error);
+      alert("推荐失败，请检查网络连接");
+    } finally {
+      setCategoryLoading(false);
     }
   };
 
@@ -183,9 +221,24 @@ const AddProduct = () => {
 
           {/* Product Category Dropdown */}
           <div className="mb-4">
-            <label htmlFor="category" className="block text-gray-600">
-              分类
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="category" className="block text-gray-600">
+                分类
+              </label>
+              <button
+                type="button"
+                onClick={handleRecommendCategory}
+                disabled={categoryLoading}
+                className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition duration-300 ${
+                  categoryLoading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-purple-500 hover:bg-purple-600 text-white"
+                }`}
+              >
+                <FaMagic />
+                {categoryLoading ? "推荐中..." : "AI推荐分类"}
+              </button>
+            </div>
             <select
               id="category"
               name="category"
