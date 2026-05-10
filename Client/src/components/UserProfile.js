@@ -20,7 +20,7 @@ const UserProfile = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user || user.id !== id) {
+    if (!user) {
       navigate("/login");
     }
     fetch(`${process.env.REACT_APP_BASE_URL}/api/users/${id}`)
@@ -53,6 +53,7 @@ const UserProfile = () => {
       body: JSON.stringify(formData),
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     })
       .then((response) => response.json())
@@ -97,6 +98,7 @@ const UserProfile = () => {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );

@@ -24,15 +24,12 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
   };
 
   const handleSave = () => {
-    // Perform form validation here, check if all required fields are filled
-    const isFormValid = Object.values(formErrors).every((error) => !error);
+    const isFormValid = Object.values(formData).every((value) => value.trim() !== "");
 
     if (isFormValid) {
-      // If validation passes, save the data
       onSave(formData);
     } else {
       console.error("Please fill out all required fields.");
-      // You can handle this error state as needed in your application
     }
   };
 

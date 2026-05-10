@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-05-10
+
+### Changed
+- 注册页面（Register.js）简化表单：移除 collegeId、city、state、zipCode 字段，仅保留 email、password、fullName、college、phoneNo、address 六个字段
+- 注册页面全部中文化：标题、占位符、错误提示、按钮、链接均改为中文
+- 登录页面（Login.js）全部中文化：标题、占位符、按钮、链接均改为中文
+
+---
+
 ## [1.3.0] - 2026-05-09
 
 ### Added
@@ -9,17 +18,29 @@ All notable changes to this project will be documented in this file.
 - 新增商品购买接口（POST /api/products/:id/purchase），自动扣减库存
 - 前端商品详情页和列表页显示库存数量
 - 前端购买按钮根据库存状态显示"已售罄"或"立即购买"
+- 商品列表页自动刷新：切换到页面时自动重新获取最新数据
+- 筛选和搜索实时生效：修改筛选条件后立即更新商品列表，无需点击"Apply Filters"
 
 ### Changed
 - 修改购买逻辑：从删除商品改为扣减库存并更新状态
 - 商品状态新增 `sold_out`（售罄）枚举值
 - 购买成功后自动刷新商品详情，不再跳转首页
+- 商品卡片和详情页区分发布者：发布者看到"我的商品"/"这是您的商品"，不再显示购买按钮
+- 筛选逻辑重构：分离数据获取和筛选逻辑，筛选条件变化时自动重新筛选
+- 移除 Filters 组件中的"Apply Filters"按钮，改为实时生效
 
 ### Fixed
 - 修复购买功能直接删除商品导致数据丢失的问题
 - 修复前端购买按钮未处理售罄状态的问题
 - 修复前端购买成功后数据不刷新的问题（现在购买后会自动重新获取商品详情）
 - 修复商品卡片布局错乱问题（库存信息与上传者信息同行显示）
+- 修复登录后未保存 Token 导致后续操作失败的问题（Login.js）
+- 修复退出登录未清除 Token 的问题（authContext.js）
+- 修复发布商品、编辑商品、删除商品、更新个人信息缺少 Token 认证的问题
+- 修复已登录用户无法查看他人资料的问题（UserProfile.js）
+- 修复购买弹窗表单验证形同虚设的问题（Dialog.js）
+- 修复发布者可以购买自己商品的问题（后端增加越权检查）
+- 修复购买后返回首页库存数量不刷新的问题（visibilitychange 自动刷新）
 
 ---
 

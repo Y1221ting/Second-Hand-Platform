@@ -23,14 +23,13 @@ export const AuthProvider = ({ children }) => {
 
   const login = (newUser) => {
     setUser(newUser);
-    // Save user data to local storage
     localStorage.setItem("user", JSON.stringify(newUser));
   };
 
   const logout = () => {
     setUser(null);
-    // Remove user data from local storage
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
   };
 
   const isAuthenticated = !!user;

@@ -8,6 +8,7 @@ const ProductsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [collegeQuery, setCollegeQuery] = useState("");
+  const [allProducts, setAllProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [sortBy, setSortBy] = useState("latest");
   const [priceRange, setPriceRange] = useState([0, 10000]);
@@ -58,7 +59,7 @@ const ProductsList = () => {
     setCategoryFilter(e.target.value);
   };
 
-  const fetchProducts = async () => {
+  const fetchAllProducts = async () => {
     setIsLoading(true);
     try {
       const response = await fetch(
@@ -66,56 +67,7 @@ const ProductsList = () => {
       );
       if (response.ok) {
         const products = await response.json();
-
-        // Filter products based on the search query, price range, and category
-        const filtered = products
-          .filter((product) =>
-            product.name.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-          .filter((product) =>
-            product.uploadedBy.college
-              .toLowerCase()
-              .includes(collegeQuery.toLowerCase())
-          )
-          .filter(
-            (product) =>
-              product.price.$numberDecimal >= priceRange[0] &&
-              product.price.$numberDecimal <= priceRange[1]
-          )
-          .filter((product) =>
-            product.category
-              .toLowerCase()
-              .includes(categoryFilter.toLowerCase())
-          )
-          .filter((product) => {
-            if (searchQuery.trim() === "") {
-              return true; // If search query is empty, include all products
-            }
-            // Use a case-insensitive regex to match the search query against product name or description
-            const regex = new RegExp(searchQuery, "i");
-            return regex.test(product.name) || regex.test(product.description);
-          })
-          .sort((a, b) => {
-            if (sortBy === "lowestPrice") {
-              return (
-                parseFloat(a.price.$numberDecimal) -
-                parseFloat(b.price.$numberDecimal)
-              );
-            } else if (sortBy === "highestPrice") {
-              return (
-                parseFloat(b.price.$numberDecimal) -
-                parseFloat(a.price.$numberDecimal)
-              );
-            } else if (sortBy === "latest") {
-              return (
-                new Date(b.createdAt).getTime() -
-                new Date(a.createdAt).getTime()
-              );
-            }
-            return 0;
-          });
-
-        setFilteredProducts(filtered);
+        setAllProducts(products);
         setIsLoading(false);
       } else {
         console.error("Failed to fetch products");
@@ -126,9 +78,72 @@ const ProductsList = () => {
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchAllProducts();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchAllProducts();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const filtered = allProducts
+      .filter((product) =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .filter((product) =>
+        product.uploadedBy.college
+          .toLowerCase()
+          .includes(collegeQuery.toLowerCase())
+      )
+      .filter(
+        (product) =>
+          product.price.$numberDecimal >= priceRange[0] &&
+          product.price.$numberDecimal <= priceRange[1]
+      )
+      .filter((product) =>
+        product.category
+          .toLowerCase()
+          .includes(categoryFilter.toLowerCase())
+      )
+      .filter((product) => {
+        if (searchQuery.trim() === "") {
+          return true;
+        }
+        const regex = new RegExp(searchQuery, "i");
+        return regex.test(product.name) || regex.test(product.description);
+      })
+      .sort((a, b) => {
+        if (sortBy === "lowestPrice") {
+          return (
+            parseFloat(a.price.$numberDecimal) -
+            parseFloat(b.price.$numberDecimal)
+          );
+        } else if (sortBy === "highestPrice") {
+          return (
+            parseFloat(b.price.$numberDecimal) -
+            parseFloat(a.price.$numberDecimal)
+          );
+        } else if (sortBy === "latest") {
+          return (
+            new Date(b.createdAt).getTime() -
+            new Date(a.createdAt).getTime()
+          );
+        }
+        return 0;
+      });
+
+    setFilteredProducts(filtered);
+    setCurrentPage(1);
+  }, [searchQuery, collegeQuery, sortBy, priceRange, categoryFilter, allProducts]);
 
   const productsPerPage = 20;
   const indexOfLastProduct = currentPage * productsPerPage;
@@ -160,7 +175,6 @@ const ProductsList = () => {
               handlePriceRangeChange={handlePriceRangeChange}
               categoryFilter={categoryFilter}
               handleCategoryFilterChange={handleCategoryFilterChange}
-              handleFiltersApplied={fetchProducts}
             />
             <div className="w-full flex flex-col items-center">
               <ProductList currentProducts={currentProducts} />

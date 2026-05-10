@@ -262,6 +262,11 @@ exports.purchaseProduct = async (req, res) => {
       return res.status(400).json({ message: "Product is sold out" });
     }
 
+    // Check if buyer is the owner
+    if (product.uploadedBy.id === req.user._id.toString()) {
+      return res.status(400).json({ message: "不能购买自己的商品" });
+    }
+
     // Decrease quantity
     product.quantity -= 1;
 

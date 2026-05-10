@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import { FaShoppingCart } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/authContext";
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [clickedButtonId, setClickedButtonId] = useState(null);
+  const isOwner = user && user.id === product.uploadedBy._id;
 
   const handleAddToCart = (product) => {
     setClickedButtonId(product._id);
@@ -41,7 +44,16 @@ const ProductCard = ({ product }) => {
       </div>
       <p className="text-sm text-gray-300">{product.uploadedBy.college}</p>
 
-        <div className="flex justify-between items-center mt-2">
+      <div className="flex justify-between items-center mt-2">
+        {isOwner ? (
+          <button
+            className="flex items-center px-4 py-2 rounded bg-gray-600 text-gray-300 cursor-not-allowed"
+            disabled
+          >
+            <span className="mr-2"><FaShoppingCart /></span>
+            我的商品
+          </button>
+        ) : (
           <button
             className={`flex items-center px-4 py-2 rounded ${
               product.status === "sold_out" || product.quantity <= 0
@@ -70,10 +82,10 @@ const ProductCard = ({ product }) => {
               ? "已售罄"
               : "Buy now"}
           </button>
-          <p className="text-xl mx-auto">
-            ₹{parseFloat(product.price.$numberDecimal).toFixed(2)}
-          </p>
-        </div>
+        )}
+        <p className="text-xl mx-auto">
+          ₹{parseFloat(product.price.$numberDecimal).toFixed(2)}
+        </p>
       </div>
     </div>
   );

@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: second-hand-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: "@Yt1221wz"
+    networks:
+      - second-hand-network
+
+  backend:
+    build:
+      context: ./Server
+      dockerfile: Dockerfile
+    container_name: second-hand-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://admin:%40Yt1221wz@second-hand-mongodb:27017/second-hand?authSource=admin
+      - PORT=8000
+      - CLIENT_URL=http://localhost:5000
+    depends_on:
+      - mongodb
+    networks:
+      - second-hand-network
+    volumes:
+      - ./Server:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./Client
+      dockerfile: Dockerfile
+    container_name: second-hand-frontend
+    restart: always
+    ports:
+      - "5000:80"
+    environment:
+      - REACT_APP_BASE_URL=http://localhost:8000
+    depends_on:
+      - backend
+    networks:
+      - second-hand-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  second-hand-network:
+    driver: bridge

@@ -12,26 +12,11 @@ const Filters = ({
   handlePriceRangeChange,
   categoryFilter,
   handleCategoryFilterChange,
-  handleFiltersApplied,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
 
   const toggleFilters = () => {
     setShowFilters(!showFilters);
-  };
-
-  const handleApplyFilters = () => {
-    // Pass the filter criteria to the parent component
-    // You can define the filter criteria as an object and pass it to a function like handleFiltersApplied(criteria)
-    const filterCriteria = {
-      searchQuery,
-      collegeQuery,
-      sortBy,
-      priceRange,
-      categoryFilter,
-    };
-    // Call the function to apply filters in the parent component
-    handleFiltersApplied(filterCriteria);
   };
 
   const filtersClass = `${showFilters ? "block" : "hidden"} md:block`;
@@ -138,12 +123,7 @@ const Filters = ({
           </div>
         </div>
         <div className="mb-4">
-          <button
-            onClick={handleApplyFilters}
-            className="bg-gray-900 text-white py-2 px-4 rounded hover:bg-yellow-500 hover:text-gray-900 transition-all"
-          >
-            Apply Filters
-          </button>
+          <span className="text-gray-600 text-sm">筛选实时生效</span>
         </div>
       </div>
     </div>

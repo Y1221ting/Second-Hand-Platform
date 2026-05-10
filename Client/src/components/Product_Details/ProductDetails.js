@@ -114,34 +114,38 @@ const ProductDetails = ({ productId }) => {
             Stock: {productDetails.quantity || 0}
           </p>
           <div className="buy-now-button-container">
-            <button
-              className={`mt-8 flex items-center px-5 py-3 rounded text-lg ${
-                productDetails.status === "sold_out" || productDetails.quantity <= 0
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : clickedButtonId === productDetails._id
-                  ? "bg-green-500"
-                  : "bg-yellow-500 hover:bg-yellow-600"
-              } text-gray-800 transition duration-300 transform`}
-              onClick={() => {
-                if (productDetails.status !== "sold_out" && productDetails.quantity > 0) {
-                  handleAddToCart(productDetails._id);
-                } else {
-                  alert("This product is sold out");
-                }
-              }}
-              disabled={productDetails.status === "sold_out" || productDetails.quantity <= 0}
-            >
-              <span
-                className={`mr-2 ${
-                  clickedButtonId === productDetails._id ? "animate-ping" : ""
-                } transition-transform`}
+            {userId === productDetails.uploadedBy._id ? (
+              <p className="mt-8 text-lg text-gray-500 italic">这是您的商品</p>
+            ) : (
+              <button
+                className={`mt-8 flex items-center px-5 py-3 rounded text-lg ${
+                  productDetails.status === "sold_out" || productDetails.quantity <= 0
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : clickedButtonId === productDetails._id
+                    ? "bg-green-500"
+                    : "bg-yellow-500 hover:bg-yellow-600"
+                } text-gray-800 transition duration-300 transform`}
+                onClick={() => {
+                  if (productDetails.status !== "sold_out" && productDetails.quantity > 0) {
+                    handleAddToCart(productDetails._id);
+                  } else {
+                    alert("This product is sold out");
+                  }
+                }}
+                disabled={productDetails.status === "sold_out" || productDetails.quantity <= 0}
               >
-                <FaShoppingCart />
-              </span>
-              {productDetails.status === "sold_out" || productDetails.quantity <= 0
-                ? "Sold Out"
-                : "Buy now"}
-            </button>
+                <span
+                  className={`mr-2 ${
+                    clickedButtonId === productDetails._id ? "animate-ping" : ""
+                  } transition-transform`}
+                >
+                  <FaShoppingCart />
+                </span>
+                {productDetails.status === "sold_out" || productDetails.quantity <= 0
+                  ? "Sold Out"
+                  : "Buy now"}
+              </button>
+            )}
             <Dialog
               isOpen={isDialogOpen}
               onClose={() => setDialogOpen(false)}
