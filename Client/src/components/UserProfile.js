@@ -12,7 +12,9 @@ const UserProfile = () => {
   const { user } = useAuth();
   const { id } = useParams();
   const [userData, setUserData] = useState(null);
-  const [userProducts, setUserProducts] = useState([]); // State to store user's products
+  const [userProducts, setUserProducts] = useState([]);
+  const [purchasedProducts, setPurchasedProducts] = useState([]);
+  const [activeTab, setActiveTab] = useState("selling");
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -40,6 +42,15 @@ const UserProfile = () => {
       })
       .catch((error) => {
         console.error("Error fetching user products: ", error);
+      });
+
+    fetch(`/api/products/purchased/${id}`)
+      .then((response) => response.json())
+      .then((products) => {
+        setPurchasedProducts(products);
+      })
+      .catch((error) => {
+        console.error("Error fetching purchased products: ", error);
       });
   }, [id, user, navigate]);
 
@@ -140,13 +151,49 @@ const UserProfile = () => {
             handleSaveClick={handleSaveClick}
           />
         )}
-        {/* ProductList component */}
-        {userProducts && (
-          <ProductList
-            userProducts={userProducts}
-            onDeleteProduct={handleDeleteProduct}
-          />
-        )}
+        <div className="mt-8">
+          <div className="flex gap-4 mb-6">
+            <button
+              onClick={() => setActiveTab("selling")}
+              className={`px-6 py-2 rounded-lg font-semibold transition duration-300 ${
+                activeTab === "selling"
+                  ? "bg-yellow-500 text-white"
+                  : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+              }`}
+            >
+              我发布的 ({userProducts.length})
+            </button>
+            <button
+              onClick={() => setActiveTab("purchased")}
+              className={`px-6 py-2 rounded-lg font-semibold transition duration-300 ${
+                activeTab === "purchased"
+                  ? "bg-yellow-500 text-white"
+                  : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+              }`}
+            >
+              我购买的 ({purchasedProducts.length})
+            </button>
+          </div>
+          {activeTab === "selling" && userProducts.length > 0 && (
+            <ProductList
+              userProducts={userProducts}
+              onDeleteProduct={handleDeleteProduct}
+            />
+          )}
+          {activeTab === "purchased" && purchasedProducts.length > 0 && (
+            <ProductList
+              userProducts={purchasedProducts}
+              onDeleteProduct={() => {}}
+              showDelete={false}
+            />
+          )}
+          {activeTab === "selling" && userProducts.length === 0 && (
+            <p className="text-gray-500 text-center py-8">暂无发布的商品</p>
+          )}
+          {activeTab === "purchased" && purchasedProducts.length === 0 && (
+            <p className="text-gray-500 text-center py-8">暂无购买的记录</p>
+          )}
+        </div>
         {/* Confirmation dialog */}
         {showConfirmation && (
           <ConfirmDialog

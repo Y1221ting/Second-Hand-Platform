@@ -242,10 +242,14 @@ const AddProduct = () => {
             >
               <option value="other">其他</option>
               <option value="electronics">电子产品</option>
-              <option value="mattress">床垫</option>
-              <option value="air cooler">空调扇</option>
-              <option value="cycles">自行车</option>
-              <option value="books">书籍</option>
+              <option value="furniture">家具</option>
+              <option value="clothing">服装鞋帽</option>
+              <option value="books">书籍教材</option>
+              <option value="sports">运动户外</option>
+              <option value="food">食品生鲜</option>
+              <option value="transportation">交通工具</option>
+              <option value="beauty">美妆个护</option>
+              <option value="home">家居日用</option>
             </select>
           </div>
 
