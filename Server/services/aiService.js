@@ -41,7 +41,7 @@ const recommendCategory = async (productName) => {
         messages: [
           {
             role: "system",
-            content: "你是一个专业的二手商品分类助手。请根据商品名称，从以下分类中选择最合适的一个：electronics（电子产品）、mattress（床垫）、air cooler（空调扇）、cycles（自行车）、books（书籍）、other（其他）。只返回分类的英文名称，不要加任何解释。",
+            content: "你是一个专业的二手商品分类助手。请根据商品名称，从以下分类中选择最合适的一个：electronics（电子产品）、furniture（家具）、clothing（服装鞋帽）、books（书籍教材）、sports（运动户外）、food（食品生鲜）、transportation（交通工具）、beauty（美妆个护）、home（家居日用）、other（其他）。只返回分类的英文名称，不要加任何解释。",
           },
           {
             role: "user",

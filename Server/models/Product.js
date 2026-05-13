@@ -24,7 +24,7 @@ const ProductSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ["electronics", "mattress", "air cooler", "cycles", "books", "other"],
+    enum: ["electronics", "furniture", "clothing", "books", "sports", "food", "transportation", "beauty", "home", "other"],
     default: "other",
     required: true,
   },
@@ -57,6 +57,10 @@ const ProductSchema = new mongoose.Schema({
     type: Number,
     default: 1,
     min: 0,
+  },
+  purchasedBy: {
+    type: SellerSchema,
+    default: null,
   },
   createdAt: {
     type: Date,

@@ -7,6 +7,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 router.get("/", productController.getAllProducts);
 router.get("/:id", productController.getProductById);
 router.get("/user/:userId", productController.getProductsByUser);
+router.get("/purchased/:userId", productController.getPurchasedProducts);
 
 // Protected routes (auth required)
 router.post("/", authMiddleware, productController.createProduct);

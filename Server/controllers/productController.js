@@ -131,6 +131,23 @@ exports.getProductsByUser = async (req, res) => {
   }
 };
 
+exports.getPurchasedProducts = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    if (!userId || userId.length !== 24) {
+      return res.status(400).json({ message: "Invalid user ID format" });
+    }
+
+    const products = await Product.find({ "purchasedBy.id": userId });
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error("Error fetching purchased products:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
 // Add an image to a product
 exports.addImageToProduct = async (req, res) => {
   try {
@@ -269,6 +286,13 @@ exports.purchaseProduct = async (req, res) => {
 
     // Decrease quantity
     product.quantity -= 1;
+
+    // Record buyer info
+    product.purchasedBy = {
+      id: req.user._id.toString(),
+      name: req.user.name,
+      college: req.user.college || "",
+    };
 
     // If quantity reaches 0, mark as sold_out
     if (product.quantity === 0) {
