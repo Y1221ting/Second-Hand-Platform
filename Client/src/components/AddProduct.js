@@ -23,6 +23,7 @@ const AddProduct = () => {
   });
   const [aiLoading, setAiLoading] = useState(false);
   const [categoryLoading, setCategoryLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -135,54 +136,46 @@ const AddProduct = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
 
-    // Convert uploaded images to base64 strings
     const imagePromises = formData.images.map((image) =>
       getBase64(image).catch((error) =>
         console.error("Error converting image:", error)
       )
     );
 
-    // Wait for all images to be converted to base64
-    Promise.all(imagePromises)
-      .then((base64Images) => {
-        // Add the base64 image strings to formData
-
-        // Make the POST request
-        fetch(`${process.env.REACT_APP_BASE_URL}/api/products/`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+    try {
+      const base64Images = await Promise.all(imagePromises);
+      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/products/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          ...formData,
+          images: base64Images,
+          uploadedBy: {
+            _id: user.id,
+            name: user.name,
+            college: user.college,
           },
-          body: JSON.stringify({
-            ...formData,
-            images: base64Images,
-            uploadedBy: {
-              _id: user.id,
-              name: user.name,
-              college: user.college,
-            },
-          }),
-        })
-          .then((response) => {
-            if (response.ok) {
-              // Product was successfully added
-              // You can redirect the user or show a success message
-              console.log("Product added successfully!");
-              navigate("/home");
-            } else {
-              // Handle errors, e.g., show an error message to the user
-              console.error("Failed to add product.");
-            }
-          })
-          .catch((error) => {
-            console.error("Error:", error);
-          });
-      })
-      .catch((error) => {
-        console.error("Error converting images:", error);
+        }),
       });
+
+      if (response.ok) {
+        alert("商品发布成功！");
+        navigate("/home");
+      } else {
+        const errorData = await response.json();
+        alert(errorData.message || "发布失败，请稍后重试");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("发布失败，请检查网络连接");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // Function to convert an image file to base64
@@ -401,9 +394,14 @@ const AddProduct = () => {
           <div className="mb-4">
             <button
               type="submit"
-              className="w-full py-2 px-4 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-300"
+              disabled={submitting}
+              className={`w-full py-2 px-4 rounded-lg transition duration-300 ${
+                submitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-yellow-500 text-white hover:bg-yellow-600"
+              }`}
             >
-              发布商品
+              {submitting ? "发布中..." : "发布商品"}
             </button>
           </div>
         </form>

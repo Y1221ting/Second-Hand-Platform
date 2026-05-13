@@ -7,53 +7,43 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row md:justify-between align-middle">
           <div className="md:w-1/4 text-center md:text-left">
             <h2 className="text-xl font-bold">
-              <span className="text-yellow-500">Second</span>Hand
+              <span className="text-yellow-500">校园</span>二手市场
             </h2>
-            <p>Connecting Students, Empowering Deals!</p>
+            <p>连接同学，实惠交易！</p>
           </div>
           <div className="w-full md:w-3/4 grid grid-cols-2 text-center md:text-right md:flex md:flex-row justify-between mt-4 md:mt-0">
             <div className="md:w-1/4 my-2 md:my-0">
-              <h3 className="text-lg font-semibold">Product</h3>
+              <h3 className="text-lg font-semibold">快速导航</h3>
               <ul className="text-gray-300">
-                <li>Overview</li>
-                <li>Features</li>
-                <li>Pricing</li>
-                <li>Releases</li>
+                <li>首页</li>
+                <li>商品列表</li>
+                <li>发布商品</li>
+                <li>个人中心</li>
               </ul>
             </div>
             <div className="md:w-1/4 my-2 md:my-0">
-              <h3 className="text-lg font-semibold">Company</h3>
+              <h3 className="text-lg font-semibold">帮助中心</h3>
               <ul className="text-gray-300">
-                <li>About</li>
-                <li>Careers</li>
-                <li>News</li>
-                <li>Support</li>
+                <li>使用指南</li>
+                <li>常见问题</li>
+                <li>交易规则</li>
+                <li>联系客服</li>
               </ul>
             </div>
             <div className="md:w-1/4 my-2 md:my-0">
-              <h3 className="text-lg font-semibold">Social</h3>
+              <h3 className="text-lg font-semibold">关于我们</h3>
               <ul className="text-gray-300">
-                <li>LinkedIn</li>
-                <li>GitHub</li>
-                <li>Twitter</li>
-                <li>Instagram</li>
-              </ul>
-            </div>
-            <div className="md:w-1/4 my-2 md:my-0">
-              <h3 className="text-lg font-semibold">Legal</h3>
-              <ul className="text-gray-300">
-                <li>Terms</li>
-                <li>Privacy</li>
-                <li>Licenses</li>
-                <li>Contact</li>
+                <li>平台介绍</li>
+                <li>用户协议</li>
+                <li>隐私政策</li>
+                <li>意见反馈</li>
               </ul>
             </div>
           </div>
         </div>
         <hr className="border-gray-800 my-8" />
         <div className="text-gray-300 text-center">
-          &copy; {new Date().getFullYear()} SecondHand. All rights reserved.
-          Designed and developed by - Vanshaj Bhatnagar
+          &copy; {new Date().getFullYear()} 校园二手市场. All rights reserved.
         </div>
       </div>
     </footer>
