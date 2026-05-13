@@ -33,11 +33,53 @@ exports.createProduct = async (req, res) => {
   }
 };
 
-// Get all products
+// Get all products with pagination, search, and filtering
 exports.getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find();
-    res.status(200).json(products);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const search = req.query.search || "";
+    const category = req.query.category || "";
+    const sort = req.query.sort || "latest";
+    const college = req.query.college || "";
+
+    let query = {};
+
+    if (search) {
+      query.$text = { $search: search };
+    }
+
+    if (category) {
+      query.category = category;
+    }
+
+    if (college) {
+      query["uploadedBy.college"] = college;
+    }
+
+    if (req.query.minPrice || req.query.maxPrice) {
+      query.price = {};
+      if (req.query.minPrice) query.price.$gte = parseFloat(req.query.minPrice);
+      if (req.query.maxPrice) query.price.$lte = parseFloat(req.query.maxPrice);
+    }
+
+    let sortObj = {};
+    if (sort === "latest") sortObj = { createdAt: -1 };
+    else if (sort === "lowestPrice") sortObj = { price: 1 };
+    else if (sort === "highestPrice") sortObj = { price: -1 };
+
+    const total = await Product.countDocuments(query);
+    const products = await Product.find(query)
+      .sort(sortObj)
+      .skip((page - 1) * limit)
+      .limit(limit);
+
+    res.status(200).json({
+      products,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });

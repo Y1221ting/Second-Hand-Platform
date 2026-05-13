@@ -109,7 +109,7 @@ const EditProduct = () => {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/products/${id}`,
+        `/api/products/${id}`,
         {
           method: "PUT",
           headers: {

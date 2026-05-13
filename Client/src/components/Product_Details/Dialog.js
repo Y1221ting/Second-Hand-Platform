@@ -49,6 +49,8 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
 
   const [formErrors, setFormErrors] = useState({});
   const [availableCities, setAvailableCities] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [fetchError, setFetchError] = useState("");
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -74,6 +76,13 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
 
   useEffect(() => {
     const fetchUserDetails = async () => {
+      if (!id) {
+        setFetchError("用户ID无效");
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setFetchError("");
       try {
         const response = await fetch(
           `/api/users/${id}`
@@ -93,16 +102,23 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
           if (userData.state && provinceCityMap[userData.state]) {
             setAvailableCities(provinceCityMap[userData.state]);
           }
+        } else if (response.status === 404) {
+          setFetchError("未找到用户信息，请重新登录");
         } else {
-          console.error("获取用户信息失败");
+          setFetchError("获取用户信息失败");
         }
       } catch (error) {
         console.error(error);
+        setFetchError("网络错误，请检查连接");
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchUserDetails();
-  }, [id]);
+    if (isOpen) {
+      fetchUserDetails();
+    }
+  }, [id, isOpen]);
 
   if (!isOpen) {
     return null;
@@ -119,6 +135,23 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
           <FaTimes />
         </button>
         <h2 className="text-2xl font-semibold mb-4">确认收货信息</h2>
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto"></div>
+            <p className="text-gray-500 mt-2">加载中...</p>
+          </div>
+        ) : fetchError ? (
+          <div className="text-center py-8">
+            <p className="text-red-500 mb-4">{fetchError}</p>
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition duration-300"
+            >
+              关闭
+            </button>
+          </div>
+        ) : (
         <form className="dialog-form">
           <div className="flex flex-col md:flex-row w-full justify-between">
             <div className="w-full md:w-1/2 mr-1">
@@ -226,6 +259,7 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
             </button>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

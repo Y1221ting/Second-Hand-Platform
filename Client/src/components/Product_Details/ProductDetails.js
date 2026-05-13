@@ -32,7 +32,7 @@ const ProductDetails = ({ productId }) => {
         alert("购买成功！");
         // Refresh product details by fetching from API again
         const refreshResponse = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/products/${productId}`
+          `/api/products/${productId}`
         );
         if (refreshResponse.ok) {
           const refreshedData = await refreshResponse.json();
@@ -150,7 +150,7 @@ const ProductDetails = ({ productId }) => {
               isOpen={isDialogOpen}
               onClose={() => setDialogOpen(false)}
               onSave={handleConfirmPurchase}
-              id={productDetails.uploadedBy._id}
+              id={userId}
             />
           </div>
           <div className="mt-8">

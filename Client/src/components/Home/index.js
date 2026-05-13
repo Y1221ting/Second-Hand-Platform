@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Filters from "./Filters";
 import ProductList from "./ProductList";
 import Pagination from "./Pagination";
@@ -8,8 +8,8 @@ const ProductsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
   const [collegeQuery, setCollegeQuery] = useState("");
-  const [allProducts, setAllProducts] = useState([]);
-  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState("latest");
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -34,55 +34,68 @@ const ProductsList = () => {
     "NIT F",
   ];
 
-  // Handle search query change
   const handleSearchQueryChange = (e) => {
     setSearchQuery(e.target.value);
+    setCurrentPage(1);
   };
 
-  // Handle college query change
   const handleCollegeQueryChange = (e) => {
     setCollegeQuery(e.target.value);
+    setCurrentPage(1);
   };
 
-  // Handle sorting change
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
+    setCurrentPage(1);
   };
 
-  // Handle price range change
   const handlePriceRangeChange = (min, max) => {
     setPriceRange([min, max]);
+    setCurrentPage(1);
   };
 
-  // Handle category filter change
   const handleCategoryFilterChange = (e) => {
     setCategoryFilter(e.target.value);
+    setCurrentPage(1);
   };
 
-  const fetchAllProducts = async () => {
+  const fetchProducts = useCallback(async (page = 1) => {
     setIsLoading(true);
     try {
-      const response = await fetch(
-        `/api/products/`
-      );
+      const params = new URLSearchParams();
+      params.append("page", page);
+      params.append("limit", 20);
+      if (searchQuery.trim()) params.append("search", searchQuery.trim());
+      if (categoryFilter) params.append("category", categoryFilter);
+      if (collegeQuery && collegeQuery !== "All") params.append("college", collegeQuery);
+      params.append("sort", sortBy);
+      if (priceRange[0] > 0) params.append("minPrice", priceRange[0]);
+      if (priceRange[1] < 10000) params.append("maxPrice", priceRange[1]);
+
+      const response = await fetch(`/api/products/?${params.toString()}`);
       if (response.ok) {
-        const products = await response.json();
-        setAllProducts(products);
-        setIsLoading(false);
+        const data = await response.json();
+        setProducts(data.products);
+        setTotalPages(data.totalPages);
+        setCurrentPage(data.page);
       } else {
         console.error("Failed to fetch products");
       }
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [searchQuery, collegeQuery, sortBy, priceRange, categoryFilter]);
 
   useEffect(() => {
-    fetchAllProducts();
+    fetchProducts(currentPage);
+  }, [fetchProducts, currentPage]);
 
+  useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        fetchAllProducts();
+        fetchProducts(currentPage);
       }
     };
 
@@ -91,67 +104,7 @@ const ProductsList = () => {
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    const filtered = allProducts
-      .filter((product) =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-      .filter((product) =>
-        product.uploadedBy.college
-          .toLowerCase()
-          .includes(collegeQuery.toLowerCase())
-      )
-      .filter(
-        (product) =>
-          product.price.$numberDecimal >= priceRange[0] &&
-          product.price.$numberDecimal <= priceRange[1]
-      )
-      .filter((product) =>
-        product.category
-          .toLowerCase()
-          .includes(categoryFilter.toLowerCase())
-      )
-      .filter((product) => {
-        if (searchQuery.trim() === "") {
-          return true;
-        }
-        const regex = new RegExp(searchQuery, "i");
-        return regex.test(product.name) || regex.test(product.description);
-      })
-      .sort((a, b) => {
-        if (sortBy === "lowestPrice") {
-          return (
-            parseFloat(a.price.$numberDecimal) -
-            parseFloat(b.price.$numberDecimal)
-          );
-        } else if (sortBy === "highestPrice") {
-          return (
-            parseFloat(b.price.$numberDecimal) -
-            parseFloat(a.price.$numberDecimal)
-          );
-        } else if (sortBy === "latest") {
-          return (
-            new Date(b.createdAt).getTime() -
-            new Date(a.createdAt).getTime()
-          );
-        }
-        return 0;
-      });
-
-    setFilteredProducts(filtered);
-    setCurrentPage(1);
-  }, [searchQuery, collegeQuery, sortBy, priceRange, categoryFilter, allProducts]);
-
-  const productsPerPage = 20;
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(
-    indexOfFirstProduct,
-    indexOfLastProduct
-  );
+  }, [fetchProducts, currentPage]);
 
   const paginate = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -177,10 +130,9 @@ const ProductsList = () => {
               handleCategoryFilterChange={handleCategoryFilterChange}
             />
             <div className="w-full flex flex-col items-center">
-              <ProductList currentProducts={currentProducts} />
+              <ProductList currentProducts={products} />
               <Pagination
-                filteredProducts={filteredProducts}
-                productsPerPage={productsPerPage}
+                totalPages={totalPages}
                 currentPage={currentPage}
                 paginate={paginate}
               />

@@ -2,22 +2,69 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.10.0] - 2026-05-13
+
+### Added
+- 后端分页 + 搜索功能：Product 模型添加 name/description 文本索引，getAllProducts 接口支持 page、limit、search、category、college、sort、minPrice、maxPrice 参数
+- 前端首页适配后端分页：Filters 筛选条件变化时自动请求后端，Pagination 组件改用后端返回的 totalPages
+
+### Fixed
+- 修复 Dialog.js 购买弹窗传错用户 ID 的问题（之前传的是卖家 ID，改为当前登录用户 ID）
+- 修复 Dialog.js 缺少加载状态和错误提示的问题（新增 loading、fetchError 状态，网络异常时友好提示）
+- 修复 ProductDetails.js 和 EditProduct.js 中残留的 process.env.REACT_APP_BASE_URL 环境变量引用
+
+---
+
+## [1.9.0] - 2026-05-13
+
+### Added
+- 商品分类从 6 种扩展为 10 种：新增 furniture（家具）、clothing（服装鞋帽）、sports（运动户外）、food（食品生鲜）、transportation（交通工具）、beauty（美妆个护）、home（家居日用）
+- 购买记录功能：Product 模型新增 purchasedBy 字段记录购买者信息
+- 新增 GET /api/products/purchased/:userId 接口，根据用户 ID 查询购买记录
+- 个人资料页（UserProfile）新增"我发布的"和"我购买的"两个标签页切换
+- ProductList 组件新增 showDelete 属性，购买记录列表隐藏删除按钮
+- AI 分类推荐（aiService.js）同步更新为 10 种分类
+
+### Changed
+- 购买接口（POST /api/products/:id/purchase）自动记录购买者信息（id、name、college）
+- 购买后商品状态更新逻辑：库存归零时标记 sold_out，否则标记 sold
+
+---
+
+## [1.8.0] - 2026-05-13
+
+### Added
+- 页脚（Footer.js）全部中文化
+- 发布商品页（AddProduct.js）新增防重复提交功能（submitting 状态，按钮显示"发布中..."并禁用）
+- 购买弹窗（Dialog.js）全部中文化，新增省份-城市联动选择（支持全国 34 个省级行政区）
+- 新增 FormField 组件，统一表单字段样式和错误提示
+
+### Changed
+- 所有前端 API 请求从 `${process.env.REACT_APP_BASE_URL}/api/...` 改为相对路径 `/api/...`，通过 Nginx 代理转发到后端，解决前后端连接问题
+- 前端 Dockerfile 优化：不再在服务器上构建前端，改为直接使用本地 npm run build 生成的 build/ 文件夹
+- nginx.conf 配置 /api/ 反向代理到 backend:8000
+
+---
+
 ## [1.7.0] - 2026-05-10
 
 ### Added
-- 新增AI智能分类功能，可根据商品名称自动推荐最合适的分类
+- 新增 AI 智能分类功能，可根据商品名称自动推荐最合适的分类
 - 发布商品页面新增"AI推荐分类"按钮
+- 新增 Server/controllers/aiController.js 中 recommendProductCategory 方法
+- 新增 Server/routes/aiRoutes.js 中 POST /api/ai/recommend-category 路由
+- 新增 Server/services/aiService.js 中 recommendCategory 函数
 
 ---
 
 ## [1.6.0] - 2026-05-10
 
 ### Added
-- 新增AI商品描述生成功能（调用千问API）
+- 新增 AI 商品描述生成功能（调用通义千问 Qwen API）
 - 发布商品页面新增"AI生成描述"按钮，可根据商品名称自动生成描述
-- 新增 Server/services/aiService.js AI服务模块
-- 新增 Server/controllers/aiController.js AI控制器
-- 新增 Server/routes/aiRoutes.js AI路由
+- 新增 Server/services/aiService.js AI 服务模块
+- 新增 Server/controllers/aiController.js AI 控制器
+- 新增 Server/routes/aiRoutes.js AI 路由
 
 ---
 
@@ -25,7 +72,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - 全站中文化：首页、商品列表页、筛选组件、商品卡片、侧边菜单、商品详情页、发布商品页、用户资料页等所有页面文字改为中文
-- 修复 docker-compose.yml 中 REACT_APP_BASE_URL 和 CLIENT_URL 配置，改为使用相对路径通过 Nginx 代理访问后端
+- 修复 docker-compose.yml 中 REACT_APP_BASE_URL 和 CLIENT_URL 配置
 
 ---
 
@@ -50,7 +97,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 - 修改购买逻辑：从删除商品改为扣减库存并更新状态
-- 商品状态新增 `sold_out`（售罄）枚举值
+- 商品状态新增 sold_out（售罄）枚举值
 - 购买成功后自动刷新商品详情，不再跳转首页
 - 商品卡片和详情页区分发布者：发布者看到"我的商品"/"这是您的商品"，不再显示购买按钮
 - 筛选逻辑重构：分离数据获取和筛选逻辑，筛选条件变化时自动重新筛选
