@@ -66,7 +66,7 @@ const AddProduct = () => {
     setAiLoading(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/ai/generate-description`,
+        `/api/ai/generate-description`,
         {
           method: "POST",
           headers: {
@@ -104,7 +104,7 @@ const AddProduct = () => {
     setCategoryLoading(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/ai/recommend-category`,
+        `/api/ai/recommend-category`,
         {
           method: "POST",
           headers: {
@@ -146,7 +146,7 @@ const AddProduct = () => {
 
     try {
       const base64Images = await Promise.all(imagePromises);
-      const response = await fetch(`${process.env.REACT_APP_BASE_URL}/api/products/`, {
+      const response = await fetch(`/api/products/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

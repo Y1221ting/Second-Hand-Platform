@@ -21,7 +21,7 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/api/users/login`,
+      `/api/users/login`,
       {
         method: "POST",
         body: JSON.stringify(formData),

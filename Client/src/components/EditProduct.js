@@ -149,7 +149,7 @@ const EditProduct = () => {
       try {
         console.log(id);
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/products/${id}`
+          `/api/products/${id}`
         ); // Replace with your API endpoint
         if (response.ok) {
           const data = await response.json();

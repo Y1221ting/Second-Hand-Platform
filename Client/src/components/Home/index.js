@@ -63,7 +63,7 @@ const ProductsList = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/products/`
+        `/api/products/`
       );
       if (response.ok) {
         const products = await response.json();

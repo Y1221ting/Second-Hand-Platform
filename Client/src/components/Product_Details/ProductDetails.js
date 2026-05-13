@@ -17,7 +17,7 @@ const ProductDetails = ({ productId }) => {
   const handleConfirmPurchase = async (userData) => {
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BASE_URL}/api/products/${productId}/purchase`,
+        `/api/products/${productId}/purchase`,
         {
           method: "POST",
           headers: {
@@ -63,7 +63,7 @@ const ProductDetails = ({ productId }) => {
     const fetchProductDetails = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/products/${productId}`
+          `/api/products/${productId}`
         ); // Replace with your API endpoint
         if (response.ok) {
           const data = await response.json();

@@ -76,7 +76,7 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
     const fetchUserDetails = async () => {
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BASE_URL}/api/users/${id}`
+          `/api/users/${id}`
         );
         if (response.ok) {
           const userData = await response.json();

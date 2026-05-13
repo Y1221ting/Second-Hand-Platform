@@ -47,7 +47,7 @@ const Register = () => {
     }
 
     const response = await fetch(
-      `${process.env.REACT_APP_BASE_URL}/api/users/register`,
+      `/api/users/register`,
       {
         method: "POST",
         body: JSON.stringify(formData),
