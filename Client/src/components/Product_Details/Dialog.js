@@ -65,13 +65,23 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
   };
 
   const handleSave = () => {
-    const isFormValid = Object.values(formData).every((value) => value.trim() !== "");
+    const errors = {};
+    let hasError = false;
 
-    if (isFormValid) {
-      onSave(formData);
-    } else {
-      console.error("请填写所有必填字段。");
+    for (const field in formData) {
+      if (!formData[field] || formData[field].trim() === "") {
+        errors[field] = true;
+        hasError = true;
+      }
     }
+
+    if (hasError) {
+      setFormErrors(errors);
+      alert("请填写所有必填字段！");
+      return;
+    }
+
+    onSave(formData);
   };
 
   useEffect(() => {

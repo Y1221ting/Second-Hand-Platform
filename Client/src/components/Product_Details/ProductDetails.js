@@ -110,7 +110,7 @@ const ProductDetails = ({ productId }) => {
         <div className="md:ml-6 mt-4 md:mt-0">
           <h1 className="text-3xl font-semibold">{productDetails.name}</h1>
           <p className="text-gray-500 mt-2">
-            Uploaded by - {productDetails.uploadedBy.name}
+            发布者：{productDetails.uploadedBy.name}
           </p>
           <p className="text-2xl font-semibold mt-4">
             ¥{parseFloat(productDetails.price.$numberDecimal).toFixed(2)}
@@ -167,17 +167,21 @@ const ProductDetails = ({ productId }) => {
       <div className="mt-8 p-4">
         <h2 className="text-xl font-semibold">规格参数</h2>
         <div className="border-t border-gray-300 mt-2 pt-2">
-          <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
-            {productDetails.specifications.map((spec, index) => (
-              <div
-                key={index}
-                className="p-2 text-gray-900 hover:text-yellow-500 transition-transform hover:scale-105 transform-gpu duration-300 hover:bg-gray-900 hover:shadow-md rounded-md"
-              >
-                <dt className="font-semibold">{spec.key}</dt>
-                <dd className="text-sm font-medium">{spec.value}</dd>
-              </div>
-            ))}
-          </dl>
+          {productDetails.specifications && productDetails.specifications.length > 0 ? (
+            <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+              {productDetails.specifications.map((spec, index) => (
+                <div
+                  key={index}
+                  className="p-2 text-gray-900 hover:text-yellow-500 transition-transform hover:scale-105 transform-gpu duration-300 hover:bg-gray-900 hover:shadow-md rounded-md"
+                >
+                  <dt className="font-semibold">{spec.key}</dt>
+                  <dd className="text-sm font-medium">{spec.value}</dd>
+                </div>
+              ))}
+            </dl>
+          ) : (
+            <p className="text-gray-500 py-4">暂无规格参数</p>
+          )}
         </div>
       </div>
     </div>

@@ -36,7 +36,7 @@ const ProductCard = ({ product }) => {
       </h3>
       <div className="flex items-center justify-between mb-1">
         <p className="text-sm text-gray-300">
-          Uploaded by - {product.uploadedBy.name}
+          发布者：{product.uploadedBy.name}
         </p>
         <p className="text-sm text-gray-400">
           库存: {product.quantity || 0}

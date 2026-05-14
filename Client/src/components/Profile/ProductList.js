@@ -38,7 +38,7 @@ const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
             )}
             <div className="relative">
               <img
-                src={product.images[0]} // Use correct image source
+                src={product.images[0]}
                 alt={product.name}
                 className="w-full h-64 object-cover mb-4 rounded-lg"
               />
@@ -57,12 +57,20 @@ const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
             <span className="bg-white text-gray-900 py-1 rounded">
               发布于 - {new Date(product.createdAt).toLocaleDateString()}
             </span>
-            <Link
-              to={`/product/${product._id}`}
-              className="bg-yellow-500 text-white text-center py-2 rounded hover:bg-gray-900 transition duration-300"
-            >
-              查看商品
-            </Link>
+            <div className="flex gap-2 mt-2">
+              <Link
+                to={`/product/${product._id}/edit`}
+                className="flex-1 bg-blue-500 text-white text-center py-2 rounded hover:bg-blue-600 transition duration-300"
+              >
+                编辑商品
+              </Link>
+              <Link
+                to={`/product/${product._id}`}
+                className="flex-1 bg-yellow-500 text-white text-center py-2 rounded hover:bg-gray-900 transition duration-300"
+              >
+                查看商品
+              </Link>
+            </div>
           </div>
         ))}
       </div>
