@@ -9,6 +9,7 @@ const ProductsList = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [collegeQuery, setCollegeQuery] = useState("");
+  const [debouncedCollege, setDebouncedCollege] = useState("");
   const [products, setProducts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState("latest");
@@ -18,22 +19,44 @@ const ProductsList = () => {
   const debounceTimer = useRef(null);
 
   const collegeOptions = [
-    "All",
-    "IIIT K",
-    "IIIT A",
-    "IIIT B",
-    "IIIT C",
-    "IIIT D",
-    "IIIT E",
-    "IIIT F",
-    "IIIT G",
-    "IIIT H",
-    "NIT A",
-    "NIT B",
-    "NIT C",
-    "NIT D",
-    "NIT E",
-    "NIT F",
+    "全部",
+    "南昌大学",
+    "江西师范大学",
+    "江西财经大学",
+    "江西农业大学",
+    "华东交通大学",
+    "南昌航空大学",
+    "江西理工大学",
+    "东华理工大学",
+    "景德镇陶瓷大学",
+    "江西中医药大学",
+    "赣南医科大学",
+    "南昌工程学院",
+    "江西科技师范大学",
+    "井冈山大学",
+    "宜春学院",
+    "九江学院",
+    "上饶师范学院",
+    "赣南师范大学",
+    "南昌师范学院",
+    "萍乡学院",
+    "新余学院",
+    "景德镇学院",
+    "豫章师范学院",
+    "江西警察学院",
+    "南昌理工学院",
+    "江西科技学院",
+    "江西服装学院",
+    "江西工程学院",
+    "江西应用科技学院",
+    "南昌工学院",
+    "南昌医学院",
+    "赣东学院",
+    "赣南科技学院",
+    "南昌应用技术师范学院",
+    "江西软件职业技术大学",
+    "南昌职业大学",
+    "景德镇艺术职业大学",
   ];
 
   const handleSearchQueryChange = (e) => {
@@ -48,6 +71,10 @@ const ProductsList = () => {
   const handleCollegeQueryChange = (e) => {
     setCollegeQuery(e.target.value);
     setCurrentPage(1);
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedCollege(e.target.value);
+    }, 500);
   };
 
   const handleSortChange = (e) => {
@@ -73,7 +100,7 @@ const ProductsList = () => {
       params.append("limit", 20);
       if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
       if (categoryFilter) params.append("category", categoryFilter);
-      if (collegeQuery && collegeQuery !== "All") params.append("college", collegeQuery);
+      if (debouncedCollege && debouncedCollege !== "全部") params.append("college", debouncedCollege);
       params.append("sort", sortBy);
       if (priceRange[0] > 0) params.append("minPrice", priceRange[0]);
       if (priceRange[1] < 10000) params.append("maxPrice", priceRange[1]);
@@ -92,7 +119,7 @@ const ProductsList = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, collegeQuery, sortBy, priceRange, categoryFilter]);
+  }, [debouncedSearch, debouncedCollege, sortBy, priceRange, categoryFilter]);
 
   useEffect(() => {
     fetchProducts(currentPage);
