@@ -172,7 +172,7 @@ const AddProduct = () => {
       }
     } catch (error) {
       console.error("Error:", error);
-      alert("发布失败，请检查网络连接");
+      alert(`发布失败：${error.message || "请检查网络连接"}`);
     } finally {
       setSubmitting(false);
     }
