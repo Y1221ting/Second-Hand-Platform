@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import Navbar from "./Utility/Navbar"; // Import your Navbar component
-import Footer from "./Utility/Footer"; // Import your Footer component
-import { useAuth } from "../context/authContext";
+import Navbar from "./Utility/Navbar";
+import Footer from "./Utility/Footer";
 import { useNavigate, useParams } from "react-router-dom";
 import ProductForm from "./Edit_Product/ProductForm";
 

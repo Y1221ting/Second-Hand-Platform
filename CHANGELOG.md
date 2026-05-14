@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.13.0] - 2026-05-14
+
+### Added
+- 编辑商品功能：发布者可在个人资料页点击"编辑商品"按钮修改商品信息
+- 商品详情页规格参数显示：支持显示/空值处理（"暂无规格参数"）
+- 购买表单验证：未填完整信息时弹出提示"请填写所有必填字段！"
+- 注册失败提示：重复注册时显示后端返回的错误信息（如"该邮箱已被注册"）
+- 图片懒加载：使用 IntersectionObserver 只加载可视区域内的图片，提升页面性能
+- 编辑商品权限错误提示：403/401 分别显示"权限不足"和"登录已过期"
+
+### Changed
+- 商品详情页"Uploaded by" → "发布者："（中文化）
+- 商品卡片"Uploaded by" → "发布者："（中文化）
+- 列表页 API 优化：只返回第一张图片，减少数据传输量
+- 购买商品列表排除自己发布的商品（getPurchasedProducts 增加 $ne 过滤）
+
+### Fixed
+- 修复 ProductCard.js 中 `uploadedBy._id` 应为 `uploadedBy.id` 的字段名不一致问题
+- 修复 ProductCard.js 中 `uploadedBy.name` 缺少可选链保护的问题
+- 修复 EditProduct.js 中未使用的 `useAuth` 导入
+- 修复编辑商品时发送 `uploadedBy` 字段覆盖数据库数据的问题
+- 修复 ProductDetails.js 中 `uploadedBy._id` 应为 `uploadedBy.id` 的字段名不一致问题
+- 修复规格参数显示：添加 `Array.isArray()` 类型检查
+
+### Performance
+- ProductCard 使用 React.memo 避免不必要的重渲染
+- CSS 过渡效果优化：transition-all → transition-transform/transition-colors
+- 列表页后端只返回必要字段（.select()）和第一张图片
+
+---
+
 ## [1.12.0] - 2026-05-14
 
 ### Fixed
@@ -31,8 +62,8 @@ All notable changes to this project will be documented in this file.
 ## [1.11.0] - 2026-05-14
 
 ### Added
-- 搜索框防抖自动搜索（400ms）：输入停止后自动触发搜索，符合主流电商交互标准
-- 学校搜索框防抖自动搜索（400ms）：同上
+- 搜索框防抖自动搜索（800ms）：输入停止后自动触发搜索，符合主流电商交互标准
+- 学校搜索框防抖自动搜索（800ms）：同上
 - 中文输入法兼容：composition 事件处理，拼音输入期间不触发搜索
 - Enter 键立即触发搜索：搜索框和学校搜索框支持 Enter 键快速搜索
 - 筛选条件即时生效：分类下拉、排序下拉、价格滑块选择后立即刷新页面

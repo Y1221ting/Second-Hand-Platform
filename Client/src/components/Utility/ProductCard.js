@@ -9,7 +9,7 @@ const ProductCard = memo(({ product }) => {
   const [clickedButtonId, setClickedButtonId] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const imageRef = useRef(null);
-  const isOwner = user && user.id === product.uploadedBy._id;
+  const isOwner = user && user.id === product.uploadedBy?.id;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -62,13 +62,13 @@ const ProductCard = memo(({ product }) => {
       </h3>
       <div className="flex items-center justify-between mb-1">
         <p className="text-sm text-gray-300">
-          发布者：{product.uploadedBy.name}
+          发布者：{product.uploadedBy?.name || '未知'}
         </p>
         <p className="text-sm text-gray-400">
           库存: {product.quantity || 0}
         </p>
       </div>
-      <p className="text-sm text-gray-300">{product.uploadedBy.college}</p>
+      <p className="text-sm text-gray-300">{product.uploadedBy?.college}</p>
 
       <div className="flex justify-between items-center mt-2">
         {isOwner ? (

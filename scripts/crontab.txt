@@ -1,0 +1,5 @@
+# 每天凌晨2点自动备份数据库
+0 2 * * * /bin/bash /www/wwwroot/Second-Hand-main/scripts/backup.sh >> /www/wwwroot/Second-Hand-main/logs/backup.log 2>&1
+
+# 每周日凌晨3点清理缓存
+0 3 * * 0 /bin/bash /www/wwwroot/Second-Hand-main/scripts/cleanup.sh >> /www/wwwroot/Second-Hand-main/logs/cleanup.log 2>&1
