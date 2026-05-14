@@ -89,7 +89,7 @@ const ProductDetails = ({ productId }) => {
 
   return (
     <div className="rounded-lg shadow-md m-4 transition duration-300 hover:shadow-lg bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200">
-      {userId === productDetails.uploadedBy._id && (
+      {userId === productDetails.uploadedBy?.id && (
         <Link
           to={`/product/${productId}/edit`}
           className="bg-gray-900 p-2 hover:text-yellow-500 text-white border-b-2 border-transparent font-semibold mb-4 inline-flex items-center gap-2 transform hover:scale-105 hover:shadow-2xl rounded-tl-lg rounded-br-lg transition-transform duration-300"
@@ -102,14 +102,14 @@ const ProductDetails = ({ productId }) => {
       )}
       <div className="flex flex-col md:flex-row p-4">
         <img
-          src={productDetails.images[0]} // Modify to use the correct image source
+          src={productDetails.images[0]}
           alt={productDetails.name}
           className="w-full md:w-1/2 h-auto rounded-lg"
         />
         <div className="md:ml-6 mt-4 md:mt-0">
           <h1 className="text-3xl font-semibold">{productDetails.name}</h1>
           <p className="text-gray-500 mt-2">
-            Uploaded by - {productDetails.uploadedBy.name}
+            发布者：{productDetails.uploadedBy?.name || '未知'}
           </p>
           <p className="text-2xl font-semibold mt-4">
             ¥{parseFloat(productDetails.price.$numberDecimal).toFixed(2)}
@@ -118,7 +118,7 @@ const ProductDetails = ({ productId }) => {
             库存: {productDetails.quantity || 0}
           </p>
           <div className="buy-now-button-container">
-            {userId === productDetails.uploadedBy._id ? (
+            {userId === productDetails.uploadedBy?.id ? (
               <p className="mt-8 text-lg text-gray-500 italic">这是您的商品</p>
             ) : (
               <button
