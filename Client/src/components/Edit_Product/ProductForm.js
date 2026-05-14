@@ -18,7 +18,7 @@ const ProductForm = ({
       {/* Product Name */}
       <div className="mb-4">
         <label htmlFor="name" className="block text-gray-600">
-          Product Name
+          商品名称
         </label>
         <input
           type="text"
@@ -34,7 +34,7 @@ const ProductForm = ({
       {/* Product Category Dropdown */}
       <div className="mb-4">
         <label htmlFor="category" className="block text-gray-600">
-          Category
+          分类
         </label>
         <select
           id="category"
@@ -44,19 +44,23 @@ const ProductForm = ({
           className="w-full border rounded-lg py-2 px-3"
           required
         >
-          <option value="other">Other</option>
-          <option value="electronics">Electronics</option>
-          <option value="mattress">Mattress</option>
-          <option value="air cooler">Air Cooler</option>
-          <option value="cycles">Cycles</option>
-          <option value="books">Books</option>
+          <option value="other">其他</option>
+          <option value="electronics">电子产品</option>
+          <option value="furniture">家具</option>
+          <option value="clothing">服装鞋帽</option>
+          <option value="books">书籍教材</option>
+          <option value="sports">运动户外</option>
+          <option value="food">食品生鲜</option>
+          <option value="transportation">交通工具</option>
+          <option value="beauty">美妆个护</option>
+          <option value="home">家居日用</option>
         </select>
       </div>
 
       {/* Product Description */}
       <div className="mb-4">
         <label htmlFor="description" className="block text-gray-600">
-          Description
+          描述
         </label>
         <textarea
           id="description"
@@ -71,7 +75,7 @@ const ProductForm = ({
       {/* Product Price */}
       <div className="mb-4">
         <label htmlFor="price" className="block text-gray-600">
-          Price (in ₹)
+          价格（元）
         </label>
         <input
           type="number"
@@ -88,7 +92,7 @@ const ProductForm = ({
       {/* Product Images */}
       <div className="mb-4">
         <label htmlFor="images" className="block text-gray-600">
-          Images
+          图片
         </label>
         <input
           type="file"
@@ -103,7 +107,7 @@ const ProductForm = ({
           onClick={handleAddImage}
           className="mt-2 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-300"
         >
-          Add Image
+          添加图片
         </button>
         {imageFieldError && <p className="text-red-500">{imageFieldError}</p>}
         {formData.images.length > 0 && (
@@ -121,7 +125,7 @@ const ProductForm = ({
                   onClick={() => handleRemoveImage(index)}
                   className="bg-red-500 text-white py-2 px-3 rounded-lg hover:bg-red-600 transition duration-300"
                 >
-                  Remove
+                  删除
                 </button>
               </div>
             ))}
@@ -132,7 +136,7 @@ const ProductForm = ({
       {/* Product Specifications (if applicable) */}
       <div className="mb-4">
         <label htmlFor="specifications" className="block text-gray-600">
-          Specifications
+          规格参数
         </label>
         {formData.specifications.map((spec, index) => (
           <div
@@ -160,7 +164,7 @@ const ProductForm = ({
               onClick={() => handleRemoveSpecification(index)}
               className="w-full md:w-32 bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition duration-300"
             >
-              Remove
+              删除
             </button>
           </div>
         ))}
@@ -177,7 +181,7 @@ const ProductForm = ({
               })
             }
             className="w-full md:w-[45%] border rounded-lg py-2 px-3 my-2 md:my-0"
-            placeholder="Key"
+            placeholder="键"
           />
           <input
             type="text"
@@ -191,14 +195,14 @@ const ProductForm = ({
               })
             }
             className="w-full md:w-[45%] border rounded-lg py-2 px-3 my-2 md:my-0"
-            placeholder="Value"
+            placeholder="值"
           />
           <button
             type="button"
             onClick={handleAddSpecification}
             className="w-full md:w-32 bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition duration-300"
           >
-            Add
+            添加
           </button>
         </div>
       </div>
@@ -209,7 +213,7 @@ const ProductForm = ({
           type="submit"
           className="w-full py-2 px-4 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-300"
         >
-          Save Changes
+          保存修改
         </button>
       </div>
     </form>

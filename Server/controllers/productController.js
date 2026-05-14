@@ -16,7 +16,7 @@ exports.createProduct = async (req, res) => {
     // 3. Add uploader info from authenticated user
     req.body.uploadedBy = {
       id: req.user._id.toString(),
-      name: req.user.name,
+      name: req.user.fullName,
       college: req.user.college || "",
     };
 
@@ -332,7 +332,7 @@ exports.purchaseProduct = async (req, res) => {
     // Record buyer info
     product.purchasedBy = {
       id: req.user._id.toString(),
-      name: req.user.name,
+      name: req.user.fullName,
       college: req.user.college || "",
     };
 

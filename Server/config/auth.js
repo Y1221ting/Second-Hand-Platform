@@ -1,7 +1,7 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-const SECRET = "your-secret-key"; // Replace with your secret key
+const SECRET = process.env.JWT_SECRET || "your-secret-key"; // Use environment variable for security
 
 async function hashPassword(password) {
   return await bcrypt.hash(password, 12);

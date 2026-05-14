@@ -84,7 +84,7 @@ const ProductCard = ({ product }) => {
           </button>
         )}
         <p className="text-xl mx-auto">
-          ₹{parseFloat(product.price.$numberDecimal).toFixed(2)}
+          ¥{parseFloat(product.price.$numberDecimal).toFixed(2)}
         </p>
       </div>
     </div>

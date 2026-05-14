@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.12.0] - 2026-05-14
+
+### Fixed
+- 修复 productController.js 中用户字段不一致问题：`req.user.name` → `req.user.fullName`（发布商品 + 购买商品），解决卖家/买家信息显示为 undefined 的问题
+- 修复 EditProduct.js 中 `user.name` → `user.fullName`，保持字段一致性
+- 修复 Dialog.js 购买弹窗 404 错误：购买前检查用户登录状态，未登录时跳转登录页，避免传递 null userId
+
+### Security
+- JWT 密钥硬编码修复：auth.js 和 authMiddleware.js 改为从环境变量 `process.env.JWT_SECRET` 读取
+- docker-compose.yml 新增 `JWT_SECRET` 环境变量配置
+
+### Changed
+- 货币符号统一：ProductDetails.js、ProductCard.js、Profile/ProductList.js 中 `₹`（印度卢比）→ `¥`（人民币）
+- 分类筛选器完善：Filters.js 添加"其他"（other）分类选项，与后端 10 种分类完全一致
+- Mongoose 连接优化：db.js 移除已弃用的 `useNewUrlParser` 和 `useUnifiedTopology` 选项
+
+### 界面汉化
+- EditProduct.js：标题"Edit Product" → "编辑商品"
+- ProductForm.js：分类选项从旧分类（mattress、air cooler、cycles）替换为 10 种新分类，所有英文标签改为中文（商品名称、分类、描述、价格、图片、规格参数、添加、删除、保存修改等）
+- Profile/ProductList.js：标题"My Products" → "我的商品"，"Uploaded on" → "发布于"，"View Product" → "查看商品"
+- Navbar.js："Sign In" → "登录"
+- FormField.js：错误提示"This field is required" → "此项为必填"
+- ConfirmDialog.js：全部英文改为中文（"确定要删除此商品吗？"、"取消"、"删除"）
+
+---
+
 ## [1.11.0] - 2026-05-14
 
 ### Added
@@ -10,6 +36,8 @@ All notable changes to this project will be documented in this file.
 - 中文输入法兼容：composition 事件处理，拼音输入期间不触发搜索
 - Enter 键立即触发搜索：搜索框和学校搜索框支持 Enter 键快速搜索
 - 筛选条件即时生效：分类下拉、排序下拉、价格滑块选择后立即刷新页面
+- 分页组件优化：新增 totalItems 属性，根据后端返回的 totalPages 计算总页数，避免手动计算
+- <快速导航>实际跳转
 
 ### Changed
 - 学校列表从印度院校替换为江西省内 38 所本科院校（南昌大学、江西师范大学、江西财经大学等）

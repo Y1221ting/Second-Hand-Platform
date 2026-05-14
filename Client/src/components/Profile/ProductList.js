@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
   return (
     <div className="mt-8">
-      <h2 className="text-2xl font-semibold mb-4">My Products</h2>
+      <h2 className="text-2xl font-semibold mb-4">我的商品</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {userProducts.map((product) => (
           <div
@@ -51,17 +51,17 @@ const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
                   : product.description}
               </p>
               <p className="text-yellow-500 text-lg font-semibold mb-2">
-                ₹{parseFloat(product.price.$numberDecimal).toFixed(2)}
+                ¥{parseFloat(product.price.$numberDecimal).toFixed(2)}
               </p>
             </div>
             <span className="bg-white text-gray-900 py-1 rounded">
-              Uploaded on - {new Date(product.createdAt).toLocaleDateString()}
+              发布于 - {new Date(product.createdAt).toLocaleDateString()}
             </span>
             <Link
               to={`/product/${product._id}`}
               className="bg-yellow-500 text-white text-center py-2 rounded hover:bg-gray-900 transition duration-300"
             >
-              View Product
+              查看商品
             </Link>
           </div>
         ))}

@@ -16,7 +16,7 @@ const FormField = ({ label, name, type, value, onChange, error }) => {
         required
       />
       {error && (
-        <p className="text-red-500 text-xs mt-1">This field is required</p>
+        <p className="text-red-500 text-xs mt-1">此项为必填</p>
       )}
     </div>
   );

@@ -120,7 +120,7 @@ const EditProduct = () => {
             ...formData,
             uploadedBy: {
               _id: user.id,
-              name: user.name,
+              name: user.fullName,
               college: user.college,
             },
           }),
@@ -177,7 +177,7 @@ const EditProduct = () => {
       <Navbar />
       <div className="w-4/5 mx-auto py-4">
         <h1 className="text-3xl font-semibold text-gray-900 mb-4">
-          Edit Product
+          编辑商品
         </h1>
         <ProductForm
           formData={formData}

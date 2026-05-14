@@ -108,6 +108,7 @@ const Filters = ({
             <option value="transportation">交通工具</option>
             <option value="beauty">美妆个护</option>
             <option value="home">家居日用</option>
+            <option value="other">其他</option>
           </select>
         </div>
         <div className="mb-4">

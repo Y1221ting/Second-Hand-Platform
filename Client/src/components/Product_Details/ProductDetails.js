@@ -50,6 +50,11 @@ const ProductDetails = ({ productId }) => {
   };
 
   const handleAddToCart = (productId) => {
+    if (!userId) {
+      alert("请先登录后再购买");
+      navigate("/login");
+      return;
+    }
     setClickedButtonId(productId);
     setDialogOpen(true);
     setTimeout(() => {
@@ -108,7 +113,7 @@ const ProductDetails = ({ productId }) => {
             Uploaded by - {productDetails.uploadedBy.name}
           </p>
           <p className="text-2xl font-semibold mt-4">
-            ₹{parseFloat(productDetails.price.$numberDecimal).toFixed(2)}
+            ¥{parseFloat(productDetails.price.$numberDecimal).toFixed(2)}
           </p>
           <p className="text-gray-600 mt-2">
             库存: {productDetails.quantity || 0}

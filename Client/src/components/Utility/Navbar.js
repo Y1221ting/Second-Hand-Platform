@@ -40,7 +40,7 @@ const Navbar = () => {
             to="/login"
             className="text-white text-xl hover:text-yellow-500 transition duration-300 p-2"
           >
-            Sign In
+            登录
           </Link>
         )}
       </div>
