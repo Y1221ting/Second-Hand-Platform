@@ -24,6 +24,7 @@ const ProductDetails = ({ productId }) => {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${localStorage.getItem("token")}`,
           },
+          body: JSON.stringify(userData), // 把 Dialog 填写的收货信息传到后端
         }
       );
       

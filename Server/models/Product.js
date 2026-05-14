@@ -68,8 +68,10 @@ const ProductSchema = new mongoose.Schema({
   },
 });
 
-const Product = mongoose.model("Product", ProductSchema);
-
+// 索引定义必须在 model() 之前才生效
 ProductSchema.index({ name: "text", description: "text" });
+ProductSchema.index({ createdAt: -1 });
+
+const Product = mongoose.model("Product", ProductSchema);
 
 module.exports = Product;

@@ -138,14 +138,33 @@ const AddProduct = () => {
     e.preventDefault();
     setSubmitting(true);
 
-    const imagePromises = formData.images.map((image) =>
-      getBase64(image).catch((error) =>
-        console.error("Error converting image:", error)
-      )
-    );
-
     try {
-      const base64Images = await Promise.all(imagePromises);
+      // Step 1: 先上传图片到服务器，获取 URL（不再存 base64）
+      let imageUrls = [];
+      if (formData.images.length > 0) {
+        const formDataImages = new FormData();
+        formData.images.forEach((img) => formDataImages.append("images", img));
+
+        const uploadRes = await fetch(`/api/upload`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: formDataImages,
+        });
+
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          alert(errData.message || "图片上传失败");
+          setSubmitting(false);
+          return;
+        }
+
+        const uploadData = await uploadRes.json();
+        imageUrls = uploadData.urls;
+      }
+
+      // Step 2: 用图片 URL 创建商品
       const response = await fetch(`/api/products/`, {
         method: "POST",
         headers: {
@@ -154,12 +173,7 @@ const AddProduct = () => {
         },
         body: JSON.stringify({
           ...formData,
-          images: base64Images,
-          uploadedBy: {
-            _id: user.id,
-            name: user.fullName,
-            college: user.college,
-          },
+          images: imageUrls,
         }),
       });
 

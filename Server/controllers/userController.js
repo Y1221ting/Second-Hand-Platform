@@ -93,6 +93,11 @@ exports.updateUser = async (req, res) => {
       return res.status(400).json({ error: "Request body is empty" });
     }
 
+    // ⚠️ 越权检查：只能修改自己的资料
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ error: "无权修改他人资料" });
+    }
+
     const user = await User.findByIdAndUpdate(userId, body, {
       new: true,
       runValidators: true,
@@ -115,6 +120,11 @@ exports.updateUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
   const { userId } = req.params;
   try {
+    // ⚠️ 越权检查：只能删除自己的账户
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ error: "无权删除他人账户" });
+    }
+
     const user = await User.findByIdAndRemove(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });

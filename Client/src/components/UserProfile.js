@@ -143,7 +143,7 @@ const UserProfile = () => {
         {userData && (
           <UserDetails
             userData={userData}
-            displayEdit={user && user.id}
+            displayEdit={user && user.id === id}
             editMode={editMode}
             formData={formData}
             handleChange={handleChange}

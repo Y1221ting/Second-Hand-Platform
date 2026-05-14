@@ -22,3 +22,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# uploads (user content, not tracked)
+/uploads/*
+!/uploads/.gitkeep

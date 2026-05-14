@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const { SECRET } = require("../config/auth");
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -10,9 +11,8 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: "No token, authorization denied" });
     }
 
-    // 2. Verify token
-    // Note: Use the same secret as in auth.js
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "your-secret-key");
+    // 2. Verify token — 统一从 config/auth.js 读取密钥
+    const decoded = jwt.verify(token, SECRET);
     
     // 3. Find user
     const user = await User.findById(decoded.userId);

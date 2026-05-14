@@ -235,15 +235,17 @@ docker compose up -d --build frontend
 ### 注意事项
 - 服务器内存2GB，**不要在服务器上构建前端**（会卡死）
 - 前端Dockerfile已改为直接使用本地构建的 `build/` 文件夹
-- 前端通过 nginx 代理 `/api/` 到后端，无需CORS
+- 前端通过 nginx 代理 `/api/` 和 `/uploads/` 到后端，无需CORS
 - MongoDB数据通过Docker卷持久化，重启不会丢失
+- 上传的图片存在 `Server/uploads/`（已被 bind mount 持久化，重启不丢失）
+- nginx 配置同时代理了 `/uploads/` 到后端，前端可直接用 `/uploads/xxx.jpg` 访问图片
 
 ---
 
 ## 当前已完成的功能
 
 1. ✅ **用户注册/登录** - JWT认证
-2. ✅ **商品发布** - 含图片(base64)、规格参数
+2. ✅ **商品发布** - 含图片（改用文件存储，不再存 base64）、规格参数
 3. ✅ **商品列表** - 搜索、筛选（分类/学校/价格）、排序
 4. ✅ **商品详情** - 图片、描述、规格、购买按钮
 5. ✅ **购买功能** - 减库存、记录购买者、标记售罄
@@ -257,6 +259,41 @@ docker compose up -d --build frontend
 
 1. **Dialog.js 404错误** - 购买弹窗获取用户信息时可能404（`/api/users/:id`），需要确认用户ID有效性
 2. **购买记录** - 新功能刚上线，旧商品的 `purchasedBy` 字段为空
-3. **图片存储** - 目前用base64存数据库，大图片会占用大量空间，建议改用对象存储（OSS）
+3. **图片存储** - ✅ 已从 base64 改为本地文件存储（`Server/uploads/`），数据库只存 `/uploads/xxx.jpg` 路径，大幅降低 MongoDB 压力。后续可迁移到对象存储（OSS）
 4. **分页** - 商品列表目前是前端分页，商品多时建议改为后端分页
 5. **搜索** - 目前是前端搜索，建议改为后端搜索（MongoDB索引）
+
+---
+
+## 🚨 数据库崩溃高危原因（已修复 + 仍需注意）
+
+### ✅ 已修复（本次修改）
+
+| 问题 | 危险等级 | 说明 |
+|------|---------|------|
+| **DELETE /api/users/:userId 无认证** | 🔴致命 | 任何人可删除任意用户，已加 authMiddleware + 本人校验 |
+| **PUT /api/users/:userId 越权** | 🔴致命 | 用户A登录后可改用户B资料，已加 userId 比对 |
+| **JWT 密钥两处硬编码** | 🟡中 | auth.js 和 authMiddleware.js 各有 fallback，已统一从 config/auth.js 引入 |
+| **Product 索引未生效** | 🟡中 | ProductSchema.index() 定义在 model() 之后，已调整顺序并新增 createdAt 排序索引 |
+| **购买弹窗数据丢失** | 🟡中 | Dialog 表单数据收集后未发送到后端，已补上 body: JSON.stringify(userData) |
+| **购买竞态条件** | 🔴致命 | 多人同时购买最后一件商品会超卖（quantity 变负），已改为 findOneAndUpdate + $inc 原子操作 |
+| **base64 图片撑爆 16MB** | 🔴致命 | 商品图片直接存 MongoDB，多图超限即崩溃，已改为文件存储，数据库只存路径 |
+| **updateProductById 缺少校验** | 🟢低 | findByIdAndUpdate 未启用 runValidators，已补上 |
+
+### ⚠️ 仍需注意的数据库风险
+
+| 风险 | 等级 | 解释 |
+|------|------|------|
+| **base64 图片超限** | 🔴致命 | 单个 MongoDB document 上限 16MB，多张大 base64 图片容易撑爆。商品发布时报错 "BulkWriteError: BSONObj size exceeds limit" 就是这个原因 |
+| **并发购买竞态** | 🔴致命 | `purchaseProduct` 先查后改，没有原子操作。两人同时点"立即购买"可能都成功，导致 quantity 变负数或重复扣库存 |
+| **Docker volume 覆盖 node_modules** | 🟡中 | `./Server:/app` 挂载会把宿主机目录覆盖进容器，如果宿主机没有 node_modules 或版本不一致，后端启动失败导致 MongoDB 连接泄漏 |
+| **MongoDB 密码含特殊字符** | 🟡中 | 密码 `@Yt1221wz` 中的 `@` 在 URI 中用 `%40` 编码，如果忘记编码直接拼入 URI 会导致连接失败 |
+| **getAllUsers / getUserById 无认证** | 🟡中 | 任何人都能枚举所有用户信息（含邮箱、电话），存在数据泄露风险 |
+| **无数据库连接池监控** | 🟢低 | 后端崩溃时 MongoDB 连接不会自动释放，长期运行可能耗尽连接数 |
+
+### 🛠 建议优先修复
+
+1. **迁移图片到对象存储（OSS/COS）** — 最核心，当前项目最可能的崩溃元凶
+2. **购买加事务/原子操作** — `findByIdAndUpdate` 结合 `$inc: {quantity: -1}`，一行原子操作搞定
+3. **getAllUsers 加认证** — 只在管理员功能开放
+4. **移除 Docker bind mount** — 生产环境用 `COPY` 而非 `volumes: - ./Server:/app`

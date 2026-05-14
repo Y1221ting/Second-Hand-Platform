@@ -130,6 +130,7 @@ exports.updateProductById = async (req, res) => {
 
     const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
+      runValidators: true, // 确保 price > 0 等校验被触发
     });
     res.status(200).json(updatedProduct);
   } catch (error) {
@@ -319,49 +320,47 @@ exports.updateProductStatus = async (req, res) => {
   }
 };
 
-// Purchase a product (handle inventory)
+// Purchase a product (atomic operation, prevents race condition / 防竞态)
 exports.purchaseProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    // 原子操作：findOneAndUpdate + $inc 确保并发下不会超卖
+    const product = await Product.findOneAndUpdate(
+      {
+        _id: req.params.id,
+        quantity: { $gt: 0 },
+        status: { $nin: ["sold_out", "inactive"] },
+        "uploadedBy.id": { $ne: req.user._id.toString() },
+      },
+      {
+        $inc: { quantity: -1 },
+        $set: {
+          purchasedBy: {
+            id: req.user._id.toString(),
+            name: req.user.fullName,
+            college: req.user.college || "",
+          },
+          status: "sold",
+        },
+      },
+      { new: true }
+    );
+
     if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      const existing = await Product.findById(req.params.id);
+      if (!existing) return res.status(404).json({ message: "商品不存在" });
+      if (existing.uploadedBy.id === req.user._id.toString())
+        return res.status(400).json({ message: "不能购买自己的商品" });
+      return res.status(400).json({ message: "库存不足或商品已下架" });
     }
 
-    // Check if product is active and has stock
-    if (product.status === "inactive") {
-      return res.status(400).json({ message: "Product is inactive" });
-    }
-    if (product.status === "sold_out" || product.quantity <= 0) {
-      return res.status(400).json({ message: "Product is sold out" });
-    }
-
-    // Check if buyer is the owner
-    if (product.uploadedBy.id === req.user._id.toString()) {
-      return res.status(400).json({ message: "不能购买自己的商品" });
-    }
-
-    // Decrease quantity
-    product.quantity -= 1;
-
-    // Record buyer info
-    product.purchasedBy = {
-      id: req.user._id.toString(),
-      name: req.user.fullName,
-      college: req.user.college || "",
-    };
-
-    // If quantity reaches 0, mark as sold_out
+    // 如果库存归零，更新状态为售罄（非关键路径，可容忍两次写入）
     if (product.quantity === 0) {
-      product.status = "sold_out";
-    } else {
-      product.status = "sold";
+      await Product.findByIdAndUpdate(product._id, { status: "sold_out" });
     }
 
-    await product.save();
-
-    res.status(200).json({ message: "Purchase successful", product });
+    res.status(200).json({ message: "购买成功", product });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ message: "服务器内部错误" });
   }
 };
