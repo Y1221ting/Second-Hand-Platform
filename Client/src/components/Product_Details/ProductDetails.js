@@ -110,7 +110,7 @@ const ProductDetails = ({ productId }) => {
         <div className="md:ml-6 mt-4 md:mt-0">
           <h1 className="text-3xl font-semibold">{productDetails.name}</h1>
           <p className="text-gray-500 mt-2">
-            发布者：{productDetails.uploadedBy.name}
+            Uploaded by - {productDetails.uploadedBy.name}
           </p>
           <p className="text-2xl font-semibold mt-4">
             ¥{parseFloat(productDetails.price.$numberDecimal).toFixed(2)}

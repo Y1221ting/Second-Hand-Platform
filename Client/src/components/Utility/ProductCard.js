@@ -83,7 +83,7 @@ const ProductCard = ({ product }) => {
               : "立即购买"}
           </button>
         )}
-        <p className="text-xl mx-auto">
+        <p className="text-xl font-semibold">
           ¥{parseFloat(product.price.$numberDecimal).toFixed(2)}
         </p>
       </div>
