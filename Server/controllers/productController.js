@@ -72,10 +72,20 @@ exports.getAllProducts = async (req, res) => {
     const products = await Product.find(query)
       .sort(sortObj)
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .select("name category description price images specifications status quantity purchasedBy createdAt uploadedBy");
+
+    // 优化：列表页只返回第一张图片，减少数据传输量
+    const optimizedProducts = products.map(product => {
+      const productObj = product.toObject();
+      if (productObj.images && productObj.images.length > 0) {
+        productObj.images = [productObj.images[0]];
+      }
+      return productObj;
+    });
 
     res.status(200).json({
-      products,
+      products: optimizedProducts,
       total,
       page,
       totalPages: Math.ceil(total / limit),
