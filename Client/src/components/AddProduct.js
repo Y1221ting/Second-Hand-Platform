@@ -157,7 +157,7 @@ const AddProduct = () => {
           images: base64Images,
           uploadedBy: {
             _id: user.id,
-            name: user.name,
+            name: user.fullName,
             college: user.college,
           },
         }),
