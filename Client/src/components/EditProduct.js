@@ -6,7 +6,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import ProductForm from "./Edit_Product/ProductForm";
 
 const EditProduct = () => {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
   // State to manage form fields

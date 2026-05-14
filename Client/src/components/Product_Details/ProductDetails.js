@@ -28,7 +28,6 @@ const ProductDetails = ({ productId }) => {
       );
       
       if (response.ok) {
-        const result = await response.json();
         alert("购买成功！");
         // Refresh product details by fetching from API again
         const refreshResponse = await fetch(
@@ -167,7 +166,7 @@ const ProductDetails = ({ productId }) => {
       <div className="mt-8 p-4">
         <h2 className="text-xl font-semibold">规格参数</h2>
         <div className="border-t border-gray-300 mt-2 pt-2">
-          {productDetails.specifications && productDetails.specifications.length > 0 ? (
+          {productDetails.specifications && Array.isArray(productDetails.specifications) && productDetails.specifications.length > 0 ? (
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
               {productDetails.specifications.map((spec, index) => (
                 <div
