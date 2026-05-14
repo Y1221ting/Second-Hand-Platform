@@ -92,7 +92,7 @@ const ProductsList = () => {
       debounceTimer.current = setTimeout(() => {
         setDebouncedSearch(e.target.value);
         triggerSearch();
-      }, 400);
+      }, 800);
     }
   };
 
@@ -124,7 +124,7 @@ const ProductsList = () => {
       debounceTimer.current = setTimeout(() => {
         setDebouncedCollege(e.target.value);
         triggerSearch();
-      }, 400);
+      }, 800);
     }
   };
 
