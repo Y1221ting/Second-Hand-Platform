@@ -55,8 +55,13 @@ const Register = () => {
       }
     );
 
+    const data = await response.json();
+
     if (response.ok) {
       navigate("/login");
+    } else {
+      // 显示后端返回的错误信息
+      alert(data.message || "注册失败，请稍后重试");
     }
   };
 
