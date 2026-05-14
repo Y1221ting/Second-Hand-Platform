@@ -3,8 +3,14 @@ import React, { useState } from "react";
 const Filters = ({
   searchQuery,
   handleSearchQueryChange,
+  handleSearchKeyDown,
+  handleSearchCompositionStart,
+  handleSearchCompositionEnd,
   collegeQuery,
   handleCollegeQueryChange,
+  handleCollegeKeyDown,
+  handleCollegeCompositionStart,
+  handleCollegeCompositionEnd,
   collegeOptions,
   sortBy,
   handleSortChange,
@@ -41,9 +47,12 @@ const Filters = ({
           <input
             type="text"
             className="bg-gray-800 text-white p-2 w-full border-2 border-transparent focus:border-white"
-            placeholder="搜索..."
+            placeholder="搜索商品..."
             value={searchQuery}
             onChange={handleSearchQueryChange}
+            onKeyDown={handleSearchKeyDown}
+            onCompositionStart={handleSearchCompositionStart}
+            onCompositionEnd={handleSearchCompositionEnd}
           />
         </div>
         <div className="mb-4">
@@ -54,6 +63,9 @@ const Filters = ({
             placeholder="搜索学校..."
             value={collegeQuery}
             onChange={handleCollegeQueryChange}
+            onKeyDown={handleCollegeKeyDown}
+            onCompositionStart={handleCollegeCompositionStart}
+            onCompositionEnd={handleCollegeCompositionEnd}
           />
           <select
             value={collegeQuery}
@@ -124,9 +136,6 @@ const Filters = ({
             <span className="text-gray-600">{priceRange[0]}</span>
             <span className="text-gray-600">{priceRange[1]}</span>
           </div>
-        </div>
-        <div className="mb-4">
-          <span className="text-gray-600 text-sm">筛选实时生效</span>
         </div>
       </div>
     </div>

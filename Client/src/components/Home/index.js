@@ -17,6 +17,7 @@ const ProductsList = () => {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const debounceTimer = useRef(null);
+  const isComposingRef = useRef(false);
 
   const collegeOptions = [
     "全部",
@@ -59,37 +60,87 @@ const ProductsList = () => {
     "景德镇艺术职业大学",
   ];
 
-  const handleSearchQueryChange = (e) => {
-    setSearchQuery(e.target.value);
+  const triggerSearch = () => {
     setCurrentPage(1);
+  };
+
+  const handleSearchCompositionStart = () => {
+    isComposingRef.current = true;
+  };
+
+  const handleSearchCompositionEnd = (e) => {
+    isComposingRef.current = false;
     clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
       setDebouncedSearch(e.target.value);
-    }, 500);
+      triggerSearch();
+    }, 400);
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter") {
+      clearTimeout(debounceTimer.current);
+      setDebouncedSearch(searchQuery);
+      triggerSearch();
+    }
+  };
+
+  const handleSearchQueryChange = (e) => {
+    setSearchQuery(e.target.value);
+    if (!isComposingRef.current) {
+      clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(() => {
+        setDebouncedSearch(e.target.value);
+        triggerSearch();
+      }, 400);
+    }
+  };
+
+  const handleCollegeCompositionStart = () => {
+    isComposingRef.current = true;
+  };
+
+  const handleCollegeCompositionEnd = (e) => {
+    isComposingRef.current = false;
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedCollege(e.target.value);
+      triggerSearch();
+    }, 400);
+  };
+
+  const handleCollegeKeyDown = (e) => {
+    if (e.key === "Enter") {
+      clearTimeout(debounceTimer.current);
+      setDebouncedCollege(collegeQuery);
+      triggerSearch();
+    }
   };
 
   const handleCollegeQueryChange = (e) => {
     setCollegeQuery(e.target.value);
-    setCurrentPage(1);
-    clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      setDebouncedCollege(e.target.value);
-    }, 500);
+    if (!isComposingRef.current) {
+      clearTimeout(debounceTimer.current);
+      debounceTimer.current = setTimeout(() => {
+        setDebouncedCollege(e.target.value);
+        triggerSearch();
+      }, 400);
+    }
   };
 
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
-    setCurrentPage(1);
+    triggerSearch();
   };
 
   const handlePriceRangeChange = (min, max) => {
     setPriceRange([min, max]);
-    setCurrentPage(1);
+    triggerSearch();
   };
 
   const handleCategoryFilterChange = (e) => {
     setCategoryFilter(e.target.value);
-    setCurrentPage(1);
+    triggerSearch();
   };
 
   const fetchProducts = useCallback(async (page = 1) => {
@@ -152,8 +203,14 @@ const ProductsList = () => {
             <Filters
               searchQuery={searchQuery}
               handleSearchQueryChange={handleSearchQueryChange}
+              handleSearchKeyDown={handleSearchKeyDown}
+              handleSearchCompositionStart={handleSearchCompositionStart}
+              handleSearchCompositionEnd={handleSearchCompositionEnd}
               collegeQuery={collegeQuery}
               handleCollegeQueryChange={handleCollegeQueryChange}
+              handleCollegeKeyDown={handleCollegeKeyDown}
+              handleCollegeCompositionStart={handleCollegeCompositionStart}
+              handleCollegeCompositionEnd={handleCollegeCompositionEnd}
               collegeOptions={collegeOptions}
               sortBy={sortBy}
               handleSortChange={handleSortChange}
