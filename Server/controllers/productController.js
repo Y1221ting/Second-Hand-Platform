@@ -191,7 +191,11 @@ exports.getPurchasedProducts = async (req, res) => {
       return res.status(400).json({ message: "Invalid user ID format" });
     }
 
-    const products = await Product.find({ "purchasedBy.id": userId });
+    // 获取用户购买的商品，排除用户自己发布的商品
+    const products = await Product.find({
+      "purchasedBy.id": userId,
+      "uploadedBy.id": { $ne: userId }
+    });
 
     res.status(200).json(products);
   } catch (error) {

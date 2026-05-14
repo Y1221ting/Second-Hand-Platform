@@ -107,13 +107,20 @@ const EditProduct = () => {
     }
 
     try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("请先登录");
+        navigate("/login");
+        return;
+      }
+
       const response = await fetch(
         `/api/products/${id}`,
         {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(formData),
         }
@@ -125,7 +132,14 @@ const EditProduct = () => {
       } else {
         const errorData = await response.json();
         console.error("Failed to update product:", errorData);
-        alert("更新失败：" + (errorData.message || "未知错误"));
+        if (response.status === 403) {
+          alert("权限不足：您只能编辑自己发布的商品");
+        } else if (response.status === 401) {
+          alert("登录已过期，请重新登录");
+          navigate("/login");
+        } else {
+          alert("更新失败：" + (errorData.message || "未知错误"));
+        }
       }
     } catch (error) {
       console.error("Error:", error);
