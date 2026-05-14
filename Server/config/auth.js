@@ -19,6 +19,7 @@ async function createSession(userId) {
 }
 
 module.exports = {
+  SECRET,
   hashPassword,
   verifyPassword,
   createSession,
