@@ -116,29 +116,21 @@ const EditProduct = () => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
-          body: JSON.stringify({
-            ...formData,
-            uploadedBy: {
-              _id: user.id,
-              name: user.fullName,
-              college: user.college,
-            },
-          }),
+          body: JSON.stringify(formData),
         }
       );
 
       if (response.ok) {
-        // Product was successfully updated
-        // You can redirect the user or show a success message
         console.log("Product updated successfully!");
-        navigate(`/product/${id}`); // Redirect to the product details page after update
+        navigate(`/product/${id}`);
       } else {
-        // Handle errors, e.g., show an error message to the user
-        console.error("Failed to update product.");
+        const errorData = await response.json();
+        console.error("Failed to update product:", errorData);
+        alert("更新失败：" + (errorData.message || "未知错误"));
       }
     } catch (error) {
-      // Handle network errors or other exceptions
       console.error("Error:", error);
+      alert("网络错误，请稍后重试");
     }
   };
 
