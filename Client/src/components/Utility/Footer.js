@@ -1,6 +1,10 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../../context/authContext";
 
 const Footer = () => {
+  const { user } = useAuth();
+
   return (
     <footer className="bg-gray-900 text-white text-right p-12">
       <div className="max-w-screen-xl mx-auto px-4">
@@ -15,10 +19,35 @@ const Footer = () => {
             <div className="md:w-1/4 my-2 md:my-0">
               <h3 className="text-lg font-semibold">快速导航</h3>
               <ul className="text-gray-300">
-                <li>首页</li>
-                <li>商品列表</li>
-                <li>发布商品</li>
-                <li>个人中心</li>
+                <li>
+                  <Link to="/" className="hover:text-yellow-500 transition duration-300">
+                    首页
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/home" className="hover:text-yellow-500 transition duration-300">
+                    商品列表
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/add-product" className="hover:text-yellow-500 transition duration-300">
+                    发布商品
+                  </Link>
+                </li>
+                <li>
+                  {user ? (
+                    <Link
+                      to={`/profile/${user.id}`}
+                      className="hover:text-yellow-500 transition duration-300"
+                    >
+                      个人中心
+                    </Link>
+                  ) : (
+                    <Link to="/login" className="hover:text-yellow-500 transition duration-300">
+                      个人中心
+                    </Link>
+                  )}
+                </li>
               </ul>
             </div>
             <div className="md:w-1/4 my-2 md:my-0">
