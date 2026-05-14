@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Filters from "./Filters";
 import ProductList from "./ProductList";
 import Pagination from "./Pagination";
@@ -7,6 +7,7 @@ import Loading from "../Utility/Loading";
 const ProductsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [collegeQuery, setCollegeQuery] = useState("");
   const [products, setProducts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
@@ -14,6 +15,7 @@ const ProductsList = () => {
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const debounceTimer = useRef(null);
 
   const collegeOptions = [
     "All",
@@ -37,6 +39,10 @@ const ProductsList = () => {
   const handleSearchQueryChange = (e) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
+    clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setDebouncedSearch(e.target.value);
+    }, 500);
   };
 
   const handleCollegeQueryChange = (e) => {
@@ -65,7 +71,7 @@ const ProductsList = () => {
       const params = new URLSearchParams();
       params.append("page", page);
       params.append("limit", 20);
-      if (searchQuery.trim()) params.append("search", searchQuery.trim());
+      if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
       if (categoryFilter) params.append("category", categoryFilter);
       if (collegeQuery && collegeQuery !== "All") params.append("college", collegeQuery);
       params.append("sort", sortBy);
@@ -86,7 +92,7 @@ const ProductsList = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [searchQuery, collegeQuery, sortBy, priceRange, categoryFilter]);
+  }, [debouncedSearch, collegeQuery, sortBy, priceRange, categoryFilter]);
 
   useEffect(() => {
     fetchProducts(currentPage);
