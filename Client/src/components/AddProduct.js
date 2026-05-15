@@ -192,14 +192,53 @@ const AddProduct = () => {
     }
   };
 
-  // Function to convert an image file to base64
-  const getBase64 = (file) => {
-    return new Promise((resolve, reject) => {
+  // 压缩图片：最大宽度 1920px，质量 0.8，返回 Blob
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      // 小于 1MB 的图片不压缩
+      if (file.size < 1024 * 1024) {
+        resolve(file);
+        return;
+      }
+
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
+      reader.onload = (e) => {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_W = 1920;
+          let { width, height } = img;
+          if (width > MAX_W) {
+            height = Math.round((height * MAX_W) / width);
+            width = MAX_W;
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              const compressed = new File([blob], file.name, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve(compressed);
+            },
+            "image/jpeg",
+            0.8
+          );
+        };
+      };
     });
+  };
+
+  // 选择图片时自动压缩
+  const handleImageChange = async (e) => {
+    const files = Array.from(e.target.files);
+    const compressed = await Promise.all(files.map(compressImage));
+    setFormData({ ...formData, images: compressed });
   };
 
   return (
@@ -325,12 +364,7 @@ const AddProduct = () => {
               name="images"
               accept="image/*"
               multiple
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  images: Array.from(e.target.files),
-                })
-              }
+              onChange={handleImageChange}
               className="w-full border rounded-lg py-2 px-3"
               required
             />
