@@ -9,20 +9,45 @@ import UserProfile from "./components/UserProfile";
 import AddProduct from "./components/AddProduct";
 import EditProduct from "./components/EditProduct";
 import LandingPage from "./components/Landing";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const App = () => {
   return (
     <AuthProvider>
       <Router>
         <Routes>
+          {/* 公开路由 */}
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<LandingPage />} />
           <Route path="/home" element={<Home />} />
           <Route path="/product/:id" element={<ProductPage />} />
-          <Route path="/add-product" element={<AddProduct />} />
-          <Route path="/product/:id/edit" element={<EditProduct />} />
-          <Route path="/profile/:id" element={<UserProfile />} />
+
+          {/* 需要登录的路由 */}
+          <Route
+            path="/add-product"
+            element={
+              <ProtectedRoute>
+                <AddProduct />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/product/:id/edit"
+            element={
+              <ProtectedRoute>
+                <EditProduct />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:id"
+            element={
+              <ProtectedRoute>
+                <UserProfile />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>

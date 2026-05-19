@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../context/authContext";
 import ProductForm from "./Edit_Product/ProductForm";
 
 const EditProduct = () => {
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
-  // State to manage form fields
   const [formData, setFormData] = useState({
     name: "",
     category: "other",
@@ -16,15 +17,21 @@ const EditProduct = () => {
     images: [],
     specifications: [],
   });
-
-  // State to manage individual specification input fields
   const [specificationField, setSpecificationField] = useState({
     key: "",
     value: "",
   });
+  const [imageField, setImageField] = useState(null);
+  const [imageFieldError, setImageFieldError] = useState("");
+  const [isOwner, setIsOwner] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const [imageField, setImageField] = useState(null); // State to manage individual image input field
-  const [imageFieldError, setImageFieldError] = useState(""); // State to manage image field error message
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+  }, [isAuthenticated, navigate]);
 
   // Handle image file change
   const handleImageChange = (e) => {
@@ -148,21 +155,24 @@ const EditProduct = () => {
 
   // Fetch product details for editing
   useEffect(() => {
-    // Fetch the product details using the id from the URL params
     const fetchProductDetails = async () => {
       try {
-        console.log(id);
-        const response = await fetch(
-          `/api/products/${id}`
-        ); // Replace with your API endpoint
+        const response = await fetch(`/api/products/${id}`);
         if (response.ok) {
           const data = await response.json();
+          // 检查是否是商品所有者
+          if (user && data.uploadedBy?.id !== user.id) {
+            alert("您没有权限编辑此商品");
+            navigate("/home");
+            return;
+          }
+          setIsOwner(true);
           setFormData({
             name: data.name,
             category: data.category,
             description: data.description,
             price: data.price.$numberDecimal,
-            images: data.images, // You may need to handle images separately if you want to show existing images
+            images: data.images,
             specifications: data.specifications,
           });
         } else {
@@ -170,11 +180,38 @@ const EditProduct = () => {
         }
       } catch (error) {
         console.error(error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchProductDetails();
-  }, [id]);
+    if (isAuthenticated) {
+      fetchProductDetails();
+    }
+  }, [id, user, isAuthenticated, navigate]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="w-4/5 mx-auto py-4 text-center text-gray-500">
+          加载中...
+        </div>
+      </div>
+    );
+  }
+
+  if (!isOwner) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="w-4/5 mx-auto py-4 text-center">
+          <div className="text-red-500 text-xl mt-10">您没有权限编辑此商品</div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen">

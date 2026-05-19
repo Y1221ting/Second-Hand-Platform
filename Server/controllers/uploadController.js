@@ -26,7 +26,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 单张 5MB
+  limits: { fileSize: 20 * 1024 * 1024 }, // 单张 20MB（前端已压缩，这个只是兜底）
 });
 
 exports.uploadMiddleware = upload.array("images", 9); // 最多 9 张

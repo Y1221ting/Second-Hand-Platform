@@ -1,5 +1,5 @@
 // AddProduct.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import { useAuth } from "../context/authContext";
@@ -7,8 +7,14 @@ import { useNavigate } from "react-router-dom";
 import { FaMagic } from "react-icons/fa";
 
 const AddProduct = () => {
-  const { user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+    }
+  }, [isAuthenticated, navigate]);
   const [formData, setFormData] = useState({
     name: "",
     category: "other",

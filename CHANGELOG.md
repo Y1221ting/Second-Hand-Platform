@@ -2,36 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.13.0] - 2026-05-14
+## [1.14.0] - 2026-05-14
 
 ### Added
-- 编辑商品功能：发布者可在个人资料页点击"编辑商品"按钮修改商品信息
-- 商品详情页规格参数显示：支持显示/空值处理（"暂无规格参数"）
-- 购买表单验证：未填完整信息时弹出提示"请填写所有必填字段！"
-- 注册失败提示：重复注册时显示后端返回的错误信息（如"该邮箱已被注册"）
-- 图片懒加载：使用 IntersectionObserver 只加载可视区域内的图片，提升页面性能
-- 编辑商品权限错误提示：403/401 分别显示"权限不足"和"登录已过期"
+- 图片文件存储：新增 `multer` 上传接口 `POST /api/upload`，图片不再存为 base64，转存 `Server/uploads/` 目录，数据库只存路径
+- 前端图片自动压缩：选择 >1MB 图片时自动压缩至 1920px 宽、80% JPEG 质量，上传更快更省空间
+- 前端路由权限保护：新增 `ProtectedRoute` 组件，未登录访问敏感页面自动跳转登录页
+- 旧图片迁移脚本：`Server/scripts/migrateBase64Images.js`，一键将旧 base64 图片转为文件
+- `nginx.conf` 新增 `/uploads/` 反向代理配置，支持图片文件静态访问
 
 ### Changed
-- 商品详情页"Uploaded by" → "发布者："（中文化）
-- 商品卡片"Uploaded by" → "发布者："（中文化）
-- 列表页 API 优化：只返回第一张图片，减少数据传输量
-- 购买商品列表排除自己发布的商品（getPurchasedProducts 增加 $ne 过滤）
+- 购买接口改为原子操作：`findOneAndUpdate` + `$inc: {quantity: -1}` + `{quantity: {$gt: 0}}` 条件，彻底解决并发超卖
+- 后端单图上传限制从 5MB 调至 20MB（兜底限制，前端压缩后通常 <300KB）
 
 ### Fixed
-- 修复 ProductCard.js 中 `uploadedBy._id` 应为 `uploadedBy.id` 的字段名不一致问题
-- 修复 ProductCard.js 中 `uploadedBy.name` 缺少可选链保护的问题
-- 修复 EditProduct.js 中未使用的 `useAuth` 导入
-- 修复编辑商品时发送 `uploadedBy` 字段覆盖数据库数据的问题
-- 修复 ProductDetails.js 中 `uploadedBy._id` 应为 `uploadedBy.id` 的字段名不一致问题
-- 修复规格参数显示：添加 `Array.isArray()` 类型检查
+- **严重⚠️** `DELETE /api/users/:userId` 缺少认证中间件，任何人可删除任意用户——已添加 `authMiddleware` + 本人身份校验
+- **严重⚠️** `PUT /api/users/:userId` 缺少本人校验，用户 A 登录后可修改用户 B 的资料——已添加 `req.user._id !== userId` 检查
+- **严重⚠️** `config/auth.js` 未导出 `SECRET` 变量，导致 `authMiddleware.js` 读取密钥为 `undefined`，所有需认证的接口全部返回 401——已补上 `module.exports` 导出
+- **严重⚠️** `nginx` 未转发 `Authorization` 请求头，上传图片和所有需要认证的 API 均返回 401——添加 `proxy_set_header Authorization $http_authorization`
+- `findByIdAndUpdate` 未启用 `runValidators: true`，价格校验不生效——已补上
+- `ProductSchema.index()` 定义在 `mongoose.model()` 之后导致索引不生效——已调整顺序并新增 `{createdAt: -1}` 排序索引
+- 购买弹窗收集的表单数据未发送至后端（Dialog 填写的信息被白费）——`handleConfirmPurchase` 已补上 `body`
+- `EditProduct.js` 未校验当前用户是否为商品所有者——已添加 `useAuth` + 后台查询对比 `uploadedBy.id`
+- `UserProfile.js` 编辑按钮对所有登录用户可见——改为 `displayEdit={user.id === userId}` 仅自己可见
+- `AddProduct.js` 中 `user` 变量未被使用、`getBase64` 函数已成为死代码
 
 ### Performance
-- ProductCard 使用 React.memo 避免不必要的重渲染
-- CSS 过渡效果优化：transition-all → transition-transform/transition-colors
-- 列表页后端只返回必要字段（.select()）和第一张图片
-
----
+- 前端图片压缩大幅减小上传体积（10MB 照片 → 约 200KB）
+- MongoDB 不再存储大体积 base64 数据，库体积显著减小
+- 文本搜索 + createdAt 排序索引已生效，查询性能提升
 
 ## [1.12.0] - 2026-05-14
 
