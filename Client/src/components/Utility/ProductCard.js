@@ -110,7 +110,7 @@ const ProductCard = memo(({ product }) => {
           </button>
         )}
         <p className="text-xl font-semibold">
-          ¥{parseFloat(product.price.$numberDecimal).toFixed(2)}
+          ¥{parseFloat(product.price).toFixed(2)}
         </p>
       </div>
     </div>

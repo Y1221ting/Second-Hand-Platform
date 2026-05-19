@@ -171,9 +171,10 @@ const EditProduct = () => {
             name: data.name,
             category: data.category,
             description: data.description,
-            price: data.price.$numberDecimal,
+            price: data.price,
             images: data.images,
             specifications: data.specifications,
+          });
           });
         } else {
           console.error("Failed to fetch product details");

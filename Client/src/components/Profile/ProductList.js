@@ -51,7 +51,7 @@ const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
                   : product.description}
               </p>
               <p className="text-yellow-500 text-lg font-semibold mb-2">
-                ¥{parseFloat(product.price.$numberDecimal).toFixed(2)}
+                ¥{parseFloat(product.price).toFixed(2)}
               </p>
             </div>
             <span className="bg-white text-gray-900 py-1 rounded">
