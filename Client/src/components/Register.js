@@ -58,6 +58,7 @@ const Register = () => {
     const data = await response.json();
 
     if (response.ok) {
+      alert("注册成功！请登录");
       navigate("/login");
     } else {
       // 显示后端返回的错误信息

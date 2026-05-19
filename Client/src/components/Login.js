@@ -9,6 +9,7 @@ const Login = () => {
     email: "",
     password: "",
   });
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -16,10 +17,14 @@ const Login = () => {
       ...prevData,
       [name]: value,
     }));
+    // 用户重新输入时清除错误
+    if (error) setError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+
     const response = await fetch(
       `/api/users/login`,
       {
@@ -37,6 +42,9 @@ const Login = () => {
         college: data.user.college,
       });
       navigate("/home");
+    } else {
+      const data = await response.json();
+      setError(data.message || "登录失败，请稍后重试");
     }
   };
 
@@ -44,6 +52,11 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="bg-white p-8 rounded-lg shadow-lg sm:w-96 md:w-1/2">
         <h1 className="text-3xl font-semibold text-gray-900 mb-4">登录</h1>
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <input

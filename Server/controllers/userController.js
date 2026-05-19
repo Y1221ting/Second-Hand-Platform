@@ -38,6 +38,11 @@ exports.registerUser = async (req, res) => {
 // Login a user
 exports.loginUser = async (req, res) => {
   try {
+    // 空值校验
+    if (!req.body.email || !req.body.password) {
+      return res.status(400).json({ message: "邮箱和密码不能为空" });
+    }
+
     // Check if the email exists
     const existingUser = await User.findOne({ email: req.body.email });
     if (!existingUser) {
