@@ -35,11 +35,6 @@ const ProductsList = () => {
 
   const handleSearchCompositionEnd = (e) => {
     isComposingRef.current = false;
-    clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      setDebouncedSearch(e.target.value);
-      triggerSearch();
-    }, 400);
   };
 
   const handleSearchKeyDown = (e) => {
@@ -52,13 +47,6 @@ const ProductsList = () => {
 
   const handleSearchQueryChange = (e) => {
     setSearchQuery(e.target.value);
-    if (!isComposingRef.current) {
-      clearTimeout(debounceTimer.current);
-      debounceTimer.current = setTimeout(() => {
-        setDebouncedSearch(e.target.value);
-        triggerSearch();
-      }, 800);
-    }
   };
 
   const handleCollegeCompositionStart = () => {
@@ -67,11 +55,6 @@ const ProductsList = () => {
 
   const handleCollegeCompositionEnd = (e) => {
     isComposingRef.current = false;
-    clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      setDebouncedCollege(e.target.value);
-      triggerSearch();
-    }, 400);
   };
 
   const handleCollegeKeyDown = (e) => {
@@ -84,13 +67,6 @@ const ProductsList = () => {
 
   const handleCollegeQueryChange = (e) => {
     setCollegeQuery(e.target.value);
-    if (!isComposingRef.current) {
-      clearTimeout(debounceTimer.current);
-      debounceTimer.current = setTimeout(() => {
-        setDebouncedCollege(e.target.value);
-        triggerSearch();
-      }, 800);
-    }
   };
 
   const handleSortChange = (e) => {
