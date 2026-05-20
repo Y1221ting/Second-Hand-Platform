@@ -3,6 +3,7 @@ import Filters from "./Filters";
 import ProductList from "./ProductList";
 import Pagination from "./Pagination";
 import Loading from "../Utility/Loading";
+import JIANGXI_COLLEGES from "../../constants/colleges";
 
 const ProductsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,43 +22,7 @@ const ProductsList = () => {
 
   const collegeOptions = [
     "全部",
-    "南昌大学",
-    "江西师范大学",
-    "江西财经大学",
-    "江西农业大学",
-    "华东交通大学",
-    "南昌航空大学",
-    "江西理工大学",
-    "东华理工大学",
-    "景德镇陶瓷大学",
-    "江西中医药大学",
-    "赣南医科大学",
-    "南昌工程学院",
-    "江西科技师范大学",
-    "井冈山大学",
-    "宜春学院",
-    "九江学院",
-    "上饶师范学院",
-    "赣南师范大学",
-    "南昌师范学院",
-    "萍乡学院",
-    "新余学院",
-    "景德镇学院",
-    "豫章师范学院",
-    "江西警察学院",
-    "南昌理工学院",
-    "江西科技学院",
-    "江西服装学院",
-    "江西工程学院",
-    "江西应用科技学院",
-    "南昌工学院",
-    "南昌医学院",
-    "赣东学院",
-    "赣南科技学院",
-    "南昌应用技术师范学院",
-    "江西软件职业技术大学",
-    "南昌职业大学",
-    "景德镇艺术职业大学",
+    ...JIANGXI_COLLEGES,
   ];
 
   const triggerSearch = () => {

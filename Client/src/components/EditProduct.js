@@ -175,7 +175,6 @@ const EditProduct = () => {
             images: data.images,
             specifications: data.specifications,
           });
-          });
         } else {
           console.error("Failed to fetch product details");
         }

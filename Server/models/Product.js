@@ -72,6 +72,24 @@ const ProductSchema = new mongoose.Schema({
 ProductSchema.index({ name: "text", description: "text" });
 ProductSchema.index({ createdAt: -1 });
 
+// 确保 Decimal128 类型的 price 始终以字符串形式输出
+ProductSchema.set("toJSON", {
+  transform: (doc, ret) => {
+    if (ret.price && typeof ret.price === "object" && ret.price.$numberDecimal) {
+      ret.price = ret.price.$numberDecimal;
+    }
+    return ret;
+  },
+});
+ProductSchema.set("toObject", {
+  transform: (doc, ret) => {
+    if (ret.price && typeof ret.price === "object" && ret.price.$numberDecimal) {
+      ret.price = ret.price.$numberDecimal;
+    }
+    return ret;
+  },
+});
+
 const Product = mongoose.model("Product", ProductSchema);
 
 module.exports = Product;

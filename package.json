@@ -12,5 +12,8 @@
   },
   "keywords": [],
   "author": "Vanshaj Bhatnagar",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "china-area-data": "^5.0.1"
+  }
 }

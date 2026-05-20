@@ -46,7 +46,11 @@ exports.getAllProducts = async (req, res) => {
     let query = {};
 
     if (search) {
-      query.$text = { $search: search };
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { name: { $regex: escaped, $options: "i" } },
+        { description: { $regex: escaped, $options: "i" } },
+      ];
     }
 
     if (category) {

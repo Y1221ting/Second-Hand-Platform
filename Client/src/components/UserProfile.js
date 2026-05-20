@@ -59,6 +59,13 @@ const UserProfile = () => {
   };
 
   const handleSaveClick = () => {
+    // 学校字段校验：手动输入的必须以"大学"或"学院"结尾
+    const college = formData.college || "";
+    if (college && !(/(大学|学院)$/.test(college))) {
+      alert('学校名称必须以"大学"或"学院"结尾');
+      return;
+    }
+
     fetch(`/api/users/${id}`, {
       method: "PUT",
       body: JSON.stringify(formData),
