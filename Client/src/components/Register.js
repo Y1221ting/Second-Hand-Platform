@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import JIANGXI_COLLEGES from "../constants/colleges";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -19,6 +20,25 @@ const Register = () => {
     phoneNo: "",
     address: "",
   });
+  const [showCollegeDropdown, setShowCollegeDropdown] = useState(false);
+  const [isCustomCollege, setIsCustomCollege] = useState(false);
+  const collegeDropdownRef = useRef(null);
+
+  // 点击下拉外面时关闭
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (collegeDropdownRef.current && !collegeDropdownRef.current.contains(e.target)) {
+        setShowCollegeDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  // 过滤匹配的学校列表（最多8条）
+  const filteredColleges = JIANGXI_COLLEGES.filter((c) =>
+    c.includes(formData.college)
+  ).slice(0, 8);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -27,6 +47,26 @@ const Register = () => {
       [name]: value,
     }));
   };
+
+  // 学校字段输入：匹配列表则弹出下拉，匹配不到则是自定义输入
+  const handleCollegeChange = (e) => {
+    const value = e.target.value;
+    setFormData((prev) => ({ ...prev, college: value }));
+    setIsCustomCollege(!JIANGXI_COLLEGES.includes(value));
+    setShowCollegeDropdown(value.trim() !== "");
+    // 清除错误
+    if (formErrors.college) setFormErrors((prev) => ({ ...prev, college: "" }));
+  };
+
+  // 从下拉列表选中学校
+  const handleCollegeSelect = (name) => {
+    setFormData((prev) => ({ ...prev, college: name }));
+    setIsCustomCollege(false);
+    setShowCollegeDropdown(false);
+  };
+
+  // 学校后缀校验
+  const isCollegeValid = !isCustomCollege || /(大学|学院)$/.test(formData.college);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,6 +83,13 @@ const Register = () => {
 
     if (!isValid) {
       setFormErrors(errors);
+      return;
+    }
+
+    // 学校后缀校验：手动输入的必须以"大学"或"学院"结尾
+    const collegeVal = formData.college || "";
+    if (!JIANGXI_COLLEGES.includes(collegeVal) && !/(大学|学院)$/.test(collegeVal)) {
+      setFormErrors((prev) => ({ ...prev, college: '学校名称必须以"大学"或"学院"结尾' }));
       return;
     }
 
@@ -126,21 +173,35 @@ const Register = () => {
               </div>
             </div>
             <div className="md:w-1/2 pr-0 md:pr-2">
-              <div className="mb-4">
+              <div className="mb-4 relative" ref={collegeDropdownRef}>
                 <input
                   type="text"
                   name="college"
                   placeholder="学校"
                   value={formData.college}
-                  onChange={handleChange}
+                  onChange={handleCollegeChange}
+                  onFocus={() => formData.college && setShowCollegeDropdown(true)}
                   className={`w-full py-2 px-4 rounded-lg bg-gray-100 border ${
                     formErrors.college ? "border-red-500" : "border-gray-300"
                   } focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent`}
                 />
                 {formErrors.college && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {formErrors.college}
-                  </p>
+                  <p className="text-red-500 text-sm mt-1">{formErrors.college}</p>
+                )}
+                {/* 模糊搜索下拉 */}
+                {showCollegeDropdown && filteredColleges.length > 0 && (
+                  <div className="absolute z-50 w-full bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {filteredColleges.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => handleCollegeSelect(c)}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-yellow-100 focus:bg-yellow-100 transition-colors"
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
               <div className="mb-4">
