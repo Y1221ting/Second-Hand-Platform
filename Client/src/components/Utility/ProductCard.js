@@ -1,10 +1,8 @@
 import React, { useState, memo, useEffect, useRef } from "react";
 import { FaShoppingCart } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
 
 const ProductCard = memo(({ product }) => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [clickedButtonId, setClickedButtonId] = useState(null);
   const [addMsg, setAddMsg] = useState({});
