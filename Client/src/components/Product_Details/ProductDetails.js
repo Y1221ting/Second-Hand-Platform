@@ -142,7 +142,7 @@ const ProductDetails = ({ productId }) => {
             发布者：{productDetails.uploadedBy?.name || '未知'}
           </p>
           <p className="text-2xl font-semibold mt-4">
-            ¥{parseFloat(productDetails.price).toFixed(2)}
+            ¥{Number(productDetails.price ?? 0).toFixed(2)}
           </p>
           <p className="text-gray-600 mt-2">
             库存: {productDetails.quantity || 0}

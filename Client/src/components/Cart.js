@@ -140,7 +140,7 @@ const Cart = () => {
   // 计算总价
   const totalPrice = cartItems.reduce((sum, item) => {
     if (!item.productId) return sum;
-    const price = parseFloat(item.productId.price) || 0;
+    const price = Number(item.productId.price ?? 0);
     return sum + price * item.quantity;
   }, 0);
 
@@ -203,7 +203,7 @@ const Cart = () => {
               {cartItems.map((item) => {
                 if (!item.productId) return null;
                 const product = item.productId;
-                const price = parseFloat(product.price) || 0;
+                const price = Number(product.price ?? 0);
                 const outOfStock = product.quantity <= 0 || product.status === "sold_out" || product.status === "inactive";
 
                 return (

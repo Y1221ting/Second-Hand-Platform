@@ -16,7 +16,16 @@ exports.getCart = async (req, res) => {
       await user.save();
     }
 
-    res.status(200).json({ cart: user.cart });
+    // 将购物车转为纯对象并显式转换 Decimal128 价格为数字，防止前端 parseFloat NaN
+    const cart = validItems.map(item => {
+      const obj = item.toObject();
+      if (obj.productId && obj.productId.price) {
+        obj.productId.price = Number(obj.productId.price) || 0;
+      }
+      return obj;
+    });
+
+    res.status(200).json({ cart });
   } catch (error) {
     console.error("获取购物车失败:", error);
     res.status(500).json({ message: "服务器内部错误" });
@@ -218,7 +227,7 @@ exports.checkoutCart = async (req, res) => {
           results.success.push({
             productId: item.productId,
             name: product.name,
-            price: product.price,
+            price: Number(product.price) || 0,
           });
 
           // 库存归零时更新售罄状态

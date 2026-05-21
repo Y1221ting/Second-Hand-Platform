@@ -238,7 +238,7 @@ const UserProfile = () => {
               {cartItems.map((item) => {
                 if (!item.productId) return null;
                 const p = item.productId;
-                const price = parseFloat(p.price) || 0;
+                const price = Number(p.price ?? 0);
                 return (
                   <div
                     key={p._id}

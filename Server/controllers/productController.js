@@ -79,9 +79,10 @@ exports.getAllProducts = async (req, res) => {
       .limit(limit)
       .select("name category description price images specifications status quantity purchasedBy createdAt uploadedBy");
 
-    // 优化：列表页只返回第一张图片，减少数据传输量
+    // 优化：列表页只返回第一张图片，减少数据传输量；显式转换 Decimal128 价格为数字
     const optimizedProducts = products.map(product => {
       const productObj = product.toObject();
+      productObj.price = Number(productObj.price) || 0;
       if (productObj.images && productObj.images.length > 0) {
         productObj.images = [productObj.images[0]];
       }
@@ -107,7 +108,10 @@ exports.getProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    res.status(200).json(product);
+    // 显式转换 Decimal128 价格为数字，避免前端 parseFloat 返回 NaN
+    const productObj = product.toObject();
+    productObj.price = Number(productObj.price) || 0;
+    res.status(200).json(productObj);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
@@ -136,7 +140,10 @@ exports.updateProductById = async (req, res) => {
       new: true,
       runValidators: true, // 确保 price > 0 等校验被触发
     });
-    res.status(200).json(updatedProduct);
+    // 显式转换 Decimal128 价格为数字
+    const updateResult = updatedProduct.toObject();
+    updateResult.price = Number(updateResult.price) || 0;
+    res.status(200).json(updateResult);
   } catch (error) {
     console.error(error);
     // Handle validation errors
@@ -180,8 +187,13 @@ exports.getProductsByUser = async (req, res) => {
     // Fetch products listed by the user
     const products = await Product.find({ "uploadedBy.id": userId });
 
-    // Return the products in the response
-    res.status(200).json(products);
+    // 显式转换 Decimal128 价格为数字
+    const result = products.map(p => {
+      const obj = p.toObject();
+      obj.price = Number(obj.price) || 0;
+      return obj;
+    });
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching user products:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -202,7 +214,13 @@ exports.getPurchasedProducts = async (req, res) => {
       "uploadedBy.id": { $ne: userId }
     });
 
-    res.status(200).json(products);
+    // 显式转换 Decimal128 价格为数字
+    const result = products.map(p => {
+      const obj = p.toObject();
+      obj.price = Number(obj.price) || 0;
+      return obj;
+    });
+    res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching purchased products:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -362,7 +380,11 @@ exports.purchaseProduct = async (req, res) => {
       await Product.findByIdAndUpdate(product._id, { status: "sold_out" });
     }
 
-    res.status(200).json({ message: "购买成功", product });
+    // 显式转换 Decimal128 价格为数字
+    const purchaseResult = product.toObject();
+    purchaseResult.price = Number(purchaseResult.price) || 0;
+
+    res.status(200).json({ message: "购买成功", product: purchaseResult });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "服务器内部错误" });
