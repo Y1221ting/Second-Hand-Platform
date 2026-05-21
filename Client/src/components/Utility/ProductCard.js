@@ -7,6 +7,7 @@ const ProductCard = memo(({ product }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [clickedButtonId, setClickedButtonId] = useState(null);
+  const [addMsg, setAddMsg] = useState({});
   const [imageLoaded, setImageLoaded] = useState(false);
   const imageRef = useRef(null);
   const isOwner = user && user.id === product.uploadedBy?.id;
@@ -29,12 +30,39 @@ const ProductCard = memo(({ product }) => {
     return () => observer.disconnect();
   }, []);
 
-  const handleAddToCart = () => {
-    setClickedButtonId(product._id);
-    setTimeout(() => {
-      setClickedButtonId(null);
-    }, 1000);
-    navigate(`/product/${product._id}`);
+  const handleAddToCart = async () => {
+    if (!user) {
+      alert("请先登录");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/cart/${product._id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quantity: 1 }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setClickedButtonId(product._id);
+        setAddMsg((prev) => ({ ...prev, [product._id]: { ok: true, msg: "已加入购物车" } }));
+        setTimeout(() => {
+          setClickedButtonId(null);
+          setAddMsg((prev) => {
+            const next = { ...prev };
+            delete next[product._id];
+            return next;
+          });
+        }, 1500);
+      } else {
+        alert(data.message || "加入购物车失败");
+      }
+    } catch (err) {
+      alert("网络错误，请稍后重试");
+    }
   };
 
   return (
@@ -106,7 +134,9 @@ const ProductCard = memo(({ product }) => {
             </span>
             {product.status === "sold_out" || product.quantity <= 0
               ? "已售罄"
-              : "立即购买"}
+              : addMsg[product._id]?.ok
+              ? addMsg[product._id].msg
+              : "加入购物车"}
           </button>
         )}
         <p className="text-xl font-semibold">

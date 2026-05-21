@@ -11,6 +11,7 @@ const ProductDetails = ({ productId }) => {
   const userId = user ? user.id : null;
   const [clickedButtonId, setClickedButtonId] = useState(null);
   const [productDetails, setProductDetails] = useState(null);
+  const [cartAdded, setCartAdded] = useState(false);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
 
@@ -61,6 +62,34 @@ const ProductDetails = ({ productId }) => {
       setClickedButtonId(null);
     }, 1000); // Change the delay time as needed
     // Your actual add to cart logic can be added here
+  };
+
+  const handleAddToCartOnly = async (productId) => {
+    if (!userId) {
+      alert("请先登录");
+      navigate("/login");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/cart/${productId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ quantity: 1 }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setCartAdded(true);
+        setTimeout(() => setCartAdded(false), 2000);
+      } else {
+        alert(data.message || "加入购物车失败");
+      }
+    } catch (err) {
+      alert("网络错误，请稍后重试");
+    }
   };
 
   useEffect(() => {
@@ -122,34 +151,60 @@ const ProductDetails = ({ productId }) => {
             {userId === productDetails.uploadedBy?.id ? (
               <p className="mt-8 text-lg text-gray-500 italic">这是您的商品</p>
             ) : (
-              <button
-                className={`mt-8 flex items-center px-5 py-3 rounded text-lg ${
-                  productDetails.status === "sold_out" || productDetails.quantity <= 0
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : clickedButtonId === productDetails._id
-                    ? "bg-green-500"
-                    : "bg-yellow-500 hover:bg-yellow-600"
-                } text-gray-800 transition duration-300 transform`}
-                onClick={() => {
-                  if (productDetails.status !== "sold_out" && productDetails.quantity > 0) {
-                    handleAddToCart(productDetails._id);
-                  } else {
-                    alert("该商品已售罄");
-                  }
-                }}
-                disabled={productDetails.status === "sold_out" || productDetails.quantity <= 0}
-              >
-                <span
-                  className={`mr-2 ${
-                    clickedButtonId === productDetails._id ? "animate-ping" : ""
-                  } transition-transform`}
+              <div className="mt-8 flex gap-4">
+                <button
+                  onClick={() => {
+                    if (productDetails.status !== "sold_out" && productDetails.quantity > 0) {
+                      handleAddToCartOnly(productDetails._id);
+                    } else {
+                      alert("该商品已售罄");
+                    }
+                  }}
+                  disabled={productDetails.status === "sold_out" || productDetails.quantity <= 0}
+                  className={`flex items-center px-5 py-3 rounded text-lg ${
+                    productDetails.status === "sold_out" || productDetails.quantity <= 0
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : cartAdded
+                      ? "bg-green-500"
+                      : "bg-gray-800 hover:bg-gray-700"
+                  } text-white transition duration-300`}
                 >
-                  <FaShoppingCart />
-                </span>
-                {productDetails.status === "sold_out" || productDetails.quantity <= 0
-                  ? "已售罄"
-                  : "立即购买"}
-              </button>
+                  <FaShoppingCart className="mr-2" />
+                  {productDetails.status === "sold_out" || productDetails.quantity <= 0
+                    ? "已售罄"
+                    : cartAdded
+                    ? "已加入 ✓"
+                    : "加入购物车"}
+                </button>
+                <button
+                  className={`flex items-center px-5 py-3 rounded text-lg ${
+                    productDetails.status === "sold_out" || productDetails.quantity <= 0
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : clickedButtonId === productDetails._id
+                      ? "bg-green-500"
+                      : "bg-yellow-500 hover:bg-yellow-600"
+                  } text-gray-800 transition duration-300 transform`}
+                  onClick={() => {
+                    if (productDetails.status !== "sold_out" && productDetails.quantity > 0) {
+                      handleAddToCart(productDetails._id);
+                    } else {
+                      alert("该商品已售罄");
+                    }
+                  }}
+                  disabled={productDetails.status === "sold_out" || productDetails.quantity <= 0}
+                >
+                  <span
+                    className={`mr-2 ${
+                      clickedButtonId === productDetails._id ? "animate-ping" : ""
+                    } transition-transform`}
+                  >
+                    <FaShoppingCart />
+                  </span>
+                  {productDetails.status === "sold_out" || productDetails.quantity <= 0
+                    ? "已售罄"
+                    : "立即购买"}
+                </button>
+              </div>
             )}
             <Dialog
               isOpen={isDialogOpen}

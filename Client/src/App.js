@@ -8,6 +8,7 @@ import ProductPage from "./components/ProductPage";
 import UserProfile from "./components/UserProfile";
 import AddProduct from "./components/AddProduct";
 import EditProduct from "./components/EditProduct";
+import Cart from "./components/Cart";
 import LandingPage from "./components/Landing";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -45,6 +46,14 @@ const App = () => {
             element={
               <ProtectedRoute>
                 <UserProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/cart"
+            element={
+              <ProtectedRoute>
+                <Cart />
               </ProtectedRoute>
             }
           />

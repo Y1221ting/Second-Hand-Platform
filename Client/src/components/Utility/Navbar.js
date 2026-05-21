@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FaUser } from "react-icons/fa";
+import { FaUser, FaShoppingCart } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import DrawerMenu from "./DrawerMenu";
 import { Link } from "react-router-dom";
@@ -19,7 +19,17 @@ const Navbar = () => {
           <span className="text-yellow-500">Second</span>Hand
         </Link>
       </div>
-      <div className="relative group">
+      <div className="flex items-center gap-3">
+        {isAuthenticated && (
+          <Link
+            to="/cart"
+            className="text-white hover:text-yellow-500 transition-colors duration-200 p-2"
+            title="购物车"
+          >
+            <FaShoppingCart className="text-2xl" />
+          </Link>
+        )}
+        <div className="relative group">
         {isAuthenticated ? (
           <>
             <button
@@ -43,6 +53,7 @@ const Navbar = () => {
             登录
           </Link>
         )}
+      </div>
       </div>
     </nav>
   );
