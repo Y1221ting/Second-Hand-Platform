@@ -47,6 +47,21 @@ const userSchema = new mongoose.Schema({
     required: [true, "Address is required"],
     trim: true,
   },
+  cart: [{
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+    },
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  }],
 });
 
 const User = mongoose.model("User", userSchema);

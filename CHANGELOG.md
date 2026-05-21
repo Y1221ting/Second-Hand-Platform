@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.15.0] - 2026-05-21
+
+### Added
+- 购物车系统第一阶段：User 模型新增 `cart` 字段，支持存储多个商品（productId、quantity、addedAt）
+
+---
+
 ## [1.14.0] - 2026-05-14
 
 ### Added
