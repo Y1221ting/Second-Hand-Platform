@@ -27,6 +27,17 @@ exports.getCart = async (req, res) => {
 exports.addToCart = async (req, res) => {
   try {
     const { productId } = req.params;
+    let { quantity } = req.body;
+
+    // 处理可选的 quantity 参数，默认 1
+    if (quantity === undefined || quantity === null) {
+      quantity = 1;
+    }
+
+    // 校验数量必须为正整数
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      return res.status(400).json({ message: "数量必须为正整数" });
+    }
 
     // 1. 检查商品是否存在
     const product = await Product.findById(productId);
@@ -48,20 +59,33 @@ exports.addToCart = async (req, res) => {
       return res.status(400).json({ message: "该商品库存不足" });
     }
 
-    // 4. 检查是否已在购物车中
+    // 4. 检查请求数量是否超过库存
+    if (quantity > product.quantity) {
+      return res
+        .status(400)
+        .json({ message: `库存不足，当前库存 ${product.quantity} 件` });
+    }
+
+    // 5. 检查是否已在购物车中
     const user = await User.findById(req.user._id);
     const existingItem = user.cart.find(
       (item) => item.productId.toString() === productId
     );
 
     if (existingItem) {
-      // 已在购物车中，数量 +1
-      existingItem.quantity += 1;
+      // 已在购物车中，检查加上现有数量是否超库存
+      const totalQuantity = existingItem.quantity + quantity;
+      if (totalQuantity > product.quantity) {
+        return res.status(400).json({
+          message: `购物车已有 ${existingItem.quantity} 件，再添加 ${quantity} 件将超过库存 ${product.quantity} 件`,
+        });
+      }
+      existingItem.quantity = totalQuantity;
     } else {
       // 不在购物车中，新增
       user.cart.push({
         productId: product._id,
-        quantity: 1,
+        quantity: quantity,
         addedAt: new Date(),
       });
     }
