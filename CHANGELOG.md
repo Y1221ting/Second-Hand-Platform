@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - 购物车系统第一阶段：User 模型新增 `cart` 字段，支持存储多个商品（productId、quantity、addedAt）
+- 新增 `Server/controllers/cartController.js`，包含 6 个购物车 API（获取、添加、移除、更新数量、清空、批量结算）
+- 新增 `Server/routes/cartRoutes.js`，所有购物车接口注册在 `/api/cart` 路由下
+- `server.js` 注册 `/api/cart` 路由
 
 ---
 
