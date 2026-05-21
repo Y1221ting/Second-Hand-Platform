@@ -21,7 +21,6 @@ const Register = () => {
     address: "",
   });
   const [showCollegeDropdown, setShowCollegeDropdown] = useState(false);
-  const [isCustomCollege, setIsCustomCollege] = useState(false);
   const collegeDropdownRef = useRef(null);
 
   // 点击下拉外面时关闭
@@ -52,7 +51,6 @@ const Register = () => {
   const handleCollegeChange = (e) => {
     const value = e.target.value;
     setFormData((prev) => ({ ...prev, college: value }));
-    setIsCustomCollege(!JIANGXI_COLLEGES.includes(value));
     setShowCollegeDropdown(value.trim() !== "");
     // 清除错误
     if (formErrors.college) setFormErrors((prev) => ({ ...prev, college: "" }));
@@ -61,12 +59,8 @@ const Register = () => {
   // 从下拉列表选中学校
   const handleCollegeSelect = (name) => {
     setFormData((prev) => ({ ...prev, college: name }));
-    setIsCustomCollege(false);
     setShowCollegeDropdown(false);
   };
-
-  // 学校后缀校验
-  const isCollegeValid = !isCustomCollege || /(大学|学院)$/.test(formData.college);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
