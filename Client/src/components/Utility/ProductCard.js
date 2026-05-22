@@ -66,7 +66,7 @@ const ProductCard = memo(({ product, isRecommended }) => {
   };
 
   return (
-    <div className="m-2 flex flex-col justify-between flex-shrink-0 w-64 bg-gray-900 text-white px-4 py-5 rounded-md hover:scale-105 transition-transform duration-200">
+    <div className="flex flex-col justify-between w-full bg-gray-900 text-white px-4 py-5 rounded-md hover:scale-105 transition-transform duration-200">
       <a href={`/product/${product._id}`} className="text-blue-500 block ">
         <div className="relative">
           <div

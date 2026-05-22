@@ -49,7 +49,7 @@ const Recommendations = ({ userId, excludeId, category, college, sellerId }) => 
       </h2>
       <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-thin scrollbar-thumb-gray-300">
         {products.map(product => (
-          <div key={product._id} className="flex-shrink-0">
+          <div key={product._id} className="flex-shrink-0 w-64">
             <ProductCard product={product} isRecommended={true} />
           </div>
         ))}
