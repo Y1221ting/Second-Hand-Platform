@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Filters from "./Filters";
 import ProductList from "./ProductList";
 import Pagination from "./Pagination";
@@ -8,6 +8,7 @@ import JIANGXI_COLLEGES from "../../constants/colleges";
 
 const ProductsList = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [collegeQuery, setCollegeQuery] = useState("");
@@ -21,11 +22,13 @@ const ProductsList = () => {
   const debounceTimer = useRef(null);
   const isComposingRef = useRef(false);
 
-  // 从 URL 参数同步搜索状态（空值 = 重置搜索）
+  // 从 URL 参数同步搜索状态和页码（空值 = 重置）
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const searchFromUrl = params.get("search");
+    const pageFromUrl = parseInt(params.get("page")) || 1;
     setDebouncedSearch(searchFromUrl || "");
+    setCurrentPage(pageFromUrl);
   }, [location.search]);
 
   const collegeOptions = [
@@ -34,7 +37,9 @@ const ProductsList = () => {
   ];
 
   const triggerSearch = () => {
-    setCurrentPage(1);
+    const params = new URLSearchParams(location.search);
+    params.delete("page"); // 切筛选条件回到第 1 页
+    navigate(`/home?${params.toString()}`, { replace: true });
   };
 
   const handleCollegeCompositionStart = () => {
@@ -126,7 +131,9 @@ const ProductsList = () => {
   }, [fetchProducts, currentPage]);
 
   const paginate = (pageNumber) => {
-    setCurrentPage(pageNumber);
+    const params = new URLSearchParams(location.search);
+    params.set("page", pageNumber);
+    navigate(`/home?${params.toString()}`, { replace: true });
   };
 
   return (
