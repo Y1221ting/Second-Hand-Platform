@@ -36,16 +36,17 @@ const userSchema = new mongoose.Schema({
     trim: true,
     validate: {
       validator: function (value) {
-        return /^\d{11}$/.test(value);
+        return /^1[3-9]\d{9}$/.test(value);
       },
-      message: "Invalid phone number",
+      message: "手机号格式不正确，请输入11位中国手机号码（1开头的第二位为3-9）",
     },
-    required: [true, "Phone number is required"],
+    required: [true, "手机号不能为空"],
   },
   address: {
     type: String,
-    required: [true, "Address is required"],
+    required: [true, "地址不能为空"],
     trim: true,
+    minlength: [5, "地址至少需要5个字符"],
   },
   cart: [{
     productId: {

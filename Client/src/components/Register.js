@@ -80,6 +80,19 @@ const Register = () => {
       return;
     }
 
+    // 手机号格式校验
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phoneNo)) {
+      setFormErrors((prev) => ({ ...prev, phoneNo: "手机号格式不正确（11位，1开头）" }));
+      return;
+    }
+
+    // 地址长度校验
+    if (formData.address.trim().length < 5) {
+      setFormErrors((prev) => ({ ...prev, address: "地址至少需要5个字符" }));
+      return;
+    }
+
     // 学校后缀校验：手动输入的必须以"大学"或"学院"结尾
     const collegeVal = formData.college || "";
     if (!JIANGXI_COLLEGES.includes(collegeVal) && !/(大学|学院)$/.test(collegeVal)) {
@@ -200,11 +213,12 @@ const Register = () => {
               </div>
               <div className="mb-4">
                 <input
-                  type="text"
+                  type="tel"
                   name="phoneNo"
-                  placeholder="手机号"
+                  placeholder="手机号（11位）"
                   value={formData.phoneNo}
                   onChange={handleChange}
+                  maxLength="11"
                   className={`w-full py-2 px-4 rounded-lg bg-gray-100 border ${
                     formErrors.phoneNo ? "border-red-500" : "border-gray-300"
                   } focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent`}
@@ -219,9 +233,10 @@ const Register = () => {
                 <input
                   type="text"
                   name="address"
-                  placeholder="地址"
+                  placeholder="地址（宿舍楼/门牌号等，至少5个字符）"
                   value={formData.address}
                   onChange={handleChange}
+                  minLength={5}
                   className={`w-full py-2 px-4 rounded-lg bg-gray-100 border ${
                     formErrors.address ? "border-red-500" : "border-gray-300"
                   } focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent`}

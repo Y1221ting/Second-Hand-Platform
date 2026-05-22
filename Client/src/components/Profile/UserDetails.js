@@ -29,6 +29,19 @@ const UserDetails = ({
     !isCustomCollege ||
     /(大学|学院)$/.test(formData.college);
 
+  // 手机号实时校验
+  const phoneRegex = /^1[3-9]\d{9}$/;
+  const phoneError =
+    editMode && formData.phoneNo && !phoneRegex.test(formData.phoneNo)
+      ? "手机号格式不正确"
+      : "";
+
+  // 地址长度实时校验
+  const addressError =
+    editMode && formData.address && formData.address.trim().length > 0 && formData.address.trim().length < 5
+      ? "地址至少需要5个字符"
+      : "";
+
   return (
     <div className="w-full md:w-3/4 p-4">
       <form>
@@ -59,6 +72,9 @@ const UserDetails = ({
               onChange={handleChange}
               editMode={editMode}
             />
+            {phoneError && (
+              <p className="text-red-500 text-xs mt-1">{phoneError}</p>
+            )}
           </div>
           {/* 学校 — 编辑模式下模糊搜索+下拉 */}
           <div className="mb-4 relative">
@@ -121,15 +137,7 @@ const UserDetails = ({
               />
             )}
           </div>
-          <div className="mb-4">
-            <UserField
-              label="学号"
-              name="collegeId"
-              value={editMode ? formData.collegeId : userData.collegeId}
-              onChange={handleChange}
-              editMode={editMode}
-            />
-          </div>
+
           <div className="mb-4">
             <UserField
               label="地址"
@@ -138,6 +146,9 @@ const UserDetails = ({
               onChange={handleChange}
               editMode={editMode}
             />
+            {addressError && (
+              <p className="text-red-500 text-xs mt-1">{addressError}</p>
+            )}
           </div>
         </div>
       </form>

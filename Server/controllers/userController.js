@@ -82,7 +82,12 @@ exports.getUserById = async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.json(user);
+    // 兼容旧用户没有 createdAt 的情况
+    const result = user.toObject();
+    if (!result.createdAt) {
+      result.createdAt = result.updatedAt || new Date("2026-01-01");
+    }
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }

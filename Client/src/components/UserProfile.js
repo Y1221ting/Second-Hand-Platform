@@ -81,6 +81,19 @@ const UserProfile = () => {
   };
 
   const handleSaveClick = () => {
+    // 手机号格式校验
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phoneNo)) {
+      alert("手机号格式不正确，请输入11位中国手机号码");
+      return;
+    }
+
+    // 地址长度校验
+    if (!formData.address || formData.address.trim().length < 5) {
+      alert("地址至少需要5个字符");
+      return;
+    }
+
     // 学校字段校验：手动输入的必须以"大学"或"学院"结尾
     const college = formData.college || "";
     if (college && !(/(大学|学院)$/.test(college))) {

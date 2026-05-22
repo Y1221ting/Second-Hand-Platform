@@ -102,8 +102,19 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
       return;
     }
 
+    // 手机号格式校验
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(formData.phoneNo)) {
+      alert("手机号格式不正确，请输入11位中国手机号码");
+      return;
+    }
+
     // 地址长度+合规字符校验
     const addr = formData.address || "";
+    if (addr.trim().length < 5) {
+      alert("详细地址至少需要5个字符");
+      return;
+    }
     if (addr.length > 200) {
       alert("详细地址不能超过200个字符");
       return;

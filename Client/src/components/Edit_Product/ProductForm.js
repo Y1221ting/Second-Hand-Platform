@@ -1,4 +1,19 @@
 import React from "react";
+import { FaInfoCircle, FaPlus } from "react-icons/fa";
+
+// 按分类的常用规格建议
+const SPEC_SUGGESTIONS = {
+  electronics: ["品牌", "型号", "颜色", "存储容量", "成色", "购买时间"],
+  furniture: ["品牌", "材质", "尺寸", "颜色", "购买时间"],
+  clothing: ["品牌", "尺码", "颜色", "材质", "新旧程度"],
+  books: ["作者", "出版社", "出版年份", "版次", "新旧程度"],
+  sports: ["品牌", "型号", "尺寸", "成色", "购买时间"],
+  food: ["品牌", "规格", "保质期", "生产日期"],
+  transportation: ["品牌", "型号", "颜色", "购买时间", "里程数"],
+  beauty: ["品牌", "规格", "保质期", "颜色"],
+  home: ["品牌", "材质", "尺寸", "颜色"],
+  other: ["品牌", "型号", "尺寸", "颜色", "成色"],
+};
 
 const ProductForm = ({
   formData,
@@ -135,11 +150,16 @@ const ProductForm = ({
         )}
       </div>
 
-      {/* Product Specifications (if applicable) */}
+      {/* 规格参数 — 带说明和快捷建议 */}
       <div className="mb-4">
-        <label htmlFor="specifications" className="block text-gray-600">
+        <label className="flex items-center gap-1.5 text-gray-700 font-medium mb-1">
+          <FaInfoCircle className="text-blue-400 text-sm" />
           规格参数
         </label>
+        <p className="text-xs text-gray-400 mb-3 leading-relaxed">
+          添加商品的规格信息，如品牌、型号、尺寸、颜色等，让买家快速了解商品详情。
+          <br />在下方输入「规格名」和「规格值」后点击添加，或点击热门规格快速填写。
+        </p>
         {formData.specifications.map((spec, index) => (
           <div
             key={index}
@@ -150,7 +170,7 @@ const ProductForm = ({
               name={`specification-${index}-key`}
               value={spec.key}
               readOnly
-              className="w-full md:w-[45%] border rounded-lg py-2 px-3 my-2 md:my-0"
+              className="w-full md:w-[45%] border rounded-lg py-2 px-3 my-2 md:my-0 bg-gray-50 text-gray-500"
               disabled
             />
             <input
@@ -158,7 +178,7 @@ const ProductForm = ({
               name={`specification-${index}-value`}
               value={spec.value}
               readOnly
-              className="w-full md:w-[45%] border rounded-lg py-2 px-3 my-2 md:my-0"
+              className="w-full md:w-[45%] border rounded-lg py-2 px-3 my-2 md:my-0 bg-gray-50 text-gray-500"
               disabled
             />
             <button
@@ -183,7 +203,7 @@ const ProductForm = ({
               })
             }
             className="w-full md:w-[45%] border rounded-lg py-2 px-3 my-2 md:my-0"
-            placeholder="键"
+            placeholder='例如: 品牌 / 型号 / 颜色'
           />
           <input
             type="text"
@@ -197,15 +217,37 @@ const ProductForm = ({
               })
             }
             className="w-full md:w-[45%] border rounded-lg py-2 px-3 my-2 md:my-0"
-            placeholder="值"
+            placeholder='例如: Apple / iPhone 15 / 深空灰'
           />
           <button
             type="button"
             onClick={handleAddSpecification}
-            className="w-full md:w-32 bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition duration-300"
+            className="w-full md:w-32 bg-green-500 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition duration-300 flex items-center justify-center gap-1"
           >
-            添加
+            <FaPlus className="text-xs" /> 添加
           </button>
+        </div>
+        {/* 热门规格一键填充 */}
+        <div className="mt-3">
+          <span className="text-xs text-gray-400">热门规格：</span>
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {(SPEC_SUGGESTIONS[formData.category] || SPEC_SUGGESTIONS.other).map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() =>
+                  setSpecificationField({ ...specificationField, key: s })
+                }
+                className={`text-xs px-2 py-1 rounded-full border transition-colors duration-150 ${
+                  specificationField.key === s
+                    ? "bg-blue-100 border-blue-400 text-blue-600"
+                    : "border-gray-300 text-gray-500 hover:border-blue-300 hover:text-blue-500"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
