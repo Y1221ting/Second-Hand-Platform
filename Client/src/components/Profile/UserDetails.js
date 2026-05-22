@@ -139,33 +139,6 @@ const UserDetails = ({
               editMode={editMode}
             />
           </div>
-          <div className="mb-4">
-            <UserField
-              label="城市"
-              name="city"
-              value={editMode ? formData.city : userData.city}
-              onChange={handleChange}
-              editMode={editMode}
-            />
-          </div>
-          <div className="mb-4">
-            <UserField
-              label="省份"
-              name="state"
-              value={editMode ? formData.state : userData.state}
-              onChange={handleChange}
-              editMode={editMode}
-            />
-          </div>
-          <div className="mb-4">
-            <UserField
-              label="邮编"
-              name="zipCode"
-              value={editMode ? formData.zipCode : userData.zipCode}
-              onChange={handleChange}
-              editMode={editMode}
-            />
-          </div>
         </div>
       </form>
       {displayEdit && (

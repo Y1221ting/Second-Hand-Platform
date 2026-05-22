@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import Filters from "./Filters";
 import ProductList from "./ProductList";
 import Pagination from "./Pagination";
@@ -6,8 +7,8 @@ import Loading from "../Utility/Loading";
 import JIANGXI_COLLEGES from "../../constants/colleges";
 
 const ProductsList = () => {
+  const location = useLocation();
   const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [collegeQuery, setCollegeQuery] = useState("");
   const [debouncedCollege, setDebouncedCollege] = useState("");
@@ -20,6 +21,15 @@ const ProductsList = () => {
   const debounceTimer = useRef(null);
   const isComposingRef = useRef(false);
 
+  // 从 URL 参数初始化搜索
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const searchFromUrl = params.get("search");
+    if (searchFromUrl) {
+      setDebouncedSearch(searchFromUrl);
+    }
+  }, [location.search]);
+
   const collegeOptions = [
     "全部",
     ...JIANGXI_COLLEGES,
@@ -27,26 +37,6 @@ const ProductsList = () => {
 
   const triggerSearch = () => {
     setCurrentPage(1);
-  };
-
-  const handleSearchCompositionStart = () => {
-    isComposingRef.current = true;
-  };
-
-  const handleSearchCompositionEnd = (e) => {
-    isComposingRef.current = false;
-  };
-
-  const handleSearchKeyDown = (e) => {
-    if (e.key === "Enter") {
-      clearTimeout(debounceTimer.current);
-      setDebouncedSearch(searchQuery);
-      triggerSearch();
-    }
-  };
-
-  const handleSearchQueryChange = (e) => {
-    setSearchQuery(e.target.value);
   };
 
   const handleCollegeCompositionStart = () => {
@@ -142,11 +132,6 @@ const ProductsList = () => {
         {!isLoading ? (
           <div className="flex flex-col md:flex-row">
             <Filters
-              searchQuery={searchQuery}
-              handleSearchQueryChange={handleSearchQueryChange}
-              handleSearchKeyDown={handleSearchKeyDown}
-              handleSearchCompositionStart={handleSearchCompositionStart}
-              handleSearchCompositionEnd={handleSearchCompositionEnd}
               collegeQuery={collegeQuery}
               handleCollegeQueryChange={handleCollegeQueryChange}
               handleCollegeKeyDown={handleCollegeKeyDown}

@@ -56,12 +56,14 @@ const UserProfile = () => {
       });
   }, [id, user, navigate]);
 
-  // 购物车标签：激活时才获取数据
+  // 挂载时获取购物车数据，无需等待切换到 cart 标签
   useEffect(() => {
-    if (activeTab !== "cart") return;
     setCartLoading(true);
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      setCartLoading(false);
+      return;
+    }
 
     fetch("/api/cart/", {
       headers: { Authorization: `Bearer ${token}` },
@@ -72,7 +74,7 @@ const UserProfile = () => {
       })
       .catch(() => setCartItems([]))
       .finally(() => setCartLoading(false));
-  }, [activeTab]);
+  }, []);
 
   const handleEditClick = () => {
     setEditMode(true);

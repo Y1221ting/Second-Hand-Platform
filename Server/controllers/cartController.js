@@ -127,7 +127,18 @@ exports.removeFromCart = async (req, res) => {
     }
 
     await user.save();
-    res.status(200).json({ message: "已移除", cart: user.cart });
+
+    // 重新 populate 后返回
+    await user.populate("cart.productId");
+    const cart = user.cart.map(item => {
+      const obj = item.toObject();
+      if (obj.productId && obj.productId.price) {
+        obj.productId.price = Number(obj.productId.price) || 0;
+      }
+      return obj;
+    });
+
+    res.status(200).json({ message: "已移除", cart });
   } catch (error) {
     console.error("移除购物车商品失败:", error);
     res.status(500).json({ message: "服务器内部错误" });
@@ -168,7 +179,17 @@ exports.updateQuantity = async (req, res) => {
     item.quantity = quantity;
     await user.save();
 
-    res.status(200).json({ message: "数量已更新", cart: user.cart });
+    // 重新 populate 后返回
+    await user.populate("cart.productId");
+    const cart = user.cart.map(item => {
+      const obj = item.toObject();
+      if (obj.productId && obj.productId.price) {
+        obj.productId.price = Number(obj.productId.price) || 0;
+      }
+      return obj;
+    });
+
+    res.status(200).json({ message: "数量已更新", cart });
   } catch (error) {
     console.error("更新购物车数量失败:", error);
     res.status(500).json({ message: "服务器内部错误" });

@@ -5,12 +5,11 @@ const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
   return (
     <div className="mt-8">
       <h2 className="text-2xl font-semibold mb-4">我的商品</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="space-y-4">
         {userProducts.map((product) => (
           <div
             key={product._id}
-            to={`/product/${product._id}`}
-            className="bg-white p-4 rounded-lg shadow-2xl border-t-4 border-l-4 border-yellow-500 relative flex flex-col justify-between"
+            className="bg-white rounded-lg shadow p-4 flex gap-4 items-center relative"
           >
             {showDelete && (
               <button
@@ -18,57 +17,52 @@ const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
                   e.preventDefault();
                   onDeleteProduct(product._id);
                 }}
-                className="absolute top-2 right-2 z-10 text-red-500 cursor-pointer rounded-full border-2 border-red-500 hover:bg-red-500 hover:text-white transition duration-300"
+                className="absolute top-2 right-2 z-10 text-red-500 cursor-pointer rounded-full border-2 border-red-500 hover:bg-red-500 hover:text-white transition duration-300 w-7 h-7 flex items-center justify-center"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             )}
-            <div className="relative">
-              <img
-                src={product.images[0]}
-                alt={product.name}
-                className="w-full h-64 object-cover mb-4 rounded-lg"
+            {/* 商品图片 — 点击进详情页 */}
+            <Link to={`/product/${product._id}`} className="flex-shrink-0">
+              <div
+                className="w-20 h-20 rounded-lg bg-gray-200 bg-cover bg-center"
+                style={{
+                  backgroundImage: product.images?.[0]
+                    ? `url(${product.images[0]})`
+                    : "none",
+                }}
               />
-              <h2 className="text-lg font-semibold text-gray-900 mb-2">
+            </Link>
+            {/* 商品信息（无描述） */}
+            <div className="flex-grow min-w-0">
+              <Link
+                to={`/product/${product._id}`}
+                className="text-lg font-semibold text-gray-900 hover:text-yellow-600 transition-colors truncate block"
+              >
                 {product.name}
-              </h2>
-              <p className="text-gray-600 mb-2">
-                {product.description.length > 100
-                  ? `${product.description.slice(0, 100)}...`
-                  : product.description}
-              </p>
-              <p className="text-yellow-500 text-lg font-semibold mb-2">
+              </Link>
+              <p className="text-yellow-500 mt-1">
                 ¥{Number(product.price ?? 0).toFixed(2)}
               </p>
+              <span className="text-xs text-gray-400">
+                {new Date(product.createdAt).toLocaleDateString()}
+              </span>
             </div>
-            <span className="bg-white text-gray-900 py-1 rounded">
-              发布于 - {new Date(product.createdAt).toLocaleDateString()}
-            </span>
-            <div className="flex gap-2 mt-2">
+            {/* 操作按钮 */}
+            <div className="flex gap-2 shrink-0">
               <Link
                 to={`/product/${product._id}/edit`}
-                className="flex-1 bg-blue-500 text-white text-center py-2 rounded hover:bg-blue-600 transition duration-300"
+                className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
               >
-                编辑商品
+                编辑
               </Link>
               <Link
                 to={`/product/${product._id}`}
-                className="flex-1 bg-yellow-500 text-white text-center py-2 rounded hover:bg-gray-900 transition duration-300"
+                className="px-3 py-1.5 bg-yellow-500 text-white text-sm rounded hover:bg-gray-900 transition-colors"
               >
-                查看商品
+                查看
               </Link>
             </div>
           </div>

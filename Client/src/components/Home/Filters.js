@@ -1,11 +1,6 @@
 import React, { useState } from "react";
 
 const Filters = ({
-  searchQuery,
-  handleSearchQueryChange,
-  handleSearchKeyDown,
-  handleSearchCompositionStart,
-  handleSearchCompositionEnd,
   collegeQuery,
   handleCollegeQueryChange,
   handleCollegeKeyDown,
@@ -42,19 +37,6 @@ const Filters = ({
         </button>
       </h2>
       <div className={filtersClass}>
-        <div className="mb-4">
-          <label className="text-gray-600 block mb-2">搜索：</label>
-          <input
-            type="text"
-            className="bg-gray-800 text-white p-2 w-full border-2 border-transparent focus:border-white"
-            placeholder="搜索商品..."
-            value={searchQuery}
-            onChange={handleSearchQueryChange}
-            onKeyDown={handleSearchKeyDown}
-            onCompositionStart={handleSearchCompositionStart}
-            onCompositionEnd={handleSearchCompositionEnd}
-          />
-        </div>
         <div className="mb-4">
           <label className="text-gray-600 block mb-2">学校：</label>
           <input

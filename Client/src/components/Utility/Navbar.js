@@ -67,7 +67,7 @@ const Navbar = () => {
               to={`/profile/${user?.id}`}
               className="hidden md:inline text-white hover:text-yellow-500 px-3 py-1 text-sm font-medium transition-colors whitespace-nowrap"
             >
-              我的交易
+              个人中心
             </Link>
 
             {/* 头像 + 下拉菜单 */}

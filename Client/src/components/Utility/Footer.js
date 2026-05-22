@@ -21,7 +21,7 @@ const Footer = () => {
               <ul className="text-gray-300">
                 <li>
                   <Link to="/" className="hover:text-yellow-500 transition duration-300">
-                    首页
+                    网站首页
                   </Link>
                 </li>
                 <li>
