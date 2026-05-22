@@ -3,6 +3,7 @@ import React, { useState } from "react";
 const Filters = ({
   collegeQuery,
   handleCollegeQueryChange,
+  handleCollegeSelect,
   handleCollegeKeyDown,
   handleCollegeCompositionStart,
   handleCollegeCompositionEnd,
@@ -51,7 +52,7 @@ const Filters = ({
           />
           <select
             value={collegeQuery}
-            onChange={handleCollegeQueryChange}
+            onChange={handleCollegeSelect}
             className="p-2 rounded bg-gray-800 text-white w-full mt-2"
           >
             {filteredCollegeOptions.map((college) => (

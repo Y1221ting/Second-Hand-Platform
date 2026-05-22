@@ -96,10 +96,11 @@ const ProductCard = memo(({ product }) => {
       </div>
       <p className="text-sm text-gray-300">{product.uploadedBy?.college}</p>
 
-      <div className="flex justify-between items-center mt-2">
+      {/* 方案A：按钮与价格分两行，居中排列 */}
+      <div className="mt-2">
         {isOwner ? (
           <button
-            className="flex items-center px-4 py-2 rounded bg-gray-600 text-gray-300 cursor-not-allowed"
+            className="w-full flex items-center justify-center px-4 py-2 rounded bg-gray-600 text-gray-300 cursor-not-allowed"
             disabled
           >
             <span className="mr-2"><FaShoppingCart /></span>
@@ -107,7 +108,7 @@ const ProductCard = memo(({ product }) => {
           </button>
         ) : (
           <button
-            className={`flex items-center px-4 py-2 rounded ${
+            className={`w-full flex items-center justify-center px-4 py-2 rounded ${
               product.status === "sold_out" || product.quantity <= 0
                 ? "bg-gray-400 cursor-not-allowed"
                 : clickedButtonId === product._id
@@ -137,8 +138,8 @@ const ProductCard = memo(({ product }) => {
               : "加入购物车"}
           </button>
         )}
-        <p className="text-xl font-semibold">
-          ¥{Number(product.price ?? 0).toFixed(2)}
+        <p className="text-center text-xl font-semibold mt-1">
+          ¥{Math.min(Number(product.price ?? 0), 9999.9).toFixed(1)}
         </p>
       </div>
     </div>

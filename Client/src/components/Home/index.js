@@ -59,6 +59,12 @@ const ProductsList = () => {
     setCollegeQuery(e.target.value);
   };
 
+  const handleCollegeSelect = (e) => {
+    setCollegeQuery(e.target.value);
+    setDebouncedCollege(e.target.value);
+    triggerSearch();
+  };
+
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
     triggerSearch();
@@ -134,6 +140,7 @@ const ProductsList = () => {
             <Filters
               collegeQuery={collegeQuery}
               handleCollegeQueryChange={handleCollegeQueryChange}
+              handleCollegeSelect={handleCollegeSelect}
               handleCollegeKeyDown={handleCollegeKeyDown}
               handleCollegeCompositionStart={handleCollegeCompositionStart}
               handleCollegeCompositionEnd={handleCollegeCompositionEnd}

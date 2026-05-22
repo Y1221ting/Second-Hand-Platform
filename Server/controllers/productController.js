@@ -58,7 +58,8 @@ exports.getAllProducts = async (req, res) => {
     }
 
     if (college) {
-      query["uploadedBy.college"] = college;
+      const escaped = college.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query["uploadedBy.college"] = { $regex: escaped, $options: "i" };
     }
 
     if (req.query.minPrice || req.query.maxPrice) {
