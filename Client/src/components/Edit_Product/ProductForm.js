@@ -86,6 +86,8 @@ const ProductForm = ({
           className="w-full border rounded-lg py-2 px-3"
           required
           min="0"
+          max="9999.9"
+          step="0.1"
         />
       </div>
 

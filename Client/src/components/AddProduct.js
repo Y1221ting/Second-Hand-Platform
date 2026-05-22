@@ -34,6 +34,11 @@ const AddProduct = () => {
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
+    // 价格上限弹窗提醒
+    if (name === "price" && Number(value) > 9999.9) {
+      alert("价格不能超过 ¥9999.9（以角为最小单位）");
+      return;
+    }
     setFormData({
       ...formData,
       [name]: value,
@@ -356,6 +361,8 @@ const AddProduct = () => {
               className="w-full border rounded-lg py-2 px-3"
               required
               min="0"
+              max="9999.9"
+              step="0.1"
             />
           </div>
 

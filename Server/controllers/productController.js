@@ -8,9 +8,12 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields: name, description, price, images" });
     }
 
-    // 2. Validate price is positive
+    // 2. Validate price is positive and within limit
     if (req.body.price <= 0) {
       return res.status(400).json({ message: "Price must be greater than 0" });
+    }
+    if (req.body.price > 9999.9) {
+      return res.status(400).json({ message: "价格不能超过 ¥9999.9" });
     }
 
     // 3. Add uploader info from authenticated user
@@ -49,7 +52,8 @@ exports.getAllProducts = async (req, res) => {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [
         { name: { $regex: escaped, $options: "i" } },
-        { description: { $regex: escaped, $options: "i" } },
+        { "uploadedBy.college": { $regex: escaped, $options: "i" } },
+        { "uploadedBy.name": { $regex: escaped, $options: "i" } },
       ];
     }
 
@@ -133,8 +137,13 @@ exports.updateProductById = async (req, res) => {
     }
 
     // Validate price if it's being updated
-    if (req.body.price !== undefined && req.body.price <= 0) {
-      return res.status(400).json({ message: "Price must be greater than 0" });
+    if (req.body.price !== undefined) {
+      if (req.body.price <= 0) {
+        return res.status(400).json({ message: "Price must be greater than 0" });
+      }
+      if (req.body.price > 9999.9) {
+        return res.status(400).json({ message: "价格不能超过 ¥9999.9" });
+      }
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, {
