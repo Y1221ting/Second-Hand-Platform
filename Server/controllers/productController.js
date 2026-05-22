@@ -327,6 +327,129 @@ exports.removeProductSpecification = async (req, res) => {
   }
 };
 
+// 推荐算法：同类目 → 同校 → 同卖家 → 最新兜底
+exports.getRecommendations = async (req, res) => {
+  try {
+    const userId = req.query.userId || "";
+    const limit = parseInt(req.query.limit) || 6;
+    const excludeId = req.query.excludeId || "";
+    const category = req.query.category || "";
+    const college = req.query.college || "";
+    const sellerId = req.query.sellerId || "";
+
+    const exclusions = [];
+    if (excludeId) exclusions.push(excludeId);
+    const baseFilter = {
+      _id: { $nin: exclusions },
+      status: { $nin: ["sold_out", "inactive"] },
+    };
+    if (userId) baseFilter["uploadedBy.id"] = { $ne: userId };
+
+    // 1）同类目商品（详情页场景 — 当前商品的分类）
+    let categoryProducts = [];
+    if (category) {
+      categoryProducts = await Product.find({ ...baseFilter, category })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .select("name images price uploadedBy category status quantity createdAt");
+    }
+
+    const usedIds = categoryProducts.map(p => p._id);
+    let remaining = limit - categoryProducts.length;
+
+    // 2）同校商品（详情页场景 — 从当前商品的学校）
+    let collegeProducts = [];
+    if (college && remaining > 0) {
+      collegeProducts = await Product.find({
+        _id: { $nin: [...exclusions, ...usedIds] },
+        "uploadedBy.college": college,
+        "uploadedBy.id": userId ? { $ne: userId } : undefined,
+        status: { $nin: ["sold_out", "inactive"] },
+      })
+        .sort({ createdAt: -1 })
+        .limit(remaining)
+        .select("name images price uploadedBy category status quantity createdAt");
+
+      usedIds.push(...collegeProducts.map(p => p._id));
+      remaining = limit - categoryProducts.length - collegeProducts.length;
+    }
+
+    // 3）同发布者其他商品
+    let sellerProducts = [];
+    if (sellerId && remaining > 0) {
+      sellerProducts = await Product.find({
+        _id: { $nin: [...exclusions, ...usedIds] },
+        "uploadedBy.id": sellerId,
+        status: { $nin: ["sold_out", "inactive"] },
+      })
+        .sort({ createdAt: -1 })
+        .limit(remaining)
+        .select("name images price uploadedBy category status quantity createdAt");
+
+      usedIds.push(...sellerProducts.map(p => p._id));
+      remaining = limit - categoryProducts.length - collegeProducts.length - sellerProducts.length;
+    }
+
+    // 4）如果传了 userId，找用户同校商品（列表页场景 — 从登录用户）
+    let sameCollegeProducts = [];
+    if (userId && remaining > 0) {
+      const allUsed = [...exclusions, ...usedIds];
+      const User = require("../models/User");
+      const user = await User.findById(userId);
+      if (user && user.college) {
+        sameCollegeProducts = await Product.find({
+          _id: { $nin: allUsed },
+          "uploadedBy.college": user.college,
+          "uploadedBy.id": { $ne: userId },
+          status: { $nin: ["sold_out", "inactive"] },
+        })
+          .sort({ createdAt: -1 })
+          .limit(remaining)
+          .select("name images price uploadedBy status quantity createdAt");
+
+        usedIds.push(...sameCollegeProducts.map(p => p._id));
+        remaining = limit - categoryProducts.length - collegeProducts.length - sellerProducts.length - sameCollegeProducts.length;
+      }
+    }
+
+    // 5）填充最新商品兜底
+    let fillProducts = [];
+    if (remaining > 0) {
+      fillProducts = await Product.find({
+        _id: { $nin: excludeId ? [excludeId, ...usedIds] : usedIds },
+        status: { $nin: ["sold_out", "inactive"] },
+        ...(userId ? { "uploadedBy.id": { $ne: userId } } : {}),
+      })
+        .sort({ createdAt: -1 })
+        .limit(remaining)
+        .select("name images price uploadedBy category status quantity createdAt");
+    }
+
+    const combined = [
+      ...categoryProducts,
+      ...collegeProducts,
+      ...sellerProducts,
+      ...sameCollegeProducts,
+      ...fillProducts,
+    ];
+
+    // 转换 Decimal128 价格为数字
+    const result = combined.map(p => {
+      const obj = p.toObject();
+      obj.price = Number(obj.price) || 0;
+      if (obj.images && obj.images.length > 0) {
+        obj.images = [obj.images[0]];
+      }
+      return obj;
+    });
+
+    res.status(200).json(result);
+  } catch (error) {
+    console.error("获取推荐失败:", error);
+    res.status(200).json([]); // 静默失败，不影响主流程
+  }
+};
+
 exports.updateProductStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;

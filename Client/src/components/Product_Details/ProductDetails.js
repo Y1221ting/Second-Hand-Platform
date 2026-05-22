@@ -4,6 +4,7 @@ import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
 import Dialog from "./Dialog";
 import Loading from "../Utility/Loading";
+import Recommendations from "../Home/Recommendations";
 
 const ProductDetails = ({ productId }) => {
   const { user } = useAuth();
@@ -239,6 +240,15 @@ const ProductDetails = ({ productId }) => {
           )}
         </div>
       </div>
+
+      {/* 商品详情页推荐 */}
+      <Recommendations
+        userId={user?.id}
+        excludeId={productId}
+        category={productDetails.category}
+        college={productDetails.uploadedBy?.college}
+        sellerId={productDetails.uploadedBy?.id}
+      />
     </div>
   );
 };
