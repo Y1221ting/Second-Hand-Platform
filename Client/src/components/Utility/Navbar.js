@@ -10,9 +10,14 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const handleSearch = (e) => {
-    if (e.key === "Enter" && searchTerm.trim()) {
-      navigate(`/home?search=${encodeURIComponent(searchTerm.trim())}`);
-      setSearchTerm("");
+    if (e.key === "Enter") {
+      const trimmed = searchTerm.trim();
+      if (trimmed) {
+        navigate(`/home?search=${encodeURIComponent(trimmed)}`);
+      } else {
+        navigate("/home");
+      }
+      // 不清空输入框 — 保留搜索词，符合用户预期
     }
   };
 

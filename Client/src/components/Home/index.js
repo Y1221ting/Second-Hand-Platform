@@ -21,13 +21,11 @@ const ProductsList = () => {
   const debounceTimer = useRef(null);
   const isComposingRef = useRef(false);
 
-  // 从 URL 参数初始化搜索
+  // 从 URL 参数同步搜索状态（空值 = 重置搜索）
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const searchFromUrl = params.get("search");
-    if (searchFromUrl) {
-      setDebouncedSearch(searchFromUrl);
-    }
+    setDebouncedSearch(searchFromUrl || "");
   }, [location.search]);
 
   const collegeOptions = [
