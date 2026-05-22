@@ -66,12 +66,12 @@ const ProductCard = memo(({ product, isRecommended }) => {
   };
 
   return (
-    <div className="flex flex-col justify-between w-full bg-gray-900 text-white px-4 py-5 rounded-md hover:scale-105 transition-transform duration-200">
+    <div className="flex flex-col justify-between w-full bg-gray-900 text-white px-3 py-3 rounded-md hover:scale-105 transition-transform duration-200 overflow-hidden">
       <a href={`/product/${product._id}`} className="text-blue-500 block ">
         <div className="relative">
           <div
             ref={imageRef}
-            className="w-full h-52 mb-2 rounded-md bg-gray-700"
+            className="w-full h-40 mb-1.5 rounded-md bg-gray-700"
             style={
               imageLoaded
                 ? {
@@ -90,40 +90,36 @@ const ProductCard = memo(({ product, isRecommended }) => {
           )}
         </div>
       </a>
-      <h3 className="text-lg font-semibold mb-1">
-        {product.name.length > 40
-          ? `${product.name.slice(0, 40)}...`
-          : product.name}
+      <h3 className="text-base font-semibold mb-0.5 truncate" title={product.name}>
+        {product.name}
       </h3>
-      <div className="flex items-center justify-between mb-1">
-        <p className="text-sm text-gray-300">
-          发布者：{product.uploadedBy?.name || '未知'}
+      <div className="flex items-center justify-between mb-0.5">
+        <p className="text-xs text-gray-300 truncate max-w-[60%]">
+          {product.uploadedBy?.name || '未知'}
         </p>
-        <p className="text-sm text-gray-400">
-          库存: {product.quantity || 0}
+        <p className="text-xs text-gray-400 shrink-0">
+          库存 {product.quantity || 0}
         </p>
       </div>
-      <p className="text-sm text-gray-300">{product.uploadedBy?.college}</p>
+      <p className="text-xs text-gray-400 truncate">{product.uploadedBy?.college}</p>
 
-      {/* 方案A：价格居中在上，双按钮并行 */}
-      <div className="mt-2">
-        <p className="text-center text-xl font-semibold text-yellow-400 mb-2">
+      <div className="mt-1.5">
+        <p className="text-center text-lg font-semibold text-yellow-400 mb-1.5">
           ¥{Math.min(Number(product.price ?? 0), 9999.9).toFixed(1)}
         </p>
 
         {isOwner ? (
           <button
-            className="w-full flex items-center justify-center px-4 py-2 rounded bg-gray-600 text-gray-300 cursor-not-allowed"
+            className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-gray-600 text-gray-300 cursor-not-allowed text-xs"
             disabled
           >
-            <span className="mr-2"><FaShoppingCart /></span>
+            <FaShoppingCart />
             我的商品
           </button>
         ) : (
-          <div className="flex gap-2">
-            {/* 加入购物车 — 次要操作，边框样式 */}
+          <div className="grid grid-cols-2 gap-1.5">
             <button
-              className={`flex-1 flex items-center justify-center px-2 py-2 rounded text-sm border transition-colors duration-200 ${
+              className={`flex items-center justify-center gap-1 px-1 py-1.5 rounded text-xs border transition-colors duration-200 ${
                 product.status === "sold_out" || product.quantity <= 0
                   ? "border-gray-500 text-gray-500 cursor-not-allowed"
                   : clickedButtonId === product._id
@@ -139,19 +135,18 @@ const ProductCard = memo(({ product, isRecommended }) => {
               }}
               disabled={product.status === "sold_out" || product.quantity <= 0}
             >
-              <FaShoppingCart className="mr-1 shrink-0" />
+              <FaShoppingCart className="shrink-0" />
               <span className="truncate">
                 {product.status === "sold_out" || product.quantity <= 0
                   ? "已售罄"
                   : addMsg[product._id]?.ok
                   ? addMsg[product._id].msg
-                  : "加入购物车"}
+                  : "加购"}
               </span>
             </button>
 
-            {/* 立即购买 — 主要操作，黄色填充 */}
             <button
-              className={`flex-1 flex items-center justify-center px-2 py-2 rounded text-sm font-medium transition-colors duration-200 ${
+              className={`flex items-center justify-center gap-1 px-1 py-1.5 rounded text-xs font-medium transition-colors duration-200 ${
                 product.status === "sold_out" || product.quantity <= 0
                   ? "bg-gray-500 text-gray-300 cursor-not-allowed"
                   : "bg-yellow-500 text-gray-900 hover:bg-yellow-400"
@@ -165,8 +160,8 @@ const ProductCard = memo(({ product, isRecommended }) => {
               }}
               disabled={product.status === "sold_out" || product.quantity <= 0}
             >
-              <FaBolt className="mr-1 shrink-0" />
-              <span className="truncate">立即购买</span>
+              <FaBolt className="shrink-0" />
+              <span className="truncate">购买</span>
             </button>
           </div>
         )}
