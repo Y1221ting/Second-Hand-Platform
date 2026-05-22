@@ -426,16 +426,16 @@ exports.getRecommendations = async (req, res) => {
     }
 
     const combined = [
-      ...categoryProducts,
-      ...collegeProducts,
-      ...sellerProducts,
-      ...sameCollegeProducts,
-      ...fillProducts,
+      ...categoryProducts.map(p => ({ ...p.toObject(), aiReason: "同类商品AI智能匹配" })),
+      ...collegeProducts.map(p => ({ ...p.toObject(), aiReason: "同校同学发布的AI推荐" })),
+      ...sellerProducts.map(p => ({ ...p.toObject(), aiReason: "该卖家其他商品AI推荐" })),
+      ...sameCollegeProducts.map(p => ({ ...p.toObject(), aiReason: "基于同校偏好的AI推荐" })),
+      ...fillProducts.map(p => ({ ...p.toObject(), aiReason: "热门商品AI推荐" })),
     ];
 
     // 转换 Decimal128 价格为数字
     const result = combined.map(p => {
-      const obj = p.toObject();
+      const obj = { ...p };
       obj.price = Number(obj.price) || 0;
       if (obj.images && obj.images.length > 0) {
         obj.images = [obj.images[0]];

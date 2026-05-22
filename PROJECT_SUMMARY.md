@@ -9,9 +9,9 @@
 - **AI**: 通义千问 Qwen API (dashscope)
 
 ## 服务器信息
-- **IP**: `8.162.24.145`
-- **前端地址**: `http://8.162.24.145:5000`
-- **后端地址**: `http://8.162.24.145:8000`
+- **域名**: `freevian.top`
+- **前端地址**: `http://freevian.top:5000`
+- **后端地址**: `http://freevian.top:8000`
 - **MongoDB**: 容器内 `second-hand-mongodb:27017`
 - **GitHub**: `https://github.com/Y1221ting/Second-Hand-Platform.git`
 
@@ -43,6 +43,7 @@ d:\Second-Hand-main\
 │           │   └── Pagination.js   # 分页
 │           ├── Product_Details/
 │           │   ├── ProductDetails.js  # 商品详情
+│           │   ├── Recommendations.js # 猜你喜欢推荐
 │           │   ├── Dialog.js         # 购买确认弹窗
 │           │   └── FormField.js      # 表单字段组件
 │           ├── Profile/
@@ -80,12 +81,15 @@ d:\Second-Hand-main\
     │   └── Product.js          # 商品模型
     ├── controllers/
     │   ├── userController.js   # 用户CRUD
-    │   ├── productController.js# 商品CRUD + 购买
-    │   └── aiController.js     # AI接口
+    │   ├── productController.js# 商品CRUD + 购买 + 推荐
+    │   ├── aiController.js     # AI接口
+    │   └── cartController.js   # 购物车CRUD
     ├── routes/
     │   ├── userRoutes.js       # /api/users
-    │   ├── productRoutes.js    # /api/products
-    │   └── aiRoutes.js         # /api/ai
+    │   ├── productRoutes.js    # /api/products（含推荐 /recommendations）
+    │   ├── aiRoutes.js         # /api/ai
+    │   ├── cartRoutes.js       # /api/cart
+    │   └── uploadRoutes.js     # /api/upload
     └── services/
         └── aiService.js        # 通义千问API调用
 ```
@@ -107,7 +111,8 @@ d:\Second-Hand-main\
 ### 商品 `/api/products`
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| GET | `/api/products/` | ❌ | 获取所有商品 |
+| GET | `/api/products/` | ❌ | 获取所有商品（分页/搜索/筛选/排序） |
+| GET | `/api/products/recommendations` | ❌ | 获取推荐商品（参数：excludeId/category/college/sellerId） |
 | GET | `/api/products/:id` | ❌ | 获取商品详情 |
 | GET | `/api/products/user/:userId` | ❌ | 获取用户发布的商品 |
 | GET | `/api/products/purchased/:userId` | ❌ | 获取用户购买的商品 |
@@ -116,12 +121,32 @@ d:\Second-Hand-main\
 | DELETE | `/api/products/:id` | ✅ | 删除商品 |
 | POST | `/api/products/:id/purchase` | ✅ | 购买商品 |
 | PUT | `/api/products/:id/update-status` | ✅ | 更新商品状态 |
+| POST | `/api/products/:id/images` | ✅ | 添加图片 |
+| DELETE | `/api/products/:id/images/:index` | ✅ | 删除图片 |
+| POST | `/api/products/:id/specifications` | ✅ | 添加规格 |
+| PUT | `/api/products/:id/specifications/:specId` | ✅ | 更新规格 |
+| DELETE | `/api/products/:id/specifications/:specId` | ✅ | 删除规格 |
 
 ### AI `/api/ai`
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
 | POST | `/api/ai/generate-description` | ❌ | AI生成商品描述 |
 | POST | `/api/ai/recommend-category` | ❌ | AI推荐分类 |
+
+### 购物车 `/api/cart`
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| GET | `/api/cart/` | ✅ | 获取购物车（populate 商品详情） |
+| POST | `/api/cart/:productId` | ✅ | 添加商品到购物车（可选 quantity，默认1） |
+| PUT | `/api/cart/:productId` | ✅ | 修改购物车商品数量 |
+| DELETE | `/api/cart/:productId` | ✅ | 从购物车移除商品 |
+| DELETE | `/api/cart/` | ✅ | 清空购物车 |
+| POST | `/api/cart/checkout/all` | ✅ | 批量结算购物车 |
+
+### 上传 `/api/upload`
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| POST | `/api/upload/` | ✅ | 上传图片（最多9张，单张上限20MB） |
 
 ---
 
@@ -135,8 +160,14 @@ d:\Second-Hand-main\
   fullName: String,     // 必填
   college: String,      // 必填
   phoneNo: String,      // 必填，11位数字
-  address: String       // 必填
+  address: String,      // 必填（省市区+详情合并）
+  cart: [{              // 购物车
+    productId: ObjectId, // 商品ID
+    quantity: Number,    // 数量
+    addedAt: Date        // 添加时间
+  }]
 }
+// timestamps: true — 自动记录 createdAt 和 updatedAt
 ```
 
 ### Product 模型
@@ -187,9 +218,9 @@ other        → 其他
 ### 后端规范
 1. **错误处理**: try-catch，返回 `{ message: "..." }` 或 `{ error: "..." }`
 2. **认证中间件**: `authMiddleware` 解析JWT，`req.user` 挂载用户对象
-3. **密码**: bcrypt 12轮加密，JWT密钥 `"your-secret-key"`
-4. **图片**: base64格式存储，请求体限制50mb
-5. **价格**: MongoDB Decimal128 类型
+3. **密码**: bcryptjs 8轮加密（服务器2GB限制），JWT密钥从环境变量 `JWT_SECRET` 读取
+4. **图片**: 文件存储（multer → `Server/uploads/`），数据库只存路径，请求体限制50mb
+5. **价格**: MongoDB Decimal128 类型，后端 `Number(productObj.price) || 0` 转数字
 
 ---
 
@@ -204,11 +235,11 @@ other        → 其他
 # 后端环境变量
 MONGODB_URI=mongodb://admin:%40Yt1221wz@second-hand-mongodb:27017/second-hand?authSource=admin
 PORT=8000
-CLIENT_URL=http://8.162.24.145:5000
+CLIENT_URL=http://freevian.top:5000
 QWEN_API_KEY=sk-8b143f7aef8a4d16ad7d00365486d2f6
 
 # 前端构建参数
-REACT_APP_BASE_URL=http://8.162.24.145:8000
+REACT_APP_BASE_URL=http://freevian.top:8000
 ```
 
 ### 部署命令
@@ -232,13 +263,14 @@ docker compose up -d --build backend
 docker compose up -d --build frontend
 ```
 
-### 注意事项
+### ⚠️ 注意事项
 - 服务器内存2GB，**不要在服务器上构建前端**（会卡死）
 - 前端Dockerfile已改为直接使用本地构建的 `build/` 文件夹
 - 前端通过 nginx 代理 `/api/` 和 `/uploads/` 到后端，无需CORS
 - MongoDB数据通过Docker卷持久化，重启不会丢失
 - 上传的图片存在 `Server/uploads/`（已被 bind mount 持久化，重启不丢失）
 - nginx 配置同时代理了 `/uploads/` 到后端，前端可直接用 `/uploads/xxx.jpg` 访问图片
+- bcrypt 替换为 bcryptjs + 盐轮数 8 以适配 2GB 内存限制
 
 ---
 
@@ -254,14 +286,20 @@ docker compose up -d --build frontend
 8. ✅ **AI推荐分类** - 通义千问API
 9. ✅ **界面中文** - 全界面已汉化
 10. ✅ **商品分类** - 扩展为10种
+11. ✅ **购物车系统** - 添加/移除/修改数量/清空/批量结算
+12. ✅ **商品推荐** - 规则引擎（同类目→同校→同卖家→同校用户→最新兜底）
+13. ✅ **学院模糊搜索** - 支持 $regex 模糊匹配
+14. ✅ **搜索优化** - 关键词搜索保留输入内容，空搜索重置；分页页码绑定 URL 参数刷新不丢失
+15. ✅ **价格上限 9999.9** - 前后端双重校验，角为单位，超出弹窗提示
+16. ✅ **搜索范围优化** - 从搜索 name+description 改为 name+学校+发布者
 
 ## 待优化/已知问题
 
-1. **Dialog.js 404错误** - 购买弹窗获取用户信息时可能404（`/api/users/:id`），需要确认用户ID有效性
-2. **购买记录** - 新功能刚上线，旧商品的 `purchasedBy` 字段为空
-3. **图片存储** - ✅ 已从 base64 改为本地文件存储（`Server/uploads/`），数据库只存 `/uploads/xxx.jpg` 路径，大幅降低 MongoDB 压力。后续可迁移到对象存储（OSS）
-4. **分页** - 商品列表目前是前端分页，商品多时建议改为后端分页
-5. **搜索** - 目前是前端搜索，建议改为后端搜索（MongoDB索引）
+1. **auth.js 返回值嵌套** - 登录接口返回 `{token:{token:...}}`，需修复为 `{token: "xxx"}` 扁平结构（前端 localStorage 存 `data.token.token` 回退）
+2. **库存 API 验证** - 购物车和购买接口已增加三重校验（>0 / 正整数 / 不超过库存），但其他 API 可能还需统一审计
+3. **购买记录 `purchasedBy` 单对象限制** - Product 模型的 `purchasedBy` 是单个嵌入子文档，新购买会覆盖旧记录
+4. **图片存储** - ✅ 已从 base64 改为本地文件存储（`Server/uploads/`），后续可迁移到对象存储（OSS）
+5. **商品推荐** - 阶段一为规则引擎，后续可升级为协同过滤或基于用户行为的学习模型
 
 ---
 

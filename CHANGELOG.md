@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.16.0] - 2026-05-22
+
+### Added
+- **推荐系统（阶段一：规则引擎）**：后端新增 `GET /api/products/recommendations`，五级漏斗推荐（同类目 → 同校 → 同卖家 → 用户同校 → 最新兜底），路由需放在 `/:id` 之前
+- 新增 `Recommendations.js` 组件，嵌入商品详情页底部（"猜你喜欢"），静默模式无数据不渲染
+- **商品卡片双按钮布局**：价格和操作分两行，下方排列"加入购物车"和"立即购买"两个按钮
+- **购物车系统完善**：addToCart 支持可选 `quantity` 参数（默认1），增加正整数校验和库存上限检查；checkoutCart 批量结算
+- **登录/注册错误反馈**：Login.js 登录失败显示红色错误框，重新输入自动清除；Register.js 注册成功弹出 `alert("注册成功！请登录")` 提示
+- **权限路由修复**：authContext 同步初始化 localStorage，解决页面刷新自动退出登录的问题
+
+### Changed
+- **搜索范围优化**：关键字搜索从 `name + description` 改为 `name + uploadedBy.college + uploadedBy.name`，不再搜索商品描述
+- **学院筛选改为模糊搜索**：从精确匹配改为 `$regex` 模糊搜索，Filters 下拉框选学校后自动触发搜索
+- **搜索框行为优化**：搜索后保留输入内容，空搜索时重置为全部商品；分页页码与 URL 参数 `?page=` 绑定，刷新不丢失
+- **价格显示优化**：从 `toFixed(2)` 改为 `toFixed(1)`（角为单位），上限 9999.9，前后端双重校验
+- **导航文案修正**：Footer「首页」→「网站首页」；Navbar「我的交易」→「个人中心」
+- **商品列表布局**：Grid 响应式布局代替 flex-wrap：`grid-cols-1 sm:2 lg:3 xl:4`
+- **个人商品卡片**：Profile/ProductList 改为紧凑横条布局（80px 小图 + 名称 + 价格 + 日期）
+- **UserDetails 字段合并**：删除 `city/state/zipCode` 独立字段，所有地区统一走 `address` 一个字段
+- **User Schema**：新增 `timestamps: true`，自动记录创建时间和更新时间
+- **购物车数据获取**：UserProfile 挂载时即获取购物车数据，不再依赖 activeTab 切换
+- **购物车结算**：checkoutCart 中 `purchasedBy` 从 `$push` 改为 `$set`，确保最后一次购买者信息正确
+
+### Fixed
+- **严重⚠️ 库存 API 验证缺陷**：addToCart 和购买接口传递负值、0 或超大值（如999）时返回 200 成功——已增加 `quantity > 0`、`正整数`、`不超过库存` 三重校验，buyProduct 增加 `$gt: 0` 查询条件
+- **auth.js 返回值嵌套**：登录接口返回 `{token:{token:...}}`，前端读取 `data.token.token` 才能获取实际 Token——需修复为 `{token: "xxx"}` 扁平结构
+- **cartController.removeFromCart/updateQuantity**：修复为返回 populate 后的完整购物车数据
+- **Filters 左侧搜索框移除**：顶部搜索框统一负责搜索，Filters 不再有独立的搜索输入框
+
+---
+
 ## [1.15.0] - 2026-05-21
 
 ### Added

@@ -6,6 +6,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 // Public routes (no auth required)
 router.get("/", productController.getAllProducts);
 router.get("/recommendations", productController.getRecommendations);
+router.get("/ai-recommendations", productController.getRecommendations);
 router.get("/:id", productController.getProductById);
 router.get("/user/:userId", productController.getProductsByUser);
 router.get("/purchased/:userId", productController.getPurchasedProducts);

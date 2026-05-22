@@ -3,7 +3,7 @@ import { FaShoppingCart, FaBolt } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { useNavigate } from "react-router-dom";
 
-const ProductCard = memo(({ product }) => {
+const ProductCard = memo(({ product, isRecommended }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [clickedButtonId, setClickedButtonId] = useState(null);
@@ -68,20 +68,27 @@ const ProductCard = memo(({ product }) => {
   return (
     <div className="m-2 flex flex-col justify-between flex-shrink-0 w-64 bg-gray-900 text-white px-4 py-5 rounded-md hover:scale-105 transition-transform duration-200">
       <a href={`/product/${product._id}`} className="text-blue-500 block ">
-        <div
-          ref={imageRef}
-          className="w-full h-52 mb-2 rounded-md bg-gray-700"
-          style={
-            imageLoaded
-              ? {
-                  backgroundImage: `url(${product.images[0]})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundRepeat: "no-repeat",
-                }
-              : {}
-          }
-        ></div>
+        <div className="relative">
+          <div
+            ref={imageRef}
+            className="w-full h-52 mb-2 rounded-md bg-gray-700"
+            style={
+              imageLoaded
+                ? {
+                    backgroundImage: `url(${product.images[0]})`,
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                  }
+                : {}
+            }
+          ></div>
+          {isRecommended && (
+            <span className="absolute top-1 left-1 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-sm z-10 pointer-events-none">
+              AI 推荐
+            </span>
+          )}
+        </div>
       </a>
       <h3 className="text-lg font-semibold mb-1">
         {product.name.length > 40

@@ -34,7 +34,7 @@
 | 个人资料 | 编辑信息、查看发布/购买记录 |
 | AI 辅助 | 通义千问 API 生成描述、推荐分类 |
 
-**线上地址：** http://8.162.24.145:5000  
+**线上地址：** http://freevian.top:5000  
 **GitHub：** https://github.com/Y1221ting/Second-Hand-Platform.git
 
 ---
@@ -58,7 +58,7 @@
 |------|------|--------|
 | **Express 4** | Web 框架 | 路由 + 中间件 |
 | **Mongoose 7** | MongoDB ODM | Schema 定义、数据校验、查询 |
-| **bcrypt** | 密码加密 | 12 轮 salt |
+| **bcryptjs** | 密码加密 | 8 轮 salt（服务器 2GB 内存限制，使用 bcryptjs 替代 bcrypt） |
 | **jsonwebtoken** | JWT 令牌 | `sign({ userId }, SECRET, { expiresIn: "1d" })` |
 | **multer** | 文件上传 | 磁盘存储到 `Server/uploads/` |
 | **axios** | HTTP 客户端 | 后端调用通义千问 API |
@@ -69,7 +69,7 @@
 |------|------|--------|
 | **Docker Compose** | 容器编排 | 3 个服务：mongodb, backend, frontend |
 | **Nginx** | 反向代理 | `/api/` → backend:8000，`/uploads/` → backend:8000 |
-| **阿里云 ECS** | 服务器 | 2GB RAM，IP: `8.162.24.145` |
+| **阿里云 ECS** | 服务器 | 2GB RAM，域名: `freevian.top` |
 | **MongoDB** | 数据库 | Docker 容器内，密码 `@Yt1221wz`（URI 中`@`编码为`%40`） |
 
 ---
@@ -139,7 +139,8 @@ App
 │   │   └── Pagination.js           # 分页按钮
 │   └── Footer                      # 页脚链接
 ├── ProductPage.js
-│   └── ProductDetails.js           # 图片、价格、描述、规格、购买
+│   └── ProductDetails.js           # 图片、价格、描述、规格、购买 + 推荐
+│       ├── Recommendations.js      # 猜你喜欢推荐（底部）
 │       └── Dialog.js               # 购买确认弹窗（省-市联动）
 │           └── FormField.js        # 通用表单字段
 ├── AddProduct.js                   # 发布商品（含AI功能）
@@ -175,11 +176,14 @@ const { user, login, logout, isAuthenticated } = useAuth();
 | 模式 | 实现位置 | 说明 |
 |------|---------|------|
 | **图片懒加载** | ProductCard.js | IntersectionObserver，出现在视口200px内才加载 |
-| **搜索防抖** | Home/index.js | 800ms 防抖 + composition 事件（拼音输入不触发） |
+| **搜索防抖** | Home/index.js | 800ms 防抖 + composition 事件（拼音输入不触发），Enter 立即搜索 |
+| **搜索范围** | ProductController | $regex 模糊匹配 name + 学校 + 发布者，不搜描述 |
 | **原子购买** | ProductDetails.js → Dialog.js | 先弹窗收集信息，再发送购买请求 |
 | **权限保护** | ProtectedRoute.js | 未登录用户访问敏感路由自动跳转登录 |
 | **图片压缩** | AddProduct.js | >1MB 图片自动压缩至 1920px 宽、80% JPEG 质量 |
-| **分页** | Home/index.js + Pagination.js | 后端分页，每页20条 |
+| **分页** | Home/index.js + Pagination.js | 后端分页，每页20条，URL 参数绑定 |
+| **商品推荐** | ProductDetails.js → Recommendations.js | 商品详情页底部"猜你喜欢"，静默模式 |
+| **购物车** | Navbar / UserProfile | 双按钮布局，购物车数据在 UserProfile 挂载时即获取 |
 
 ---
 
@@ -196,6 +200,7 @@ app.use(cors({ origin: process.env.CLIENT_URL }))
 app.use("/api/users", userRoutes)
 app.use("/api/products", productRoutes)
 app.use("/api/ai", aiRoutes)
+app.use("/api/cart", cartRoutes)   // 购物车
 app.use("/api/upload", uploadRoutes)
 
 // 静态文件服务
@@ -220,6 +225,7 @@ app.use("/uploads", express.static("uploads"))
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
 | GET | `/` | ❌ | 获取商品列表（分页、搜索、筛选、排序） |
+| GET | `/recommendations` | ❌ | 获取推荐商品（参数：excludeId/category/college/sellerId） |
 | GET | `/:id` | ❌ | 获取商品详情 |
 | GET | `/user/:userId` | ❌ | 获取用户发布的商品 |
 | GET | `/purchased/:userId` | ❌ | 获取用户购买的商品 |
@@ -240,6 +246,17 @@ app.use("/uploads", express.static("uploads"))
 |------|------|------|------|
 | POST | `/generate-description` | ❌ | 通义千问生成商品描述 |
 | POST | `/recommend-category` | ❌ | 通义千问推荐商品分类 |
+
+#### 购物车 `/api/cart`
+
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| GET | `/` | ✅ | 获取购物车（populate 商品详情） |
+| POST | `/:productId` | ✅ | 添加商品到购物车（可选 quantity，默认1） |
+| PUT | `/:productId` | ✅ | 修改购物车商品数量 |
+| DELETE | `/:productId` | ✅ | 从购物车移除商品 |
+| DELETE | `/` | ✅ | 清空购物车 |
+| POST | `/checkout/all` | ✅ | 批量结算（原子操作减库存） |
 
 #### 上传 `/api/upload`
 
@@ -271,8 +288,21 @@ const product = await Product.findOneAndUpdate(
 **商品列表分页 (`getAllProducts`)：**
 ```javascript
 // 支持参数：page, limit, search, category, college, sort, minPrice, maxPrice
-// 搜索使用 MongoDB 文本索引
+// 搜索使用 $regex 模糊匹配 name + uploadedBy.college + uploadedBy.name（不搜索 description）
+// 学院筛选也是 $regex 模糊搜索（输入"师范"可搜到江西师范大学等）
 // 列表只返回第一张图片减少传输量
+// 结果分页，每页20条
+```
+
+**商品推荐 (`getRecommendations`)：**
+```javascript
+// 五级漏斗推荐引擎：
+// 第1级：同类目下最新商品（排除自身）
+// 第2级：同学校其他商品
+// 第3级：同卖家其他商品
+// 第4级：同学校用户发布的商品（未购买/已售罄也展示）
+// 第5级：最新上架的商品（兜底）
+// 每级最多返回4个商品，无数据自动降级到下一级
 ```
 
 ---
@@ -284,12 +314,17 @@ const product = await Product.findOneAndUpdate(
 ```javascript
 {
   email:     String,   // 必填，唯一，邮箱格式验证
-  password:  String,   // 必填，bcrypt 加密存
+  password:  String,   // 必填，bcryptjs 8轮加密
   fullName:  String,   // 必填
   college:   String,   // 必填（学校）
   phoneNo:   String,   // 必填，11位数字
-  address:   String    // 必填
-}
+  address:   String,   // 必填（省市区+详情合并）
+  cart: [{             // 购物车
+    productId: ObjectId, // 商品ID（ref: Product）
+    quantity: Number,    // 数量，最少1
+    addedAt: Date        // 添加时间
+  }]
+}, { timestamps: true }  // 自动记录 createdAt 和 updatedAt
 ```
 
 ### Product 模型
@@ -312,9 +347,9 @@ const product = await Product.findOneAndUpdate(
 
 ### 关键设计决策
 
-1. **Decimal128 类型**：价格使用 MongoDB 的 Decimal128 确保精度，但序列化 JSON 时会被转为 `{ $numberDecimal: "99.99" }`，前端需要做兼容处理
+1. **Decimal128 类型**：价格使用 MongoDB 的 Decimal128 确保精度，但序列化 JSON 时会被转为 `{ $numberDecimal: "99.99" }`，后端用 `Number(productObj.price) || 0` 显式转换后再返回
 2. **嵌入子文档**：`uploadedBy` 和 `specifications` 使用嵌入式子文档（非引用），读性能好，但更新卖家信息时不同步
-3. **文本索引**：`name` 和 `description` 有文本索引支持全文搜索
+3. **搜索方式**：使用 `$regex` 模糊匹配进行搜索，不依赖 MongoDB 文本索引；搜索范围限定为 `name + uploadedBy.college + uploadedBy.name`，不含商品描述
 4. **createdAt 索引**：按时间排序的索引，保证列表页性能
 
 ---
@@ -338,8 +373,9 @@ const product = await Product.findOneAndUpdate(
 2. 后端查邮箱是否存在
 3. bcrypt.compare(password, hashedPassword)
 4. jwt.sign({ userId }, SECRET, { expiresIn: "1d" })
-5. 返回 { token: { token: "xxx" }, user: { ... } }
-6. 前端保存：localStorage.setItem("token", data.token.token)
+5. 当前返回 { token: { token: "xxx" }, user: { ... } }  ← ⚠️ 已知问题：返回值嵌套
+6. 前端需用 data.token.token 获取实际 Token（待修复为扁平结构 { token: "xxx" }）
+   前端保存：localStorage.setItem("token", data.token.token)
                 localStorage.setItem("user", JSON.stringify(data.user))
 ```
 
@@ -388,11 +424,13 @@ useEffect(() => {
 ### 8.2 商品列表搜索
 
 ```
-1. 输入搜索关键词 → 800ms 防抖 → 调用 API
-2. 后端 MongoDB 文本索引搜索 name + description
-3. 同时支持分类、学校、价格范围、排序筛选
-4. 结果分页返回，每页20条
-5. 列表只返回第一张图片减少传输量
+1. 顶部搜索框输入关键词 → 800ms 防抖 / Enter 立即搜索 → 调用 API
+2. 后端 MongoDB 使用 $regex 模糊匹配 name + uploadedBy.college + uploadedBy.name（不搜索 description）
+3. 学院筛选改为 $regex 模糊搜索（输入"师范"即可搜到江西师范大学等）
+4. 同时支持分类、学校、价格范围、排序筛选
+5. 搜索后保留输入内容，空搜索跳转 /home 重置为全部商品
+6. 分页页码绑定 URL 参数 ?page=，刷新不丢失
+7. 结果每页20条，列表只返回第一张图片减少传输量
 ```
 
 ### 8.3 购买（防超卖）
@@ -414,7 +452,16 @@ const product = await Product.findOneAndUpdate(
 )
 ```
 
-### 8.4 AI 辅助功能
+### 8.4 购物车批量结算
+
+```javascript
+// cartController.checkoutCart — 遍历购物车逐个购买
+// 对购物车中每个商品执行与单个购买相同的原子操作
+// 部分成功/部分失败时，返回成功列表和失败原因
+// 成功购买的商品从购物车移除，失败的保留
+```
+
+### 8.5 AI 辅助功能
 
 ```
 // 调用通义千问 qwen-plus 模型
@@ -475,21 +522,19 @@ QWEN_API_KEY: sk-8b143f7aef8a4d16ad7d00365486d2f6
 cd Client && npm run build
 
 # 2. 提交代码
-git add . && git commit -m "xxx" && git push
+git add . && git commit -m "描述" && git push
 
-# 3. 上传 build/ 到服务器
-
-# 4. 服务器部署
+# 3. 服务器部署
 ssh root@8.162.24.145
 cd /www/wwwroot/Second-Hand-main
 git pull
-docker compose build backend
-docker compose up -d
+docker compose up -d --build
 ```
 
 ### ⚠️ 注意事项
 
 - **服务器只有 2GB 内存**，绝不能在服务器上构建前端（会 OOM）
+- bcrypt 替换为 bcryptjs，盐轮数从 12 降至 8，适配低内存环境
 - 前端 Dockerfile 直接 `COPY build/`，不跑 `npm run build`
 - Nginx 代理了 `/api/` 和 `/uploads/` 到后端，前端直接用 `/api/xxx` 相对路径
 - MongoDB 密码中的 `@` 在 URI 中需编码为 `%40`
@@ -517,8 +562,9 @@ docker compose up -d
 
 - [ ] 阅读 `server.js` 入口，理解中间件和路由挂载
 - [ ] 阅读 `authMiddleware.js`，理解 JWT 验证
-- [ ] 阅读 `productController.js`，理解全部 CRUD
-- [ ] 重点理解 `purchaseProduct` 的原子操作
+- [ ] 阅读 `productController.js`，理解全部 CRUD 和 `getRecommendations` 五级漏斗
+- [ ] 阅读 `cartController.js`，理解购物车 6 个接口
+- [ ] 重点理解 `purchaseProduct` 的原子操作和 `checkoutCart` 的批量结算
 
 ### 第四阶段：数据库（1天）
 
@@ -552,7 +598,7 @@ A: 使用 MongoDB 的 `findOneAndUpdate` + `$inc: { quantity: -1 }` 原子操作
 A: 最初用 base64 存数据库导致 MongoDB 文档超 16MB 崩溃。现在改用 multer 上传到服务器的 `Server/uploads/` 目录，数据库只存 `/uploads/xxx.jpg` 路径字符串，Nginx 代理 `/uploads/` 到后端提供静态访问。
 
 ### Q: 搜索功能怎么实现的？
-A: 前端 800ms 防抖延迟，避免频繁请求。后端 MongoDB 文本索引搜索 `name` 和 `description` 字段。同时支持分类、学校、价格范围、排序等多个筛选条件组合。
+A: 前端 800ms 防抖延迟 + composition 事件（拼音输入不触发），Enter 键立即搜索。后端使用 `$regex` 模糊匹配搜索 `name`、`uploadedBy.college`（学校）、`uploadedBy.name`（发布者），不搜索描述。学院筛选也改为 `$regex` 模糊搜索（输入"师范"即可搜到江西师范大学等）。同时支持分类、学校、价格范围、排序等多个筛选条件组合。分页页码绑定 URL 参数 `?page=`，刷新不丢失。
 
 ### Q: 为什么前端要在本地构建？
 A: 服务器只有 2GB 内存，`npm run build` 需要大量内存，在服务器上构建会导致 OOM 崩溃。所以前端在本地构建后，只上传 `build/` 文件夹到服务器。
@@ -565,6 +611,12 @@ A: 普通浮点数有精度问题（如 0.1+0.2≠0.3），涉及金钱必须精
 
 ### Q: AI 功能怎么实现的？
 A: 调用阿里云通义千问的 dashscope API。两个功能：1）根据商品名称和分类生成描述文字；2）根据商品名称推荐最合适的分类。使用 `qwen-plus` 模型，System Prompt 限定角色和输出格式。
+
+### Q: 购物车是怎么实现的？
+A: 购物车数据直接存在 User 模型的 `cart` 数组字段中（`[{productId, quantity, addedAt}]`），无需单独的购物车表。后端提供 6 个接口：获取（populate 商品详情）、添加（支持可选 quantity 参数）、修改数量、移除单个、清空、批量结算。结算时遍历购物车商品逐个执行原子购买操作，部分成功时返回成功列表和失败原因。
+
+### Q: 商品推荐是怎么实现的？
+A: 采用五级漏斗规则引擎（阶段一）：第1级同类目最新商品→第2级同校其他商品→第3级同卖家其他商品→第4级同校用户发布的商品→第5级最新上架兜底。每级最多返回4个，无数据自动降级。后期可升级为协同过滤或用户行为学习模型。
 
 ---
 
@@ -599,14 +651,16 @@ d:\Second-Hand-main\
     │   └── Product.js           # 商品模型
     ├── controllers/
     │   ├── userController.js
-    │   ├── productController.js
+    │   ├── productController.js   # + 推荐引擎
     │   ├── aiController.js
+    │   ├── cartController.js      # 购物车
     │   └── uploadController.js
     ├── routes/
     │   ├── userRoutes.js
     │   ├── productRoutes.js
     │   ├── aiRoutes.js
+    │   ├── cartRoutes.js          # 购物车路由
     │   └── uploadRoutes.js
     └── services/
-        └── aiService.js         # 通义千问调用
+        └── aiService.js           # 通义千问调用
 ```
