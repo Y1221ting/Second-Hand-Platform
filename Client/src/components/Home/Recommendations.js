@@ -51,6 +51,11 @@ const Recommendations = ({ userId, excludeId, category, college, sellerId }) => 
         {products.map(product => (
           <div key={product._id} className="flex-shrink-0 w-64">
             <ProductCard product={product} isRecommended={true} />
+            {product.aiReason && (
+              <p className="text-[10px] text-gray-400 mt-1 italic leading-tight px-1">
+                🤖 {product.aiReason}
+              </p>
+            )}
           </div>
         ))}
       </div>
