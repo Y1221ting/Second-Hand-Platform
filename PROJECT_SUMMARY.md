@@ -178,7 +178,7 @@ d:\Second-Hand-main\
   category: String,                // 枚举10种
   description: String,             // 必填
   price: Decimal128,               // 必填，>0
-  images: [String],                // base64数组
+  images: [String],                // 图片路径数组 /uploads/xxx.jpg
   specifications: [{ key, value }], // 规格参数
   status: String,                  // "unsold" | "sold" | "sold_out"
   quantity: Number,                // 库存，默认1
@@ -219,7 +219,7 @@ other        → 其他
 1. **错误处理**: try-catch，返回 `{ message: "..." }` 或 `{ error: "..." }`
 2. **认证中间件**: `authMiddleware` 解析JWT，`req.user` 挂载用户对象
 3. **密码**: bcryptjs 8轮加密（服务器2GB限制），JWT密钥从环境变量 `JWT_SECRET` 读取
-4. **图片**: 文件存储（multer → `Server/uploads/`），数据库只存路径，请求体限制50mb
+4. **图片**: 文件存储（multer → `Server/uploads/`），数据库只存路径，请求体限制10mb
 5. **价格**: MongoDB Decimal128 类型，后端 `Number(productObj.price) || 0` 转数字
 
 ---
@@ -232,14 +232,16 @@ other        → 其他
 # 网络：second-hand-network (bridge)
 # 数据卷：mongodb_data（持久化MongoDB数据）
 
+# 密钥通过 .env 文件注入（.gitignore，不提交到 Git）
+# .env 文件包含：MONGO_INITDB_ROOT_PASSWORD, QWEN_API_KEY, JWT_SECRET, MONGODB_URI_FULL
+# Docker Compose 自动读取同目录下的 .env 文件做变量替换
+
 # 后端环境变量
-MONGODB_URI=mongodb://admin:%40Yt1221wz@second-hand-mongodb:27017/second-hand?authSource=admin
+MONGODB_URI=${MONGODB_URI_FULL}
 PORT=8000
 CLIENT_URL=http://freevian.top:5000
-QWEN_API_KEY=sk-8b143f7aef8a4d16ad7d00365486d2f6
-
-# 前端构建参数
-REACT_APP_BASE_URL=http://freevian.top:8000
+QWEN_API_KEY=${QWEN_API_KEY}
+JWT_SECRET=${JWT_SECRET}
 ```
 
 ### 部署命令
@@ -290,48 +292,54 @@ docker compose up -d --build frontend
 12. ✅ **商品推荐** - 规则引擎（同类目→同校→同卖家→同校用户→最新兜底）
 13. ✅ **学院模糊搜索** - 支持 $regex 模糊匹配
 14. ✅ **搜索优化** - 关键词搜索保留输入内容，空搜索重置；分页页码绑定 URL 参数刷新不丢失
-15. ✅ **价格上限 9999.9** - 前后端双重校验，角为单位，超出弹窗提示
+15. ✅ **价格上限 9999.9** - 前后端双重校验，角为单位，超出内联提示
 16. ✅ **搜索范围优化** - 从搜索 name+description 改为 name+学校+发布者
+17. ✅ **移动端搜索** - Navbar 右侧搜索图标按钮，点击展开输入框
+18. ✅ **商品卡片 SPA 跳转** - `<a>` 改为 `<Link>`，无整页刷新
+19. ✅ **删除用户级联标记** - 删除用户时自动标记其商品为 inactive
+20. ✅ **密钥管理安全** - 全部密钥移入 .env（.gitignore），docker-compose 用 ${变量} 引用
+21. ✅ **API 不返回密码哈希** - 登录/列表/详情接口均已移除 password 字段
+22. ✅ **auth.js 返回值扁平化** - `createSession` 直接返回 token 字符串，响应变为 `{ token: "xxx" }`
 
 ## 待优化/已知问题
 
-1. **auth.js 返回值嵌套** - 登录接口返回 `{token:{token:...}}`，需修复为 `{token: "xxx"}` 扁平结构（前端 localStorage 存 `data.token.token` 回退）
-2. **库存 API 验证** - 购物车和购买接口已增加三重校验（>0 / 正整数 / 不超过库存），但其他 API 可能还需统一审计
-3. **购买记录 `purchasedBy` 单对象限制** - Product 模型的 `purchasedBy` 是单个嵌入子文档，新购买会覆盖旧记录
-4. **图片存储** - ✅ 已从 base64 改为本地文件存储（`Server/uploads/`），后续可迁移到对象存储（OSS）
-5. **商品推荐** - 阶段一为规则引擎，后续可升级为协同过滤或基于用户行为的学习模型
+1. **购买记录 `purchasedBy` 单对象限制** - Product 模型的 `purchasedBy` 是单个嵌入子文档，多次购买会覆盖旧记录（当前场景下可接受）
+2. **商品推荐** - 阶段一为规则引擎，后续可升级为协同过滤或基于用户行为的学习模型
+3. **图片底层存储** - 当前本地文件存储（`Server/uploads/`），后续可迁移到对象存储（OSS）
 
 ---
 
-## 🚨 数据库崩溃高危原因（已修复 + 仍需注意）
+## 安全与稳定性审计
 
-### ✅ 已修复（本次修改）
+### ✅ 已修复汇总
 
 | 问题 | 危险等级 | 说明 |
 |------|---------|------|
-| **DELETE /api/users/:userId 无认证** | 🔴致命 | 任何人可删除任意用户，已加 authMiddleware + 本人校验 |
-| **PUT /api/users/:userId 越权** | 🔴致命 | 用户A登录后可改用户B资料，已加 userId 比对 |
-| **JWT 密钥两处硬编码** | 🟡中 | auth.js 和 authMiddleware.js 各有 fallback，已统一从 config/auth.js 引入 |
-| **Product 索引未生效** | 🟡中 | ProductSchema.index() 定义在 model() 之后，已调整顺序并新增 createdAt 排序索引 |
-| **购买弹窗数据丢失** | 🟡中 | Dialog 表单数据收集后未发送到后端，已补上 body: JSON.stringify(userData) |
-| **购买竞态条件** | 🔴致命 | 多人同时购买最后一件商品会超卖（quantity 变负），已改为 findOneAndUpdate + $inc 原子操作 |
-| **base64 图片撑爆 16MB** | 🔴致命 | 商品图片直接存 MongoDB，多图超限即崩溃，已改为文件存储，数据库只存路径 |
-| **updateProductById 缺少校验** | 🟢低 | findByIdAndUpdate 未启用 runValidators，已补上 |
+| **DELETE /api/users/:userId 无认证** | 🔴致命 | 已加 authMiddleware + 本人校验 |
+| **PUT /api/users/:userId 越权** | 🔴致命 | 已加 userId 比对 |
+| **JWT 密钥两处硬编码** | 🟡中 | 统一从 config/auth.js 引入 + 环境变量 |
+| **Product 索引未生效** | 🟡中 | 已调整顺序并新增 createdAt 排序索引 |
+| **购买弹窗数据丢失** | 🟡中 | 已补上 body 发送 |
+| **购买竞态条件** | 🔴致命 | 已改为 findOneAndUpdate + $inc 原子操作 |
+| **base64 图片撑爆 16MB** | 🔴致命 | 已改为文件存储 |
+| **updateProductById 缺少校验** | 🟢低 | 已补 runValidators: true |
+| **loginUser 返回密码哈希** | 🟡中 | toObject() 后 delete password |
+| **getAllUsers/getUserById 无密码保护** | 🟡中 | 已加 .select("-password") 及返回前删除 |
+| **docker-compose 密钥硬编码** | 🟡中 | 移入 .env（.gitignore），${变量} 引用 |
+| **body-parser 50MB DoS 风险** | 🟡中 | 降为 10MB |
+| **删除用户→商品变孤儿** | 🟡中 | 级联标记为 inactive |
+| **auth.js 返回值嵌套** | 🟡中 | createSession 直接返回字符串，响应扁平化 |
 
-### ⚠️ 仍需注意的数据库风险
+### ⚠️ 需注意
 
 | 风险 | 等级 | 解释 |
 |------|------|------|
-| **base64 图片超限** | 🔴致命 | 单个 MongoDB document 上限 16MB，多张大 base64 图片容易撑爆。商品发布时报错 "BulkWriteError: BSONObj size exceeds limit" 就是这个原因 |
-| **并发购买竞态** | 🔴致命 | `purchaseProduct` 先查后改，没有原子操作。两人同时点"立即购买"可能都成功，导致 quantity 变负数或重复扣库存 |
-| **Docker volume 覆盖 node_modules** | 🟡中 | `./Server:/app` 挂载会把宿主机目录覆盖进容器，如果宿主机没有 node_modules 或版本不一致，后端启动失败导致 MongoDB 连接泄漏 |
-| **MongoDB 密码含特殊字符** | 🟡中 | 密码 `@Yt1221wz` 中的 `@` 在 URI 中用 `%40` 编码，如果忘记编码直接拼入 URI 会导致连接失败 |
-| **getAllUsers / getUserById 无认证** | 🟡中 | 任何人都能枚举所有用户信息（含邮箱、电话），存在数据泄露风险 |
-| **无数据库连接池监控** | 🟢低 | 后端崩溃时 MongoDB 连接不会自动释放，长期运行可能耗尽连接数 |
+| **Docker volume 覆盖 node_modules** | 🟡中 | `./Server:/app` 会覆盖容器内 node_modules |
+| **MongoDB 密码含特殊字符** | 🟡中 | 密码中 `@` 在 URI 中需编码为 `%40` |
+| **无数据库连接池监控** | 🟢低 | 后端崩溃时连接不会自动释放 |
 
-### 🛠 建议优先修复
+### 未来建议
 
-1. **迁移图片到对象存储（OSS/COS）** — 最核心，当前项目最可能的崩溃元凶
-2. **购买加事务/原子操作** — `findByIdAndUpdate` 结合 `$inc: {quantity: -1}`，一行原子操作搞定
-3. **getAllUsers 加认证** — 只在管理员功能开放
-4. **移除 Docker bind mount** — 生产环境用 `COPY` 而非 `volumes: - ./Server:/app`
+1. **迁移图片到对象存储（OSS/COS）** — 当图片量级增长时
+2. **移除 Docker bind mount** — 生产环境用 COPY 而非 volumes
+3. **商品推荐升级** — 从规则引擎升级为协同过滤

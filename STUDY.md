@@ -186,6 +186,9 @@ const { user, login, logout, isAuthenticated } = useAuth();
 | **购物车** | Navbar / UserProfile | 双按钮布局，购物车数据在 UserProfile 挂载时即获取 |
 | **手机号实时校验** | UserDetails.js | 编辑模式下即时检测 `/^1[3-9]\d{9}$/` 格式，红色错误提示 |
 | **地址长度校验** | UserDetails.js | 编辑模式下地址小于5字符即时拦截提示 |
+| **移动端搜索** | Navbar.js | md:hidden 搜索图标按钮，点击展开输入框，autoFocus |
+| **商品卡片 SPA 跳转** | ProductCard.js | `<Link>` 替代 `<a>` 标签，避免整页刷新 |
+| **级联删除** | userController.js | deleteUser 时 Product.updateMany 标记为 inactive |
 
 ---
 
@@ -195,7 +198,7 @@ const { user, login, logout, isAuthenticated } = useAuth();
 
 ```javascript
 // 中间件
-app.use(bodyParser.json({ limit: "50mb" }))
+app.use(bodyParser.json({ limit: "10mb" }))
 app.use(cors({ origin: process.env.CLIENT_URL }))
 
 // 路由
@@ -364,6 +367,8 @@ const product = await Product.findOneAndUpdate(
 2. **嵌入子文档**：`uploadedBy` 和 `specifications` 使用嵌入式子文档（非引用），读性能好，但更新卖家信息时不同步
 3. **搜索方式**：使用 `$regex` 模糊匹配进行搜索，不依赖 MongoDB 文本索引；搜索范围限定为 `name + uploadedBy.college + uploadedBy.name`，不含商品描述
 4. **createdAt 索引**：按时间排序的索引，保证列表页性能
+5. **API 不返回密码**：loginUser 和 getAllUsers/getUserById 均在返回前删除 password 字段
+6. **密钥安全**：所有密钥通过 `.env` 文件管理（.gitignore），docker-compose 用 `${变量}` 引用
 
 ---
 
@@ -374,7 +379,7 @@ const product = await Product.findOneAndUpdate(
 ```
 1. 前端填写表单 → POST /api/users/register
 2. 后端校验：密码长度 >= 6，邮箱不重复，手机号格式
-3. bcrypt.hash(password, 12)
+3. bcrypt.hash(password, 8)
 4. Mongoose 校验字段格式 → 保存
 5. 返回 { message: "注册成功" }
 ```
@@ -386,9 +391,8 @@ const product = await Product.findOneAndUpdate(
 2. 后端查邮箱是否存在
 3. bcrypt.compare(password, hashedPassword)
 4. jwt.sign({ userId }, SECRET, { expiresIn: "1d" })
-5. 当前返回 { token: { token: "xxx" }, user: { ... } }  ← ⚠️ 已知问题：返回值嵌套
-6. 前端需用 data.token.token 获取实际 Token（待修复为扁平结构 { token: "xxx" }）
-   前端保存：localStorage.setItem("token", data.token.token)
+5. 返回 { token: "xxx", user: { ... } }  — 扁平结构，前端直接存 localStorage
+6. 前端保存：localStorage.setItem("token", data.token)
                 localStorage.setItem("user", JSON.stringify(data.user))
 ```
 
@@ -559,9 +563,11 @@ volumes:
   mongodb_data:         # MongoDB 数据
 
 # 后端环境变量
-MONGODB_URI: mongodb://admin:%40Yt1221wz@second-hand-mongodb:27017/second-hand
-JWT_SECRET: second-hand-jwt-secret-2024
-QWEN_API_KEY: sk-8b143f7aef8a4d16ad7d00365486d2f6
+MONGODB_URI=${MONGODB_URI_FULL}
+JWT_SECRET=${JWT_SECRET}
+QWEN_API_KEY=${QWEN_API_KEY}
+# 密钥通过 .env 文件注入（.gitignore，不提交到 Git）
+# Docker Compose 自动读取同目录下的 .env 文件做变量替换
 ```
 
 ### 部署步骤
@@ -577,6 +583,11 @@ git add . && git commit -m "描述" && git push
 ssh root@8.162.24.145
 cd /www/wwwroot/Second-Hand-main
 git pull
+
+# 4. 确保 .env 文件存在（首次部署需手动创建）
+# .env 包含：MONGO_INITDB_ROOT_PASSWORD, QWEN_API_KEY, JWT_SECRET, MONGODB_URI_FULL
+
+# 5. 重建容器
 docker compose up -d --build
 ```
 
@@ -588,6 +599,7 @@ docker compose up -d --build
 - Nginx 代理了 `/api/` 和 `/uploads/` 到后端，前端直接用 `/api/xxx` 相对路径
 - MongoDB 密码中的 `@` 在 URI 中需编码为 `%40`
 - 图片存在 `Server/uploads/`（被 Docker bind mount 持久化）
+- **密钥通过 `.env` 文件管理**（.gitignore，不提交到 Git），服务器首次部署需手动创建 `.env`
 
 ---
 
@@ -637,38 +649,177 @@ docker compose up -d --build
 
 ## 11. 常见面试/演示问题
 
-### Q: 这个项目用了什么技术栈？
-A: 前端 React 18 + Tailwind CSS + React Router v6，后端 Express + Mongoose，数据库 MongoDB 7.0，认证 JWT，部署 Docker Compose + Nginx，AI 通义千问 API。
+### 📌 架构与设计
 
-### Q: 如何防止商品超卖？
-A: 使用 MongoDB 的 `findOneAndUpdate` + `$inc: { quantity: -1 }` 原子操作。查询条件包含 `quantity: { $gt: 0 }`，同时只减库存一条记录。如果返回 null 说明库存不足，避免了先查后改的竞态条件。
+#### Q1: 为什么选择 MERN 这套技术栈？
+A: MERN（MongoDB + Express + React + Node）全栈 JavaScript 开发，前后端语言统一，团队沟通成本低。React 生态成熟适合 SPA，Express 轻量灵活适合快速构建 RESTful API，MongoDB 的文档模型适合商品信息这种结构灵活的业务。对校园二手交易这个规模的项目，MERN 性价比最高。
 
-### Q: 图片是怎么存储的？
-A: 最初用 base64 存数据库导致 MongoDB 文档超 16MB 崩溃。现在改用 multer 上传到服务器的 `Server/uploads/` 目录，数据库只存 `/uploads/xxx.jpg` 路径字符串，Nginx 代理 `/uploads/` 到后端提供静态访问。
+#### Q2: 为什么用 MongoDB（NoSQL）而不是 MySQL？
+A: 二手商品的规格参数不固定（比如电子产品有"存储容量"，服装有"尺码"，家具可能有"材质"），MongoDB 的灵活文档结构天然适合这种变长字段场景。如果强关系数据（如订单-商品-用户树）用 MySQL 更好，但本项目业务关系简单，MongoDB 的文档嵌入模式反而更高效，一次查询就能拿到商品+卖家信息，不用 JOIN。
 
-### Q: 搜索功能怎么实现的？
-A: 前端 800ms 防抖延迟 + composition 事件（拼音输入不触发），Enter 键立即搜索。后端使用 `$regex` 模糊匹配搜索 `name`、`uploadedBy.college`（学校）、`uploadedBy.name`（发布者），不搜索描述。学院筛选也改为 `$regex` 模糊搜索（输入"师范"即可搜到江西师范大学等）。同时支持分类、学校、价格范围、排序等多个筛选条件组合。分页页码绑定 URL 参数 `?page=`，刷新不丢失。
+#### Q3: 项目整体架构是什么样的？
+A: 三层的前后端分离架构：前端 React SPA（Nginx 托管静态资源），后端 Express API 服务，数据库 MongoDB。Nginx 作为反向代理统一入口（端口 5000），`/api/` 和 `/uploads/` 代理到后端，其他路径返回前端 `index.html` 做 SPA 路由。Docker Compose 编排三个容器：mongodb、backend、frontend。
 
-### Q: 为什么前端要在本地构建？
-A: 服务器只有 2GB 内存，`npm run build` 需要大量内存，在服务器上构建会导致 OOM 崩溃。所以前端在本地构建后，只上传 `build/` 文件夹到服务器。
+#### Q4: 为什么选择 Docker Compose 部署？
+A: Docker 保证开发环境和生产环境一致，避免"在我电脑上能跑"的问题。Compose 把三个服务编排在一起，一条 `docker compose up -d --build` 就能启动整套系统。而且容器的资源隔离对服务器 2GB 内存的硬件环境更友好，可以单独限制每个容器的内存上限。
 
-### Q: JWT 认证过程是怎样的？
-A: 登录时后端生成 `jwt.sign({ userId }, SECRET, { expiresIn: "1d" })` 返回前端。前端存 localStorage。后续请求在 Header 带 `Authorization: Bearer token`。后端 `authMiddleware` 解析 token → 查数据库 → `req.user` 供后续使用。
+#### Q5: 你用了什么软件设计模式？
+A: 后端采用 MVC 模式：Model（Mongoose Schema）定义数据结构，Controller 处理业务逻辑，View 由前端 React 负责。认证用中间件模式（authMiddleware），多个 API 共享认证逻辑。推荐系统用了策略模式——五级漏斗每级是一个独立策略，无数据时自动降级。前端用了 Context 模式管理全局认证状态。
 
-### Q: 商品价格为什么用 Decimal128？
-A: 普通浮点数有精度问题（如 0.1+0.2≠0.3），涉及金钱必须精确。Decimal128 是 MongoDB 的高精度十进制类型。但序列化为 JSON 时会变成 `{ $numberDecimal: "99.99" }`，前端需用 toJSON transform 统一处理为字符串。
+#### Q6: 前端为什么用 Tailwind CSS 而不是传统 CSS 或组件库（Antd/Element）？
+A: Tailwind 是原子化 CSS，直接在 className 写样式，不用频繁切换文件和命名类名，开发效率高。配合 `@apply` 可以提取重复样式。Antd/Element 适合后台管理类系统，二手交易平台 UI 更偏展示和交互自由，Tailwind 更灵活。客户端主色调是 `yellow-500`，响应式断点用 `sm/md/lg/xl`。
 
-### Q: AI 功能怎么实现的？
-A: 调用阿里云通义千问的 dashscope API。两个功能：1）根据商品名称和分类生成描述文字；2）根据商品名称推荐最合适的分类。使用 `qwen-plus` 模型，System Prompt 限定角色和输出格式。
+---
 
-### Q: 购物车是怎么实现的？
-A: 购物车数据直接存在 User 模型的 `cart` 数组字段中（`[{productId, quantity, addedAt}]`），无需单独的购物车表。后端提供 6 个接口：获取（populate 商品详情）、添加（支持可选 quantity 参数）、修改数量、移除单个、清空、批量结算。结算时遍历购物车商品逐个执行原子购买操作，部分成功时返回成功列表和失败原因。
+### 📌 后端实现
 
-### Q: 商品推荐是怎么实现的？
-A: 采用五级漏斗规则引擎（阶段一）：第1级同类目最新商品→第2级同校其他商品→第3级同卖家其他商品→第4级同校用户发布的商品→第5级最新上架兜底。每级最多返回4个，无数据自动降级。每个推荐商品附带 `aiReason` 标签（如同类商品AI智能匹配、同校同学发布的AI推荐），前端渲染为带 AI 徽标的"🤖 智能推荐"模块，打造 AI 驱动的推荐体验。
+#### Q7: JWT 认证具体怎么工作的？过期了怎么办？
+A: 登录时后端 `jwt.sign({ userId }, SECRET, { expiresIn: "1d" })` 生成令牌。前端存 localStorage，每次请求在 Header 带 `Authorization: Bearer <token>`。后端 authMiddleware 依次做：提取 Header → `jwt.verify` → `User.findById` 查用户 → `req.user = user`。token 过期（1天）后，`jwt.verify` 会抛 TokenExpiredError，中间件返回 401，前端检测到 401 自动跳转登录页让用户重新登录。目前没有做 refresh token 机制。
 
-### Q: 手机号和地址做了哪些验证？
-A: 手机号前后端双校验：后端 User 模型用正则 `/^1[3-9]\d{9}$/`（排除 100/102 等无效号段），前端 Register.js 提交前校验、UserDetails.js 编辑模式下实时检测、Dialog.js 购买时拦截。地址设最小 5 字符限制，防止填"abc"等无效数据，前端同样有实时提示。
+#### Q8: 如何防止用户买自己的商品？
+A: 在 `purchaseProduct` 的原子操作查询条件中添加：`"uploadedBy.id": { $ne: userId }`。如果买家 ID 等于卖家 ID，`findOneAndUpdate` 查不到记录，直接返回 null，前端显示"不能购买自己的商品"。这套逻辑在单个购买和购物车批量结算中都做了。
+
+#### Q9: 如何防止用户修改/删除别人的商品？
+A: 更新和删除接口在 authMiddleware 之后，通过 `req.user` 拿到当前登录用户 ID。Controller 中先查商品（`Product.findById(id)`），判断 `product.uploadedBy.id.toString() !== req.user._id.toString()` 时返回 403 禁止操作。同时更新操作用 `findOneAndUpdate` 带着卖家 ID 条件，双重保险。
+
+#### Q10: 图片上传怎么保证不崩？
+A: 三步保护：1）前端 >1MB 图片自动压缩为 1920px 宽、80% JPEG 质量，大幅减小体积；2）multer 后端限制单张最大 20MB、整个请求最大 10MB，超过返回 413 错误；3）最多 9 张图片，防止恶意大量上传。数据库只存图片路径字符串，不存 base64 数据——之前尝试过 base64，文档超过 MongoDB 16MB 上限后直接崩溃。
+
+#### Q11: 图片为什么不在前端用 base64 直接传？
+A: base64 编码会使数据体积膨胀约 33%，一张几 MB 的图片转 base64 会变成几 MB 字符串。如果用 base64 存 MongoDB，多张图片就超 16MB 文档上限。而且 base64 传输效率低，解码渲染也慢。最佳实践就是二进制文件走磁盘/Nginx 静态服务，数据库只存路径引用。
+
+#### Q12: 后端错误处理是怎么做的？
+A: 每个 Controller 用 try-catch 包裹，catch 时根据不同错误类型处理：ValidationError（400 校验失败）、CastError（400 无效 ID）、11000（409 邮箱重复）、TokenExpiredError（401 过期）、JsonWebTokenError（401 无效 token）。未捕获的错误由 Express 默认错误处理返回 500。前端 fetch 调用时检查 `response.ok`，不 ok 时解析 `data.message` 显示给用户。
+
+#### Q13: 为什么后端用 bcryptjs 而不是 bcrypt？为什么只用了 8 轮？
+A: bcrypt 依赖 C++ 编译（node-gyp），在 Docker Alpine 镜像中编译困难；bcryptjs 是纯 JS 实现，零依赖，安装即用。盐轮数从默认的 10-12 降到 8，是因为服务器只有 2GB 内存，高轮数加密在并发注册时容易 OOM。对于非高安全要求的校园平台，8 轮足够。
+
+#### Q14: 搜索功能用了索引吗？
+A: 目前没有建 MongoDB 文本索引（text index），搜索用的是 `$regex` 模糊匹配。原因是用户量不大（校园场景），`$regex` 完全能满足需求。如果未来数据量增大，可以考虑在 `name`、`category`、`college` 上建复合索引或用 MongoDB Atlas Search 做全文检索。
+
+---
+
+### 📌 前端实现
+
+#### Q15: 前端怎么处理加载态、空数据态和错误态的？
+A: 每个数据加载组件都维护三种状态：`loading`（true/false）控制 Loading 组件（NewtonsCradle 动画）显示；`error` 用红色提示框展示错误信息；数据为空时显示对应的空状态文案。例如商品列表无数据时显示"暂无商品"，搜索结果为空时显示"没有找到相关商品"。分页数据也做了空判断——共 0 页时 Pagination 组件不渲染。
+
+#### Q16: 为什么用 Context API 而不是 Redux？
+A: 本项目全局状态只有认证信息（user + token），Context API 完全够用，不用引入 Redux 的样板代码和额外依赖。如果未来需要管理复杂的缓存、购物车本地持久化、请求状态缓存等场景，才考虑用 Redux Toolkit 或 Zustand。技术选型遵循"够用就好"原则。
+
+#### Q17: 图片懒加载怎么实现的？
+A: 用 IntersectionObserver API。在 ProductCard 组件中，图片标签 `ref` 注册观察者，当图片进入视口 200px 范围内（`rootMargin: "200px"`）时，才将 `src` 设为真实图片 URL。这样首屏只加载可见区域的图片，大幅减少网络请求和渲染开销。IntersectionObserver 是浏览器原生 API，比 scroll 事件监听性能好得多。
+
+#### Q18: 响应式布局怎么做适配的？
+A: 全部用 Tailwind 的响应式断点：`sm`（640px）、`md`（768px）、`lg`（1024px）、`xl`（1280px）。商品列表 `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4`。移动端导航栏折叠为汉堡菜单（DrawerMenu），搜索框显示为图标按钮点击展开。表单在小屏幕上宽度自适应 `w-full`。
+
+#### Q19: 搜索防抖 + composition 事件是怎么回事？
+A: 中文拼音输入时，用户拼完拼音选字的过程中（compositionstart → compositionend），防抖不应该触发搜索，否则会发送不完整的拼音查询。做法是：在 `compositionstart` 时设置一个标志 `isComposing = true`，此时 `onChange` 不触发防抖；`compositionend` 时重置为 false 并手动触发一次防抖。Enter 键不受影响，任何时候立即搜索。防抖延迟设为 800ms，平衡响应速度和查询频率。
+
+#### Q20: 购物车在导航栏的角标数字怎么保持同步？
+A: 购物车数据在 UserProfile 挂载时获取，Navbar 组件的购物车角标通过 `localStorage` 缓存购物车数量，或者从 UserProfile 的购物车数据派生。当用户添加/修改/删除购物车时，API 返回更新后的完整购物车数据，前端同步更新 localStorage 和 UI。还有一个更健壮的方式是在 authContext 里存 cartCount 并提供一个全局的刷新方法。
+
+---
+
+### 📌 数据库与数据模型
+
+#### Q21: 购物车为什么嵌入 User 而不单独建表？
+A: 两个原因：1）一个用户只有一个购物车，文档嵌入避免了额外查询——获取用户信息时购物车数据就带上了；2）购物车数据没有独立的业务生命周期，它永远是用户的一部分。缺点是购物车中的商品信息需要通过 populate 查询，但这个是 MongoDB 原生支持的。如果未来购物车功能复杂（优惠券、失效商品自动清理等），可能需要拆成独立集合。
+
+#### Q22: uploadedBy 为什么不直接用 ref 引用 User？
+A: 用嵌入子文档 `{ id, name, college }` 而不是 `{ type: ObjectId, ref: "User" }`，因为商品列表页需要展示发布者名字和学校，如果用 ref 则每次查商品都要额外 query 或者 populate 用户表，增加查询开销。缺点是用户改了名字或学校后，历史商品的 uploadedBy 不会同步更新——但这个在二手交易场景可以接受，商品发布时的卖家信息是历史快照。
+
+#### Q23: Decimal128 的价格在前端怎么处理的？遇到什么问题？
+A: MongoDB 的 Decimal128 在 toJSON 序列化时会被转为 `{ $numberDecimal: "99.99" }`（BSON 格式），前端 JS 不能直接当数字用。虽然 Mongoose Schema 可以定义 toJSON transform 自动转换，但 populate 场景下 transform 不生效。所以解决方案是**双保险**：后端每个 API 返回前显式 `Number(productObj.price) || 0` 转换，前端用 `Number(product.price ?? 0)` 兜底。
+
+#### Q24: 数据库建了哪些索引？
+A: 目前主要索引是 Product 的 createdAt 字段（默认，用于按时间排序的商品列表查询）。其他字段（category、college 等）因为数据量小且查询会配合其他条件，没有单独建索引。如果性能瓶颈出现，会在 `category + createdAt` 和 `college + createdAt` 上建复合索引。
+
+#### Q25: 用户删除后，他的商品怎么处理？
+A: 不物理删除。`userController.deleteUser` 中调用 `Product.updateMany({ "uploadedBy.id": userId }, { $set: { status: "inactive" } })`，将用户的所有商品标记为 `inactive` 状态。这些商品不再出现在列表页和搜索结果中，但数据库记录保留，购买历史可追溯。购物车 API 在 populate 商品时也能过滤掉 inactive 商品。
+
+---
+
+### 📌 AI 功能深度
+
+#### Q26: AI 功能用的是什么 Prompt？讲一下 Prompt Engineering 的思路。
+A: 两个 System Prompt：
+- **生成描述**：`"你是一个二手商品描述生成助手。请根据商品名称和分类，生成一段 100-200 字的二手商品描述..."`。限定字数、要求包含"成色说明"、引导写"诱人细节"但避免过度夸张。
+- **推荐分类**：`"你是一个二手商品分类助手。请从以下列表中选择最合适的分类，只返回英文单词：electronics, furniture, clothing, books, sports, food, transportation, beauty, home, other"`。强制限定输出格式，结果直接用于后端处理。
+Prompt 设计原则：给角色、给任务、给输出格式约束。
+
+#### Q27: 为什么选通义千问（qwen-plus）而不是 GPT 或 DeepSeek？
+A: 通义千问的 dashscope API 在国内访问速度和稳定性最好，并且有免费额度，适合学生项目。qwen-plus 模型在中文场景下效果优秀，生成的商品描述自然通顺。阿里云在国内备案和合规方面也最完善。如果追求更低的成本可以用 qwen-turbo，如果追求更强的理解能力可以用 qwen-max。
+
+#### Q28: AI 功能有没有做错误处理？如果 API 调用失败怎么办？
+A: aiController 中整个调用用 try-catch 包裹，如果 dashscope API 报错（网络问题、配额超限、模型无响应等），catch 中返回 500 加具体错误信息。前端 AddProduct.js 中按钮点击后显示"正在生成..."加载状态，失败时显示红色错误提示。因为这是辅助功能，不影响核心业务流程——用户仍然可以手动输入描述和选择分类。
+
+#### Q29: 商品推荐的 AI 标签是真的 AI 算的还是规则引擎？
+A: 目前是规则引擎（五级漏斗），但前端渲染为"🤖 智能推荐"并带 AI 徽标。`aiReason` 字段如"同类商品AI智能匹配"是预设文案，不是大模型实时生成的。这样做的原因：1）实时调用大模型做推荐延迟高、成本高；2）规则引擎在校园集市这种简单场景下效果已经很好。真正的 AI 推荐（大模型个性化排序）是第二阶段的优化方向。
+
+---
+
+### 📌 安全
+
+#### Q30: 项目有哪些安全措施？
+A: 1）密码 bcryptjs 8 轮哈希，不存明文；2）JWT 令牌认证，密钥从环境变量读取；3）前后端双重输入校验（XSS 防御）；4）用户不能操作他人的数据（权限检查）；5）CORS 限制跨域来源；6）Multer 限制上传大小和数量；7）图片文件不存数据库；8）.env 文件管理密钥不提交 Git。
+
+#### Q31: 如何防止 XSS 攻击？
+A: 主要靠 React 的默认行为——React 在 JSX 中渲染文本时自动对 HTML 字符进行转义。`dangerouslySetInnerHTML` 在整个项目中从未使用。后端 input 也做校验（邮箱格式、手机号正则、价格正数等）。图片上传只接受常见图片格式（通过文件扩展名和 MIME type）。
+
+#### Q32: 密码怎么存储的？为什么用 bcrypt 而不是 MD5 或 SHA？
+A: 注册时 `bcryptjs.hash(password, 8)` 生成带 salt 的哈希值（格式如 `$2a$08$...`），数据库中存这个哈希。登录时 `bcryptjs.compare(inputPassword, storedHash)` 比对。MD5/SHA 是快速哈希，针对大量密码可以并行爆破，bcrypt 是慢速哈希（设计上就慢），能有效抵御彩虹表和暴力破解。salt 轮数越高越慢越安全，在服务器 2GB 内存限制下 8 轮是性能和安全的平衡点。
+
+#### Q33: JWT 密钥怎么管理的？
+A: 密钥统一在 `Server/config/auth.js` 中从 `process.env.JWT_SECRET` 读取，通过 `.env` 文件注入。.env 在 .gitignore 中，不会提交到 Git 仓库。服务器部署时需要在项目目录下手动创建 `.env` 文件，Docker Compose 的 `environment` 段通过 `${JWT_SECRET}` 变量引用。这样密钥不暴露在代码中，即使仓库被泄露也不影响线上安全。
+
+---
+
+### 📌 部署与运维
+
+#### Q34: Docker Compose 的三个容器之间怎么通信的？
+A: 三个容器在同一个 bridge 网络（`second-hand-network`）中，通过服务名互相访问：前端 Nginx 配置中 `proxy_pass http://backend:8000`（用容器名 backend）；后端用 `mongodb://second-hand-mongodb:27017`（用容器名连接 MongoDB）。对外只暴露前端的 5000 端口，数据库和后端都不直接暴露。
+
+#### Q35: Nginx 反向代理配了什么？
+A: 主要配置：`location /api/` → `proxy_pass http://backend:8000/api/`（API 请求），`location /uploads/` → `proxy_pass http://backend:8000/uploads/`（静态图片），`location /` → `root /usr/share/nginx/html` 返回前端构建的静态页面。同时配置了 `client_max_body_size 20M` 允许大文件上传，`proxy_set_header Host $host` 保证后端能正确识别请求来源。
+
+#### Q36: 如果 MongoDB 容器挂了会怎样？
+A: 后端依赖 MongoDB，连接失败时 Express 会挂起（500 错误）。Docker 中可以用 `restart: always` 策略让容器崩溃后自动重启。更健壮的做法是在 `db.js` 中添加连接重试机制（mongoose.connect 设置 `serverSelectionTimeoutMS: 5000` 并在 catch 中延迟重试）。目前项目中 MongoDB 有 `restart: unless-stopped`，崩溃后会自动恢复。
+
+#### Q37: 部署流程是什么样的？
+A: 1）本地 `cd Client && npm run build` 构建前端；2）Git 提交推送代码（含 build/ 目录）；3）SSH 登录服务器；4）`git pull` 拉取最新代码；5）确认 `.env` 存在；6）`docker compose up -d --build` 重建容器。整个过程不需要登录服务器构建前端，避免 2GB 内存 OOM。
+
+---
+
+### 📌 业务逻辑与边界情况
+
+#### Q38: 购物车批量结算时，部分商品库存不足怎么处理？
+A: `checkoutCart` 遍历购物车中的每个商品，逐个执行 `findOneAndUpdate` 原子操作。成功购买的商品从购物车中移除并加入返回结果的 `success` 数组；失败的商品保留在购物车中并返回失败原因（库存不足/已售罄/不能买自己的等）。前端收到结果后，显示"成功购买 X 件商品，Y 件失败"的总结信息，用户可以看到哪些商品购买失败了。
+
+#### Q39: 如果用户同时打开两个页面，同时购买同一件商品会怎样？
+A: 由于 MongoDB 的 `findOneAndUpdate` 配合 `$inc` 是原子操作，两个请求不会出现都看到库存为 1 然后都买成功的情况。查询条件中 `quantity: { $gt: 0 }` 确保只能买到有库存的商品。如果两个请求几乎同时到达 MongoDB，数据库层会串行化执行，第一个请求成功（库存减 1），第二个请求查询条件不满足（库存已为 0），返回 null。这样最多只卖出去 1 件。
+
+#### Q40: 商品状态有几种？怎么流转的？
+A: 三种状态：`unsold`（默认，上架中）、`sold`（已售出，库存为 0 但仍有剩余）、`sold_out`（全部售罄）、`inactive`（用户删除/下架）。流转路径：创建 → `unsold` → 购买成功 → 库存>0 保持 `unsold`，库存=0 变为 `sold`。用户手动下架可设为 `inactive`。用户账号删除时所有商品批量变为 `inactive`。
+
+#### Q41: 发布商品时为什么图片和商品信息分两次提交？
+A: 因为图片上传（POST /api/upload）是文件上传，走 multer 中间件；商品信息（POST /api/products）是 JSON 数据。把图片上传和商品创建分开，用户体验更好——先选图上传拿到 URL，再填信息提交。同时方便前端的图片预览和重选。
+
+#### Q42: 商品规格是怎么实现的？为什么用嵌入数组？
+A: Product 模型中 `specifications: [{ key: String, value: String }]` 是一个嵌入子文档数组。用户点击"添加规格"按钮后动态增加 key-value 输入对。用嵌入数组的好处是 Schema 灵活，不同品类商品可以有不同的规格键名（如手机可加"存储容量：256G"，衣服可加"尺码：M"）。如果未来需要按规格值搜索，才考虑拆成独立集合。
+
+#### Q43: 为什么 phoneNo 的正则排除 100、102 号段？哪些手机号会被拦截？
+A: 正则 `/^1[3-9]\d{9}$/` 要求第一位是 1，第二位是 3-9 的数字，后面 9 位任意数字。这意味着：虚拟运营商号码（如 170、171）和物联网号段（如 144、154）会被拦截。这是为了过滤无效或非标准手机号，校园场景下学生用的常规手机号（13x/15x/18x 等）不会被误拦。
+
+---
+
+### 📌 未来优化方向
+
+#### Q44: 如果让你继续优化这个项目，你最想加什么功能？
+A: 按优先级：1）真正的 AI 推荐——用大模型分析用户行为和商品特征做个性化排序（不再是固定规则引擎）；2）即时通讯——买家和卖家在线聊天，类似闲鱼；3）支付集成——接入微信支付/支付宝，不再需要线下交易；4）管理后台——商品审核、数据统计、用户管理；5）性能优化——MongoDB 文本索引、图片 CDN、前端懒加载路由拆分。
+
+#### Q45: 项目现在的瓶颈在哪？
+A: 主要有三个：1）图片服务——图片存服务器本地磁盘，没有 CDN，多用户并发访问可能变慢；2）`$regex` 搜索——没有索引，数据量增大后搜索速度下降；3）单节点部署——所有服务在一台 2GB 内存的服务器上，没有水平扩展能力。如果用户量增长，最优先的优化是加 MongoDB 文本索引、把图片迁移到 OSS/CDN。
 
 ---
 

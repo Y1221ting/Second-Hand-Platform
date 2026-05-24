@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Product = require("../models/Product");
 const {
   hashPassword,
   verifyPassword,
@@ -139,11 +140,17 @@ exports.deleteUser = async (req, res) => {
       return res.status(403).json({ error: "无权删除他人账户" });
     }
 
+    // 级联处理：将该用户的所有商品标记为 inactive，避免成为"孤儿商品"
+    await Product.updateMany(
+      { "uploadedBy.id": userId },
+      { $set: { status: "inactive" } }
+    );
+
     const user = await User.findByIdAndRemove(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
-    res.json({ message: "User deleted" });
+    res.json({ message: "User and associated products deactivated" });
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
   }

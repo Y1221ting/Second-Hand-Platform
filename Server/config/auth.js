@@ -15,7 +15,7 @@ async function createSession(userId) {
   const token = jwt.sign({ userId }, SECRET, {
     expiresIn: "1d", // Adjust the expiration time as needed
   });
-  return { token };
+  return token; // 直接返回 token 字符串，控制器 res.json({ token }) 即可变成扁平的 { token: "xxx" }
 }
 
 module.exports = {

@@ -29,3 +29,7 @@
 ### 购物车数据获取（2026-05-22）
 - UserProfile 挂载时即获取购物车数据，不再依赖 activeTab 切换
 - cartController.js 的 removeFromCart 和 updateQuantity 返回 populate 后的购物车
+
+### 比赛准备文档（2026-05-24）
+- STUDY.md Q&A 从 10 题扩充到 45 题，覆盖架构/前后端/数据库/AI/安全/部署/业务逻辑/未来规划
+- 新增 AI面试官提示词.md，用于发给其他 AI 模拟答辩面试

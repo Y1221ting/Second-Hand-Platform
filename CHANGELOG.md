@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.17.0] - 2026-05-24
+
+### Security
+- **loginUser 移除密码返回** — toObject() 后 delete password，API 响应不再包含密码哈希
+- **getAllUsers 排除密码字段** — 查询列表加 `.select("-password")`
+- **getUserById 排除密码字段** — 返回前 delete password
+- **密钥移入 .env 文件** — docker-compose.yml 中所有密钥改为 `${变量}` 引用，由 Docker Compose 自动读取 .env，避免密钥泄漏到 Git
+- **body-parser 请求体限制降为 10MB** — 从 50MB 减低 DoS 攻击面
+
+### Fixed
+- **🔴 auth.js 返回值嵌套** — `createSession` 返回 `{ token }` 导致响应结构为 `{ token: { token: "xxx" }}`，前端需用 `data.token.token` 才能拿到 Token。已改为直接返回 token 字符串，响应变为扁平的 `{ token: "xxx" }`
+- **ProductCard `<a>` 整页刷新** — 改用 `<Link>` 实现 SPA 无刷新跳转
+- **移动端无法搜索** — Navbar 右侧新增搜索图标按钮，点击展开输入框
+- **删除用户后商品变孤儿** — deleteUser 级联标记该用户所有商品为 `inactive`
+- **价格输入弹 alert 弹窗** — 改为输入框下方内联红色错误提示，不阻塞操作
+
+### Changed
+- **Navbar 导航栏** — 添加 `relative` 定位，新增 `isMobileSearchOpen` 状态管理
+- **AddProduct 价格校验** — 超越 9999.9 上限时显示红色提示文字而非 `alert()`
+
+---
+
 ## [1.16.0] - 2026-05-22
 
 ### Added
