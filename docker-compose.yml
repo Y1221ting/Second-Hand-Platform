@@ -11,7 +11,7 @@ services:
       - mongodb_data:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: "@Yt1221wz"
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     networks:
       - second-hand-network
 
@@ -24,11 +24,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGODB_URI=mongodb://admin:%40Yt1221wz@second-hand-mongodb:27017/second-hand?authSource=admin
+      - MONGODB_URI=${MONGODB_URI_FULL}
       - PORT=8000
       - CLIENT_URL=http://8.162.24.145:5000
-      - QWEN_API_KEY=sk-8b143f7aef8a4d16ad7d00365486d2f6
-      - JWT_SECRET=second-hand-jwt-secret-2024
+      - QWEN_API_KEY=${QWEN_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
     depends_on:
       - mongodb
     networks:
