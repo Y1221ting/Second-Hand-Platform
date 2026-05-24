@@ -44,14 +44,18 @@ const AddProduct = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [priceError, setPriceError] = useState("");
 
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // 价格上限弹窗提醒
-    if (name === "price" && Number(value) > 9999.9) {
-      alert("价格不能超过 ¥9999.9（以角为最小单位）");
-      return;
+    // 价格上限提示（使用内联文字替代 alert）
+    if (name === "price") {
+      if (Number(value) > 9999.9) {
+        setPriceError("价格不能超过 ¥9999.9（以角为最小单位）");
+        return;
+      }
+      setPriceError("");
     }
     setFormData({
       ...formData,
@@ -378,6 +382,9 @@ const AddProduct = () => {
               max="9999.9"
               step="0.1"
             />
+            {priceError && (
+              <p className="text-red-500 text-sm mt-1">{priceError}</p>
+            )}
           </div>
 
           {/* Product Images */}
