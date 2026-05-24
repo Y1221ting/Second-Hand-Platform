@@ -5,6 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-gray-900 py-3 px-4 md:px-8 flex items-center justify-between z-10">
+    <nav className="relative bg-gray-900 py-3 px-4 md:px-8 flex items-center justify-between z-10">
       {/* Logo */}
       <div className="flex items-center shrink-0">
         <Link to="/home" className="text-white text-2xl md:text-3xl font-bold whitespace-nowrap">
@@ -51,8 +52,37 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* 移动端搜索栏（折叠） */}
+      {isMobileSearchOpen && (
+        <div className="absolute top-full left-0 right-0 bg-gray-900 px-4 py-3 md:hidden z-50 border-t border-gray-700">
+          <div className="relative w-full">
+            <input
+              type="text"
+              placeholder="搜索商品..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                handleSearch(e);
+                if (e.key === "Enter") setIsMobileSearchOpen(false);
+              }}
+              className="w-full py-2 px-4 pr-10 rounded-full bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm transition-colors"
+              autoFocus
+            />
+            <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+          </div>
+        </div>
+      )}
+
       {/* 右侧导航链接 + 用户 */}
       <div className="flex items-center gap-1 md:gap-2">
+        {/* 移动端搜索图标 */}
+        <button
+          onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+          className="md:hidden text-gray-400 hover:text-yellow-500 p-2 transition-colors"
+        >
+          <FaSearch className="text-sm" />
+        </button>
+
         {isAuthenticated ? (
           <>
             {/* 导航链接 */}
