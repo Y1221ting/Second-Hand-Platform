@@ -59,7 +59,10 @@ exports.loginUser = async (req, res) => {
     }
     // Generate a JWT token and send it in the response
     const token = await createSession(existingUser._id.toString());
-    res.status(200).json({ token, user: existingUser });
+    // 返回前移除 password 字段
+    const userData = existingUser.toObject();
+    delete userData.password;
+    res.status(200).json({ token, user: userData });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
@@ -68,7 +71,7 @@ exports.loginUser = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find();
+    const users = await User.find().select("-password");
     res.json(users);
   } catch (error) {
     res.status(500).json({ error: "Internal Server Error" });
@@ -84,6 +87,7 @@ exports.getUserById = async (req, res) => {
     }
     // 兼容旧用户没有 createdAt 的情况
     const result = user.toObject();
+    delete result.password;
     if (!result.createdAt) {
       result.createdAt = result.updatedAt || new Date("2026-01-01");
     }

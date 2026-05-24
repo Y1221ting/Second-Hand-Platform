@@ -1,7 +1,7 @@
 import React, { useState, memo, useEffect, useRef } from "react";
 import { FaShoppingCart, FaBolt } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 const ProductCard = memo(({ product, isRecommended }) => {
   const { user } = useAuth();
@@ -67,7 +67,7 @@ const ProductCard = memo(({ product, isRecommended }) => {
 
   return (
     <div className="flex flex-col justify-between w-full bg-gray-900 text-white px-3 py-3 rounded-md hover:scale-105 transition-transform duration-200 overflow-hidden">
-      <a href={`/product/${product._id}`} className="text-blue-500 block ">
+      <Link to={`/product/${product._id}`} className="text-blue-500 block ">
         <div className="relative">
           <div
             ref={imageRef}
@@ -89,7 +89,7 @@ const ProductCard = memo(({ product, isRecommended }) => {
             </span>
           )}
         </div>
-      </a>
+      </Link>
       <h3 className="text-base font-semibold mb-0.5 truncate" title={product.name}>
         {product.name}
       </h3>
