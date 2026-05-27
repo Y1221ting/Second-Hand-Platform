@@ -69,20 +69,22 @@ const ProductCard = memo(({ product, isRecommended }) => {
     <div className="flex flex-col justify-between w-full bg-gray-900 text-white px-3 py-3 rounded-md hover:scale-105 transition-transform duration-200 overflow-hidden">
       <Link to={`/product/${product._id}`} className="text-blue-500 block ">
         <div className="relative">
+          {/* [修改] div 背景图改为 <img> 标签，添加 width/height 防止布局偏移 */}
           <div
             ref={imageRef}
-            className="w-full h-40 mb-1.5 rounded-md bg-gray-700"
-            style={
-              imageLoaded
-                ? {
-                    backgroundImage: `url(${product.images[0]})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center",
-                    backgroundRepeat: "no-repeat",
-                  }
-                : {}
-            }
-          ></div>
+            className="w-full h-40 mb-1.5 rounded-md bg-gray-700 overflow-hidden"
+          >
+            {imageLoaded && product.images?.[0] && (
+              <img
+                src={product.images[0]}
+                alt={product.name}
+                width={400}
+                height={160}
+                loading="lazy"
+                className="w-full h-full object-cover"
+              />
+            )}
+          </div>
           {isRecommended && (
             <span className="absolute top-1 left-1 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-sm z-10 pointer-events-none">
               AI 推荐

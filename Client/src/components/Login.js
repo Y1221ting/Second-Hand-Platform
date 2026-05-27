@@ -78,14 +78,16 @@ const Login = () => {
               className="w-full py-2 px-4 rounded-lg bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
             />
           </div>
+          {/* [修改] text-white → text-gray-900，修复按钮文字与黄色背景对比度不足（原 2.3:1 → 现 5.5:1） */}
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-300"
+            className="w-full py-2 px-4 bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-600 transition duration-300"
           >
             登录
           </button>
         </form>
-        <p className="text-gray-500 mt-4 text-center">
+        {/* [修改] text-gray-500 → text-gray-600，修复提示文字对比度不足 */}
+        <p className="text-gray-600 mt-4 text-center">
           没有账号？{" "}
           <a href="/register" className="text-yellow-500 hover:text-gray-900">
             去注册

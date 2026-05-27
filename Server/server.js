@@ -3,6 +3,8 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+// [新增] Gzip 压缩中间件，减少 API 响应体积约 40%
+const compression = require("compression");
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
@@ -14,6 +16,8 @@ connectDB();
 const app = express();
 
 // Middleware
+// [新增] 响应压缩（需放在其他中间件之前）
+app.use(compression());
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 app.use(express.json());

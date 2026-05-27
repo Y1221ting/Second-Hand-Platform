@@ -132,9 +132,13 @@ const ProductDetails = ({ productId }) => {
         </Link>
       )}
       <div className="flex flex-col md:flex-row p-4">
+        {/* [修改] 添加 width/height/loading 属性修复 CLS 0.142 */}
         <img
           src={productDetails.images[0]}
           alt={productDetails.name}
+          width={600}
+          height={400}
+          loading="lazy"
           className="w-full md:w-1/2 h-auto rounded-lg"
         />
         <div className="md:ml-6 mt-4 md:mt-0">
