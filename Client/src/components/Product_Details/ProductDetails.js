@@ -131,8 +131,8 @@ const ProductDetails = ({ productId }) => {
           <div>编辑</div>
         </Link>
       )}
-      <div className="flex flex-col md:flex-row p-4">
-        {/* [修正] 图片自适应：宽度占满容器，高度自动（保持原比例），不裁剪不压缩 */}
+      <div className="flex flex-col md:flex-row p-4 gap-6">
+        {/* [修正] 图片适配：宽度占一半，自然显示，不裁不压 */}
         <div className="w-full md:w-1/2 rounded-lg overflow-hidden bg-gray-200">
           <img
             src={productDetails.images[0]}
@@ -144,7 +144,7 @@ const ProductDetails = ({ productId }) => {
             style={{ display: 'block' }}
           />
         </div>
-        <div className="md:ml-6 mt-4 md:mt-0">
+        <div className="md:mt-0 flex-1 min-w-0">
           <h1 className="text-3xl font-semibold">{productDetails.name}</h1>
           <p className="text-gray-500 mt-2">
             发布者：{productDetails.uploadedBy?.name || '未知'}
