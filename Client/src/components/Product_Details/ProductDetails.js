@@ -132,8 +132,8 @@ const ProductDetails = ({ productId }) => {
         </Link>
       )}
       <div className="flex flex-col md:flex-row p-4">
-        {/* [修正] 去掉固定 aspectRatio，用 width/height 让浏览器预留空间防 CLS。图片自然显示完整，不裁剪不压缩 */}
-        <div className="w-full md:w-1/2 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center" style={{ minHeight: '200px' }}>
+        {/* [修正] 图片自适应：宽度占满容器，高度自动（保持原比例），不裁剪不压缩 */}
+        <div className="w-full md:w-1/2 rounded-lg overflow-hidden bg-gray-200">
           <img
             src={productDetails.images[0]}
             alt={productDetails.name}
@@ -141,7 +141,7 @@ const ProductDetails = ({ productId }) => {
             height={600}
             loading="lazy"
             className="w-full h-auto"
-            style={{ display: 'block', maxHeight: '500px', objectFit: 'contain' }}
+            style={{ display: 'block' }}
           />
         </div>
         <div className="md:ml-6 mt-4 md:mt-0">
