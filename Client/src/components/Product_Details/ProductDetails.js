@@ -133,14 +133,14 @@ const ProductDetails = ({ productId }) => {
       )}
       <div className="flex flex-col md:flex-row p-4">
         {/* [修正] 用固定比例容器包裹图片，消除残留 CLS。此前 600×400 的 3:2 比例与实际商品图不匹配，图片加载后仍会跳 */}
-        <div className="w-full md:w-1/2 rounded-lg overflow-hidden bg-gray-200" style={{ aspectRatio: '4 / 3' }}>
+        <div className="w-full md:w-1/2 rounded-lg overflow-hidden bg-gray-200 flex items-center justify-center" style={{ aspectRatio: '4 / 3' }}>
           <img
             src={productDetails.images[0]}
             alt={productDetails.name}
             width={400}
             height={300}
             loading="lazy"
-            className="w-full h-full object-cover"
+            className="max-w-full max-h-full object-contain"
           />
         </div>
         <div className="md:ml-6 mt-4 md:mt-0">

@@ -252,13 +252,13 @@ const Register = () => {
           <div className="flex justify-center">
             <button
               type="submit"
-              className="w-full py-2 px-4 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-300"
+              className="w-full py-2 px-4 bg-yellow-500 text-gray-900 rounded-lg hover:bg-yellow-600 transition duration-300"
             >
               注册
             </button>
           </div>
         </form>
-        <p className="text-gray-500 mt-4 text-center">
+        <p className="text-gray-600 mt-4 text-center">
           已有账号？{" "}
           <a href="/login" className="text-yellow-500 hover:text-gray-900">
             去登录

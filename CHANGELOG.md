@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.18.0] - 2026-05-27
+
+### Performance
+- **代码分割（Code Splitting）** — `React.lazy` + `Suspense` 分离低频页面（UserProfile/AddProduct/EditProduct/Cart），首屏 JS 体积减少约 139-185 KiB
+- **Login/Register 保留同步加载** — 高频入口页懒加载反而增加首次渲染延迟，实测后改回同步
+- **新增 ErrorBoundary** — chunk 加载失败时显示"页面加载失败"+刷新按钮，避免白屏
+- **Nginx Gzip 压缩** — 开启 gzip，文本/JS/CSS/JSON 超过 1KB 自动压缩
+- **Nginx 静态资源强缓存** — JS/CSS（带 hash）缓存 1 年 + `immutable`，图片缓存 30 天
+- **CLS 修复** — 商品详情页和卡片图片设 `width`/`height` 固定比例 + `aspectRatio: 4/3` 容器
+- **原生懒加载替代自定义 IntersectionObserver** — `<img loading="lazy">` 改用浏览器原生实现，消除首屏图片被 JS 推迟下载的问题
+
+### Accessibility
+- **Login.js 按钮对比度修复** — `text-white` → `text-gray-900`（黄底白字 2.3:1 → 黄底深灰字 5.5:1，达标 WCAG AA）
+- **Filters.js 表单标签** — select 增加 `id` + `htmlFor` 关联 label
+- **Navbar.js aria-label** — 搜索按钮增加 `aria-label="搜索"`
+- **Home.js `<main>` 标签** — 增加 landmark 标记
+
+### Security
+- **Nginx 安全头** — 增加 `X-Content-Type-Options: nosniff`，防止 MIME 类型嗅探
+
 ## [1.17.0] - 2026-05-24
 
 ### Security

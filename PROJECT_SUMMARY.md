@@ -276,6 +276,17 @@ docker compose up -d --build frontend
 
 ---
 
+### 前端性能优化（v1.18.0）
+- **代码分割** — `React.lazy` + `Suspense` 路由级懒加载 UserProfile/AddProduct/EditProduct/Cart；Login/Register 保持同步加载（高频入口）
+- **ErrorBoundary 兜底** — chunk 加载失败时显示"页面加载失败"界面 + 刷新按钮
+- **Nginx Gzip** — 启用 gzip，超过 1KB 的 JS/CSS/JSON 自动压缩
+- **Nginx 强缓存** — JS/CSS（带 content hash）缓存 1 年 + `immutable`；图片缓存 30 天
+- **原生懒加载** — `<img loading="lazy">` 替代自定义 IntersectionObserver，首屏图片不再被 JS 推迟下载
+- **CLS 修复** — 商品图片设 `width`/`height` + `aspectRatio` 容器，消除图片加载后的布局偏移
+- **无障碍修复** — 按钮对比度（黄底白字→黄底深灰字 2.3:1→5.5:1）、表单标签关联、aria-label、`<main>` landmark
+
+---
+
 ## 当前已完成的功能
 
 1. ✅ **用户注册/登录** - JWT认证
