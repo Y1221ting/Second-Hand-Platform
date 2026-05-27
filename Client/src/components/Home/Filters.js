@@ -39,8 +39,9 @@ const Filters = ({
       </h2>
       <div className={filtersClass}>
         <div className="mb-4">
-          <label className="text-gray-600 block mb-2">学校：</label>
+          <label className="text-gray-600 block mb-2" htmlFor="college-search">学校：</label>
           <input
+            id="college-search"
             type="text"
             className="bg-gray-800 text-white p-2 w-full border-2 border-transparent focus:border-white"
             placeholder="搜索学校..."
@@ -50,7 +51,10 @@ const Filters = ({
             onCompositionStart={handleCollegeCompositionStart}
             onCompositionEnd={handleCollegeCompositionEnd}
           />
+          {/* [新增] id + htmlFor 关联，修复 select 缺少 label 的无障碍问题 */}
+          <label className="sr-only" htmlFor="college-select">选择学校</label>
           <select
+            id="college-select"
             value={collegeQuery}
             onChange={handleCollegeSelect}
             className="p-2 rounded bg-gray-800 text-white w-full mt-2"
@@ -63,8 +67,9 @@ const Filters = ({
           </select>
         </div>
         <div className="mb-4">
-          <label className="text-gray-600 block mb-2">排序：</label>
+          <label className="text-gray-600 block mb-2" htmlFor="sort-select">排序：</label>
           <select
+            id="sort-select"
             value={sortBy}
             onChange={handleSortChange}
             className="p-2 rounded bg-gray-800 text-white w-full"
@@ -75,8 +80,9 @@ const Filters = ({
           </select>
         </div>
         <div className="mb-4">
-          <label className="text-gray-600 block mb-2">分类：</label>
+          <label className="text-gray-600 block mb-2" htmlFor="category-select">分类：</label>
           <select
+            id="category-select"
             value={categoryFilter}
             onChange={handleCategoryFilterChange}
             className="p-2 rounded bg-gray-800 text-white w-full"

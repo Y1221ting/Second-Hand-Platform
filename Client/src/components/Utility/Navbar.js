@@ -79,6 +79,7 @@ const Navbar = () => {
         <button
           onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
           className="md:hidden text-gray-400 hover:text-yellow-500 p-2 transition-colors"
+          aria-label="搜索"
         >
           <FaSearch className="text-sm" />
         </button>

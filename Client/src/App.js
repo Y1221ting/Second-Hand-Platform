@@ -4,15 +4,15 @@ import React, { lazy, Suspense } from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/authContext";
 
-// 高频页面保持同步加载，页面切换不等待
+// 高频 + 入口页面保持同步加载，避免直接访问时出现瀑布加载
 import Home from "./components/Home";
 import ProductPage from "./components/ProductPage";
 import LandingPage from "./components/Landing";
+import Login from "./components/Login";        // [修正] 改回同步：直接访问 /login 是高频入口
+import Register from "./components/Register";  // [修正] 改回同步：直接访问 /register 是高频入口
 import ProtectedRoute from "./components/ProtectedRoute";
 
-// [修改] 低频页面懒加载，减少首屏 JS 体积约 139-185 KiB
-const Register = lazy(() => import("./components/Register"));
-const Login = lazy(() => import("./components/Login"));
+// 低频页面懒加载，减少首屏 JS 体积
 const UserProfile = lazy(() => import("./components/UserProfile"));
 const AddProduct = lazy(() => import("./components/AddProduct"));
 const EditProduct = lazy(() => import("./components/EditProduct"));

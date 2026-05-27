@@ -132,15 +132,17 @@ const ProductDetails = ({ productId }) => {
         </Link>
       )}
       <div className="flex flex-col md:flex-row p-4">
-        {/* [修改] 添加 width/height/loading 属性修复 CLS 0.142 */}
-        <img
-          src={productDetails.images[0]}
-          alt={productDetails.name}
-          width={600}
-          height={400}
-          loading="lazy"
-          className="w-full md:w-1/2 h-auto rounded-lg"
-        />
+        {/* [修正] 用固定比例容器包裹图片，消除残留 CLS。此前 600×400 的 3:2 比例与实际商品图不匹配，图片加载后仍会跳 */}
+        <div className="w-full md:w-1/2 rounded-lg overflow-hidden bg-gray-200" style={{ aspectRatio: '4 / 3' }}>
+          <img
+            src={productDetails.images[0]}
+            alt={productDetails.name}
+            width={400}
+            height={300}
+            loading="lazy"
+            className="w-full h-full object-cover"
+          />
+        </div>
         <div className="md:ml-6 mt-4 md:mt-0">
           <h1 className="text-3xl font-semibold">{productDetails.name}</h1>
           <p className="text-gray-500 mt-2">

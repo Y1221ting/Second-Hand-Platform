@@ -49,7 +49,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+    <main className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="bg-white p-8 rounded-lg shadow-lg sm:w-96 md:w-1/2">
         <h1 className="text-3xl font-semibold text-gray-900 mb-4">登录</h1>
         {error && (
@@ -95,7 +95,7 @@ const Login = () => {
           .
         </p>
       </div>
-    </div>
+    </main>
   );
 };
 

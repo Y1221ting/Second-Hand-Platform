@@ -1,4 +1,4 @@
-import React, { useState, memo, useEffect, useRef } from "react";
+import React, { useState, memo } from "react";
 import { FaShoppingCart, FaBolt } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -8,27 +8,7 @@ const ProductCard = memo(({ product, isRecommended }) => {
   const navigate = useNavigate();
   const [clickedButtonId, setClickedButtonId] = useState(null);
   const [addMsg, setAddMsg] = useState({});
-  const [imageLoaded, setImageLoaded] = useState(false);
-  const imageRef = useRef(null);
   const isOwner = user && user.id === product.uploadedBy?.id;
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setImageLoaded(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "200px" }
-    );
-
-    if (imageRef.current) {
-      observer.observe(imageRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, []);
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -69,12 +49,9 @@ const ProductCard = memo(({ product, isRecommended }) => {
     <div className="flex flex-col justify-between w-full bg-gray-900 text-white px-3 py-3 rounded-md hover:scale-105 transition-transform duration-200 overflow-hidden">
       <Link to={`/product/${product._id}`} className="text-blue-500 block ">
         <div className="relative">
-          {/* [修改] div 背景图改为 <img> 标签，添加 width/height 防止布局偏移 */}
-          <div
-            ref={imageRef}
-            className="w-full h-40 mb-1.5 rounded-md bg-gray-700 overflow-hidden"
-          >
-            {imageLoaded && product.images?.[0] && (
+          {/* [修正] 去掉 IntersectionObserver，直接用浏览器原生 loading="lazy"。首屏图片不再被 JS 推迟下载，修复 LCP 从 1.9s→3.0s 的退化 */}
+          <div className="w-full h-40 mb-1.5 rounded-md bg-gray-700 overflow-hidden">
+            {product.images?.[0] && (
               <img
                 src={product.images[0]}
                 alt={product.name}

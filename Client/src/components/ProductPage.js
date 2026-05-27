@@ -9,13 +9,13 @@ const ProductPage = () => {
   return (
     <div>
       <Navbar />
-      <div className="mx-auto w-full md:w-4/5 p-4 ">
+      <main className="mx-auto w-full md:w-4/5 p-4 ">
         <h1 className="text-3xl font-semibold text-gray-900">
           商品详情
         </h1>
         {id && <ProductDetails productId={id} />}{" "}
         {/* Render the product details component */}
-      </div>
+      </main>
       <Footer />
     </div>
   );

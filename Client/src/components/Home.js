@@ -5,11 +5,13 @@ import ProductsList from "./Home/index";
 
 const Home = () => {
   return (
-    <div>
+    <>
       <Navbar />
-      <ProductsList />
+      <main>
+        <ProductsList />
+      </main>
       <Footer />
-    </div>
+    </>
   );
 };
 
