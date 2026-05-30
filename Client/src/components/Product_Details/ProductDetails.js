@@ -148,7 +148,15 @@ const ProductDetails = ({ productId }) => {
           <h1 className="text-3xl font-semibold">{productDetails.name}</h1>
           <p className="text-gray-500 mt-2">
             发布者：{productDetails.uploadedBy?.name || '未知'}
+            {productDetails.uploadedBy?.college && (
+              <span className="ml-2">| {productDetails.uploadedBy.college}</span>
+            )}
           </p>
+          {productDetails.uploadedBy?.phone && (
+            <p className="text-gray-500 mt-1">
+              联系电话：{productDetails.uploadedBy.phone}
+            </p>
+          )}
           <p className="text-2xl font-semibold mt-4">
             ¥{Math.min(Number(productDetails.price ?? 0), 9999.9).toFixed(1)}
           </p>

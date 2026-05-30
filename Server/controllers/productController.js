@@ -21,6 +21,7 @@ exports.createProduct = async (req, res) => {
       id: req.user._id.toString(),
       name: req.user.fullName,
       college: req.user.college || "",
+      phone: req.user.phoneNo || "",
     };
 
     const product = new Product(req.body);
@@ -493,6 +494,7 @@ exports.purchaseProduct = async (req, res) => {
             id: req.user._id.toString(),
             name: req.user.fullName,
             college: req.user.college || "",
+            phone: req.user.phoneNo || "",
           },
           status: "sold",
         },

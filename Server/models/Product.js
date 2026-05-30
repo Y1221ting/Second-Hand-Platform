@@ -4,6 +4,7 @@ const SellerSchema = new mongoose.Schema({
   id: String,
   name: String,
   college: String,
+  phone: String,
 });
 
 // Define the specifications schema
