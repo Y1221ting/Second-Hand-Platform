@@ -36,34 +36,45 @@ d:\Second-Hand-main\
 │       ├── index.js
 │       ├── index.css           # Tailwind CSS
 │       ├── context/
-│       │   └── authContext.js  # 用户认证上下文
+│       │   ├── authContext.js           # 用户认证上下文
+│       │   └── NotificationContext.js   # 通知状态管理（30s轮询）
 │       └── components/
 │           ├── Home/
-│           │   ├── index.js        # 商品列表页
-│           │   ├── HomeBanner.js    # 首页统计横幅
-│           │   ├── WantedList.js    # 求购列表
-│           │   ├── Filters.js      # 筛选组件
-│           │   ├── ProductList.js  # 商品卡片列表
-│           │   ├── Recommendations.js # 猜你喜欢推荐
-│           │   └── Pagination.js   # 分页
+│           │   ├── index.js             # 商品列表页
+│           │   ├── HomeBanner.js        # 首页统计横幅
+│           │   ├── WantedList.js        # 求购列表
+│           │   ├── Filters.js           # 筛选组件
+│           │   ├── ProductList.js       # 商品卡片列表
+│           │   ├── Recommendations.js   # 猜你喜欢推荐
+│           │   └── Pagination.js        # 分页
 │           ├── Product_Details/
-│           │   ├── ProductDetails.js  # 商品详情
-│           │   ├── Recommendations.js # 猜你喜欢推荐
-│           │   ├── Dialog.js         # 购买确认弹窗
-│           │   └── FormField.js      # 表单字段组件
+│           │   ├── ProductDetails.js    # 商品详情
+│           │   ├── Recommendations.js   # 猜你喜欢推荐
+│           │   ├── Dialog.js            # 购买确认弹窗
+│           │   └── FormField.js         # 表单字段组件
 │           ├── Profile/
-│           │   ├── UserDetails.js    # 用户信息展示
-│           │   ├── ProductList.js    # 用户商品列表
-│           │   ├── UserField.js      # 用户字段编辑
-│           │   └── ConfirmDialog.js  # 删除确认弹窗
+│           │   ├── UserDetails.js       # 用户信息展示
+│           │   ├── ProductList.js       # 用户商品列表
+│           │   ├── UserField.js         # 用户字段编辑
+│           │   ├── AppealForm.js        # 申诉提交弹窗
+│           │   ├── AppealList.js        # 申诉状态列表
+│           │   └── ConfirmDialog.js     # 删除确认弹窗
+│           ├── Admin/
+│           │   ├── AdminLayout.js       # 管理后台侧边栏布局
+│           │   ├── Dashboard.js         # 数据概览统计
+│           │   ├── Reports.js           # 举报管理
+│           │   ├── Products.js          # 商品管理
+│           │   ├── Users.js             # 用户管理
+│           │   ├── Appeals.js           # 申诉管理
+│           │   └── Warnings.js          # 警告记录
 │           ├── Utility/
 │           │   ├── Navbar.js
 │           │   ├── Footer.js
 │           │   ├── Loading.js
 │           │   ├── DrawerMenu.js
 │           │   └── ProductCard.js
-│           ├── AddProduct.js     # 发布商品（含AI功能）
-│           ├── EditProduct.js    # 编辑商品
+│           ├── AddProduct.js            # 发布商品
+│           ├── EditProduct.js           # 编辑商品
 │           ├── Edit_Product/
 │           │   └── ProductForm.js
 │           ├── Home.js
@@ -71,7 +82,11 @@ d:\Second-Hand-main\
 │           ├── Login.js
 │           ├── Register.js
 │           ├── ProductPage.js
-│           └── UserProfile.js    # 个人资料（含购买记录）
+│           ├── Cart.js
+│           ├── UserProfile.js           # 个人主页
+│           ├── Warnings.js              # 用户通知列表
+│           ├── NotificationModal.js     # 全局强制弹窗
+│           └── ProtectedRoute.js        # 路由守卫 + 封禁拦截
 └── Server/                     # 后端 Express
     ├── Dockerfile              # node:18-alpine
     ├── package.json
@@ -86,7 +101,9 @@ d:\Second-Hand-main\
     │   ├── User.js             # 用户模型
     │   ├── Product.js          # 商品模型
     │   ├── Wanted.js           # 求购模型
-    │   └── Report.js           # 举报模型
+    │   ├── Report.js           # 举报模型
+    │   ├── Appeal.js           # 申诉模型
+    │   └── Warning.js          # 通知/警告模型（type/severity/metadata）
     ├── controllers/
     │   ├── userController.js   # 用户CRUD
     │   ├── productController.js# 商品CRUD + 购买 + 推荐
@@ -99,7 +116,10 @@ d:\Second-Hand-main\
     │   ├── cartRoutes.js       # /api/cart
     │   ├── uploadRoutes.js     # /api/upload
     │   ├── wantedRoutes.js     # /api/wanted
-    │   └── reportRoutes.js     # /api/reports
+    │   ├── reportRoutes.js     # /api/reports
+    │   ├── adminRoutes.js      # /api/admin（管理后台）
+    │   ├── warningRoutes.js    # /api/warnings（用户通知）
+    │   └── appealRoutes.js     # /api/appeals（用户申诉）
     └── services/
         └── aiService.js        # 通义千问API调用
 ```
@@ -174,6 +194,36 @@ d:\Second-Hand-main\
 |------|------|------|------|
 | POST | `/api/reports/` | ✅ | 举报商品（productId必填，reason四选一） |
 
+### 申诉 `/api/appeals`
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| POST | `/api/appeals/` | ✅ | 提交申诉（productId必填，reason必填） |
+| GET | `/api/appeals/user/:userId` | ✅ | 获取用户的申诉列表 |
+
+### 警告/通知 `/api/warnings`
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| GET | `/api/warnings/` | ✅ | 获取用户通知列表（支持 isRead 筛选） |
+| GET | `/api/warnings/critical` | ✅ | 获取未读 critical 通知（供弹窗用） |
+| PUT | `/api/warnings/:id/read` | ✅ | 标记通知为已读 |
+
+### 管理后台 `/api/admin`
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| GET | `/api/admin/stats` | ✅🔑 | 数据概览（用户/商品/今日新增/待处理） |
+| GET | `/api/admin/reports` | ✅🔑 | 举报列表（分页+状态筛选） |
+| PUT | `/api/admin/reports/:id` | ✅🔑 | 处理举报（通过=下架 / 驳回） |
+| GET | `/api/admin/products` | ✅🔑 | 全部商品（分页+搜索+状态筛选） |
+| PUT | `/api/admin/products/:id` | ✅🔑 | 下架/恢复商品 |
+| GET | `/api/admin/users` | ✅🔑 | 用户列表（分页+搜索+角色/状态筛选） |
+| PUT | `/api/admin/users/:id` | ✅🔑 | 封禁/解封用户（含互保检查） |
+| GET | `/api/admin/appeals` | ✅🔑 | 申诉列表（分页+状态筛选） |
+| PUT | `/api/admin/appeals/:id` | ✅🔑 | 处理申诉（通过=恢复 / 驳回=更新原因） |
+| GET | `/api/admin/warnings` | ✅🔑 | 已发送警告列表（分页+已读/未读筛选） |
+| POST | `/api/admin/warnings` | ✅🔑 | 给用户发送警告（含互保检查） |
+
+> ✅ = 需 JWT 认证  🔑 = 需管理员角色
+
 ### 统计 `/api`
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
@@ -243,6 +293,38 @@ d:\Second-Hand-main\
   reporterId: String,   // 必填，举报人ID
   reason: String,       // 枚举：虚假信息/违禁商品/重复发布/其他
   detail: String,       // 选填，详细说明
+  status: String,       // pending | handled | dismissed
+  handledBy: String,    // 处理人ID
+  handleNote: String,   // 处理备注
+  createdAt: Date       // 默认当前时间
+}
+```
+
+### Appeal 模型
+```javascript
+{
+  productId: ObjectId,  // 必填，被下架商品ID
+  sellerId: String,     // 必填，申诉人ID
+  reason: String,       // 必填，申诉理由
+  status: String,       // pending | approved | rejected
+  handledBy: String,    // 处理人ID
+  handleNote: String,   // 处理备注
+  createdAt: Date       // 默认当前时间
+}
+```
+
+### Warning 模型
+```javascript
+{
+  userId: ObjectId,     // 必填，接收用户ID
+  title: String,        // 必填，标题
+  content: String,      // 必填，内容
+  type: String,         // warning | product_delisted | account_banned | appeal_result
+  severity: String,     // info | critical（critical=强制弹窗）
+  metadata: Mixed,      // { productId, reason, appealStatus }
+  createdBy: String,    // 创建者ID（管理员）
+  isRead: Boolean,      // 默认 false
+  readAt: Date,         // 阅读时间
   createdAt: Date       // 默认当前时间
 }
 ```
@@ -387,12 +469,20 @@ docker compose up -d --build frontend
 29. ✅ **举报功能** - 举报商品（4种原因），非卖家登录用户可见
 30. ✅ **发布页双页签** - [我要卖]/[我要买] 切换，求购表单独立
 31. ✅ **购物车空引导** - 空购物车提示"去看看同学院同学在卖什么 →"
+32. ✅ **管理员后台** - 数据概览/举报管理/商品管理/用户管理/申诉管理/警告管理
+33. ✅ **申诉系统** - 用户可对被下架商品提交申诉，管理员审批通过/驳回
+34. ✅ **通知系统** - 管理员操作后自动创建通知，critical 通知强制弹窗，info 通知铃铛角标
+35. ✅ **管理员互保** - 禁止封禁/警告其他管理员（后端 403 + 前端隐藏按钮）
+36. ✅ **封禁拦截** - 被封禁用户下次请求自动登出 + 重定向登录页
 
 ## 待优化/已知问题
 
 1. **购买记录 `purchasedBy` 单对象限制** - Product 模型的 `purchasedBy` 是单个嵌入子文档，多次购买会覆盖旧记录（当前场景下可接受）
 2. **商品推荐** - 阶段一为规则引擎，后续可升级为协同过滤或基于用户行为的学习模型
 3. **图片底层存储** - 当前本地文件存储（`Server/uploads/`），后续可迁移到对象存储（OSS）
+4. **评价/信用体系** - 缺失（P0 路线图）
+5. **站内私信 IM** - 缺失（P0 路线图）
+6. **商品图集轮播** - ProductPage 未渲染多图（P0 路线图）
 
 ---
 

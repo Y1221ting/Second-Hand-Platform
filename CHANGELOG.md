@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] — 2026-06-01
+
+### 通知系统 + 管理员互保
+
+**后端**
+- Warning 模型扩展：新增 `type`（warning / product_delisted / account_banned / appeal_result）、`severity`（info / critical）、`metadata` 字段
+- 管理员互保：禁止封禁/警告其他管理员（后端 403 + 前端灰色标签）
+- 管理操作后自动创建 Warning 通知：
+  - 封禁/解封用户 → account_banned
+  - 下架/恢复商品 → product_delisted
+  - 处理举报（通过）→ product_delisted
+  - 处理申诉（通过/驳回）→ appeal_result
+  - 发送警告 → warning
+- 新增 `GET /api/warnings/critical` — 供前端弹窗检测用
+
+**前端**
+- 新增 `NotificationContext` — 30s 轮询 critical 通知 + 未读数统计
+- 新增 `NotificationModal` — 强制弹窗，按通知类型显示差异化图标，支持多条排队
+- Navbar 铃铛角标改为共享 `unreadCount`
+- `ProtectedRoute` 封禁用户自动登出 + 重定向登录页
+- `Login` 页显示"该账号已被封禁"提示
+- `Admin/Users` 管理员行隐藏操作按钮
+- `Warnings` 页按 type 分类渲染（图标 + 颜色标签 + 申诉状态）
+
+---
+
 ## [2.0.0] - 2026-06-01
 
 ### 单校版本改造（南昌师范学院）
@@ -39,6 +65,35 @@ All notable changes to this project will be documented in this file.
 - **新增 WantedList 组件** — 首页展示最新求购（绿色边框卡片），无数据不渲染
 - **UserProfile 购物车引导** — 空购物车提示"去看看同学院同学在卖什么 →"
 - **删除 colleges.js** — 38校常量文件无引用，已清理
+
+---
+
+## [1.20.0] - 2026-05-30
+
+### 申诉系统 + 管理员后台
+
+**后端**
+- 新增 `Appeal` 模型 + 路由（用户提交申诉 / 管理员处理申诉）
+- 新增 `Warning` 模型 + 路由（用户查看警告 / 标记已读）
+- 新增 `adminRoutes` — 数据概览 / 举报管理 / 商品管理 / 用户管理 / 警告管理 / 申诉管理
+- 新增申诉处理：通过 → 自动恢复商品；驳回 → 更新商品 delistReason
+- 下架商品写入 `delistReason` 字段
+- 购物车校验：下架商品在购物车中显示为"已失效"
+
+**前端**
+- 新增 `AdminLayout` — 管理后台侧边栏布局 + 6 个导航项
+- 新增 `Dashboard` — 6 项统计卡片
+- 新增 `AdminReports` — 举报列表 + 处理面板
+- 新增 `AdminProducts` — 商品管理 + 下架/恢复 + 搜索/状态筛选
+- 新增 `AdminUsers` — 用户管理 + 封禁/解封 + 发送警告
+- 新增 `AdminAppeals` — 申诉列表 + 通过/驳回
+- 新增 `AdminWarnings` — 已发送警告记录
+- 新增 `Warnings` — 用户端通知列表 + 全部/未读/已读筛选 + 点击已读
+- 新增 `AppealForm` / `AppealList` — 申诉提交 + 状态查看
+- 路由：`/admin/*`（ProtectedRoute requireAdmin）、`/warnings`（ProtectedRoute）
+- MongoDB 容器内存限制 768MB + `--wiredTigerCacheSizeGB 0.5`
+
+---
 
 ## [1.18.0] - 2026-05-27
 
