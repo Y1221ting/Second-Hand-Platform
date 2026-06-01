@@ -1,10 +1,6 @@
 const User = require("../models/User");
 const Product = require("../models/Product");
-const {
-  hashPassword,
-  verifyPassword,
-  createSession,
-} = require("../config/auth");
+const { hashPassword, verifyPassword, createToken } = require("../config/auth");
 
 // Register a user
 exports.registerUser = async (req, res) => {
@@ -76,25 +72,8 @@ exports.loginUser = async (req, res) => {
     if (existingUser.status === "banned") {
       return res.status(403).json({ message: "该账号已被封禁" });
     }
-    // Generate a JWT token and send it in the response
-    const { token, sessionId } = await createSession(existingUser._id.toString());
-
-    // 将 session 存入用户记录，限制同时只有 1 个活跃设备
-    // 用 updateOne 而非 save()，避免旧文档缺少新增必填字段触发全量校验
-    const device = req.headers["user-agent"]
-      ? req.headers["user-agent"].substring(0, 100)
-      : "未知设备";
-    await User.updateOne(
-      { _id: existingUser._id },
-      {
-        $push: {
-          activeSessions: {
-            $each: [{ sessionId, device, loginAt: new Date() }],
-            $slice: -1, // 只保留最新的 1 个
-          },
-        },
-      }
-    );
+    // 签发 JWT token（7 天有效期）
+    const token = createToken(existingUser._id.toString());
 
     // 返回前移除 password 字段
     const userData = existingUser.toObject();
@@ -106,21 +85,9 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-// Logout — 移除当前 session，允许多设备互踢
+// Logout — 前端清除 token 即可（JWT 无状态，无需服务端处理）
 exports.logoutUser = async (req, res) => {
-  try {
-    const sessionId = req.sessionId; // 由 authMiddleware 从 JWT 中提取
-    if (sessionId) {
-      await User.updateOne(
-        { _id: req.user._id },
-        { $pull: { activeSessions: { sessionId } } }
-      );
-    }
-    res.json({ message: "已登出" });
-  } catch (error) {
-    console.error("登出失败:", error);
-    res.status(500).json({ message: "登出失败" });
-  }
+  res.json({ message: "已登出" });
 };
 
 exports.getAllUsers = async (req, res) => {
@@ -129,7 +96,7 @@ exports.getAllUsers = async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     const [users, total] = await Promise.all([
       User.find()
-        .select("-password -activeSessions -cart")
+        .select("-password -cart")
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
@@ -151,7 +118,6 @@ exports.getUserById = async (req, res) => {
     // 兼容旧用户没有 createdAt 的情况
     const result = user.toObject();
     delete result.password;
-    delete result.activeSessions; // 不暴露登录会话信息
     if (!result.createdAt) {
       result.createdAt = result.updatedAt || new Date("2026-01-01");
     }
@@ -211,10 +177,9 @@ exports.updateUser = async (req, res) => {
       );
     }
 
-    // 返回前移除 password 和 activeSessions
+    // 返回前移除 password
     const result = user.toObject();
     delete result.password;
-    delete result.activeSessions;
     res.json(result);
   } catch (error) {
     // Check for specific validation errors

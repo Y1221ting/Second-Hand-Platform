@@ -8,7 +8,6 @@ const compression = require("compression");
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
-const aiRoutes = require("./routes/aiRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const connectDB = require("./config/db");
 
@@ -38,15 +37,11 @@ if (!fs.existsSync(uploadsDir)) {
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
-app.use("/api/ai", aiRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/reports", require("./routes/reportRoutes"));
 app.use("/api/wanted", require("./routes/wantedRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/appeals", require("./routes/appealRoutes"));
-app.use("/api/warnings", require("./routes/warningRoutes"));
-app.use("/api/reviews", require("./routes/reviewRoutes"));
-app.use("/api", require("./routes/messageRoutes"));
+app.use("/api/messages", require("./routes/messageRoutes"));
 
 // 学院-专业映射（南昌师范学院单校版）
 app.get("/api/majorMap", (req, res) => {

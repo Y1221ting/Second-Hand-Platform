@@ -8,6 +8,8 @@ const SellerSchema = new mongoose.Schema({
   major:      String,
   dormitory:  String,
   phone:      String,
+  wechat:     String,
+  qq:         String,
 });
 
 // Define the specifications schema
@@ -39,14 +41,10 @@ const ProductSchema = new mongoose.Schema({
     required: true,
   },
   price: {
-    type: mongoose.Types.Decimal128,
+    type: Number,
     required: true,
-    validate: {
-      validator: function (value) {
-        return value > 0;
-      },
-      message: "Price cannot be negative.",
-    },
+    min: 0,
+    max: 9999.9,
   },
   images: {
     type: [String],
@@ -87,23 +85,6 @@ ProductSchema.index({ status: 1, "uploadedBy.department": 1, createdAt: -1 }); /
 ProductSchema.index({ "uploadedBy.id": 1, status: 1 });                 // 用户商品列表
 ProductSchema.index({ "purchasedBy.id": 1 });                           // 已购商品列表
 
-// 确保 Decimal128 类型的 price 始终以字符串形式输出
-ProductSchema.set("toJSON", {
-  transform: (doc, ret) => {
-    if (ret.price && typeof ret.price === "object" && ret.price.$numberDecimal) {
-      ret.price = ret.price.$numberDecimal;
-    }
-    return ret;
-  },
-});
-ProductSchema.set("toObject", {
-  transform: (doc, ret) => {
-    if (ret.price && typeof ret.price === "object" && ret.price.$numberDecimal) {
-      ret.price = ret.price.$numberDecimal;
-    }
-    return ret;
-  },
-});
 
 const Product = mongoose.model("Product", ProductSchema);
 

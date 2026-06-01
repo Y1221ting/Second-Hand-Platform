@@ -6,14 +6,10 @@ const wantedSchema = new mongoose.Schema({
     required: true,
   },
   budget: {
-    type: mongoose.Types.Decimal128,
+    type: Number,
     required: true,
-    validate: {
-      validator: function (value) {
-        return value > 0;
-      },
-      message: "预算必须大于0",
-    },
+    min: 0,
+    max: 9999.9,
   },
   description: {
     type: String,
@@ -32,23 +28,6 @@ const wantedSchema = new mongoose.Schema({
   },
 });
 
-wantedSchema.set("toJSON", {
-  transform: (doc, ret) => {
-    if (ret.budget && typeof ret.budget === "object" && ret.budget.$numberDecimal) {
-      ret.budget = ret.budget.$numberDecimal;
-    }
-    return ret;
-  },
-});
-wantedSchema.set("toObject", {
-  transform: (doc, ret) => {
-    if (ret.budget && typeof ret.budget === "object" && ret.budget.$numberDecimal) {
-      ret.budget = ret.budget.$numberDecimal;
-    }
-    return ret;
-  },
-});
-
-wantedSchema.index({ createdAt: -1 }); // 求购列表按时间排序
+wantedSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model("Wanted", wantedSchema);

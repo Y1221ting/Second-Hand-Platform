@@ -103,10 +103,9 @@ exports.getAllProducts = async (req, res) => {
       .limit(limit)
       .select("name category description price images specifications status quantity purchasedBy createdAt uploadedBy");
 
-    // 优化：列表页只返回第一张图片，减少数据传输量；显式转换 Decimal128 价格为数字
+    // 优化：列表页只返回第一张图片，减少数据传输量
     const optimizedProducts = products.map(product => {
       const productObj = product.toObject();
-      productObj.price = Number(productObj.price) || 0;
       if (productObj.images && productObj.images.length > 0) {
         productObj.images = [productObj.images[0]];
       }
@@ -132,9 +131,7 @@ exports.getProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    // 显式转换 Decimal128 价格为数字，避免前端 parseFloat 返回 NaN
     const productObj = product.toObject();
-    productObj.price = Number(productObj.price) || 0;
     res.status(200).json(productObj);
   } catch (error) {
     console.error(error);
@@ -178,10 +175,7 @@ exports.updateProductById = async (req, res) => {
       new: true,
       runValidators: true,
     });
-    // 显式转换 Decimal128 价格为数字
-    const updateResult = updatedProduct.toObject();
-    updateResult.price = Number(updateResult.price) || 0;
-    res.status(200).json(updateResult);
+    res.status(200).json(updatedProduct);
   } catch (error) {
     console.error(error);
     // Handle validation errors
@@ -225,13 +219,7 @@ exports.getProductsByUser = async (req, res) => {
     // Fetch products listed by the user
     const products = await Product.find({ "uploadedBy.id": userId });
 
-    // 显式转换 Decimal128 价格为数字
-    const result = products.map(p => {
-      const obj = p.toObject();
-      obj.price = Number(obj.price) || 0;
-      return obj;
-    });
-    res.status(200).json(result);
+    res.status(200).json(products);
   } catch (error) {
     console.error("Error fetching user products:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -252,13 +240,7 @@ exports.getPurchasedProducts = async (req, res) => {
       "uploadedBy.id": { $ne: userId }
     });
 
-    // 显式转换 Decimal128 价格为数字
-    const result = products.map(p => {
-      const obj = p.toObject();
-      obj.price = Number(obj.price) || 0;
-      return obj;
-    });
-    res.status(200).json(result);
+    res.status(200).json(products);
   } catch (error) {
     console.error("Error fetching purchased products:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -372,112 +354,41 @@ exports.removeProductSpecification = async (req, res) => {
 exports.getRecommendations = async (req, res) => {
   try {
     const userId = req.query.userId || "";
-    const limit = parseInt(req.query.limit) || 6;
+    const limit = Math.min(parseInt(req.query.limit) || 6, 20);
     const excludeId = req.query.excludeId || "";
-    const category = req.query.category || "";
     const department = req.query.department || "";
-    const major = req.query.major || "";
-    const sellerId = req.query.sellerId || "";
 
-    const exclusions = [];
-    if (excludeId) exclusions.push(excludeId);
+    const exclusions = excludeId ? [excludeId] : [];
     const baseFilter = {
       _id: { $nin: exclusions },
       status: { $nin: ["sold_out", "inactive"] },
     };
     if (userId) baseFilter["uploadedBy.id"] = { $ne: userId };
 
-    // 1）同类目商品（详情页场景 — 当前商品的分类）
-    let categoryProducts = [];
-    if (category) {
-      categoryProducts = await Product.find({ ...baseFilter, category })
-        .sort({ createdAt: -1 })
-        .limit(limit)
-        .select("name images price uploadedBy category status quantity createdAt");
-    }
+    const usedIds = [...exclusions];
+    let remaining = limit;
 
-    const usedIds = categoryProducts.map(p => p._id);
-    let remaining = limit - categoryProducts.length;
-
-    // 2）同学院商品（详情页场景 — 从当前商品的学院）
+    // 第 1 层：同学院商品
     let departmentProducts = [];
     if (department && remaining > 0) {
       departmentProducts = await Product.find({
-        _id: { $nin: [...exclusions, ...usedIds] },
+        ...baseFilter,
+        _id: { $nin: usedIds },
         "uploadedBy.department": department,
-        "uploadedBy.id": userId ? { $ne: userId } : undefined,
-        status: { $nin: ["sold_out", "inactive"] },
       })
         .sort({ createdAt: -1 })
         .limit(remaining)
         .select("name images price uploadedBy category status quantity createdAt");
-
       usedIds.push(...departmentProducts.map(p => p._id));
-      remaining = limit - categoryProducts.length - departmentProducts.length;
+      remaining = limit - departmentProducts.length;
     }
 
-    // 3）同专业商品（详情页场景 — 从当前商品的专业）
-    let majorProducts = [];
-    if (major && remaining > 0) {
-      majorProducts = await Product.find({
-        _id: { $nin: [...exclusions, ...usedIds] },
-        "uploadedBy.major": major,
-        "uploadedBy.id": userId ? { $ne: userId } : undefined,
-        status: { $nin: ["sold_out", "inactive"] },
-      })
-        .sort({ createdAt: -1 })
-        .limit(remaining)
-        .select("name images price uploadedBy category status quantity createdAt");
-
-      usedIds.push(...majorProducts.map(p => p._id));
-      remaining = limit - categoryProducts.length - departmentProducts.length - majorProducts.length;
-    }
-
-    // 4）同发布者其他商品
-    let sellerProducts = [];
-    if (sellerId && remaining > 0) {
-      sellerProducts = await Product.find({
-        _id: { $nin: [...exclusions, ...usedIds] },
-        "uploadedBy.id": sellerId,
-        status: { $nin: ["sold_out", "inactive"] },
-      })
-        .sort({ createdAt: -1 })
-        .limit(remaining)
-        .select("name images price uploadedBy category status quantity createdAt");
-
-      usedIds.push(...sellerProducts.map(p => p._id));
-      remaining = limit - categoryProducts.length - departmentProducts.length - majorProducts.length - sellerProducts.length;
-    }
-
-    // 5）如果传了 userId，找用户同学院商品（列表页场景 — 从登录用户）
-    let userDepartmentProducts = [];
-    if (userId && remaining > 0) {
-      const allUsed = [...exclusions, ...usedIds];
-      const User = require("../models/User");
-      const user = await User.findById(userId);
-      if (user && user.department) {
-        userDepartmentProducts = await Product.find({
-          _id: { $nin: allUsed },
-          "uploadedBy.department": user.department,
-          "uploadedBy.id": { $ne: userId },
-          status: { $nin: ["sold_out", "inactive"] },
-        })
-          .sort({ createdAt: -1 })
-          .limit(remaining)
-          .select("name images price uploadedBy status quantity createdAt");
-
-        usedIds.push(...userDepartmentProducts.map(p => p._id));
-        remaining = limit - categoryProducts.length - departmentProducts.length - majorProducts.length - sellerProducts.length - userDepartmentProducts.length;
-      }
-    }
-
-    // 6）填充最新商品兜底
+    // 第 2 层：最新商品兜底
     let fillProducts = [];
     if (remaining > 0) {
       fillProducts = await Product.find({
-        _id: { $nin: excludeId ? [excludeId, ...usedIds] : usedIds },
-        status: { $nin: ["sold_out", "inactive"] },
-        ...(userId ? { "uploadedBy.id": { $ne: userId } } : {}),
+        ...baseFilter,
+        _id: { $nin: usedIds },
       })
         .sort({ createdAt: -1 })
         .limit(remaining)
@@ -485,18 +396,13 @@ exports.getRecommendations = async (req, res) => {
     }
 
     const combined = [
-      ...categoryProducts.map(p => ({ ...p.toObject(), aiReason: "同类商品AI智能匹配" })),
-      ...departmentProducts.map(p => ({ ...p.toObject(), aiReason: "同学院同学发布的" })),
-      ...majorProducts.map(p => ({ ...p.toObject(), aiReason: "同专业同学发布的" })),
-      ...sellerProducts.map(p => ({ ...p.toObject(), aiReason: "该卖家其他商品" })),
-      ...userDepartmentProducts.map(p => ({ ...p.toObject(), aiReason: "基于浏览偏好的推荐" })),
-      ...fillProducts.map(p => ({ ...p.toObject(), aiReason: "本周热门商品" })),
+      ...departmentProducts,
+      ...fillProducts,
     ];
 
-    // 转换 Decimal128 价格为数字
+    // 列表页只返回首张图片
     const result = combined.map(p => {
-      const obj = { ...p };
-      obj.price = Number(obj.price) || 0;
+      const obj = p.toObject();
       if (obj.images && obj.images.length > 0) {
         obj.images = [obj.images[0]];
       }
@@ -506,7 +412,7 @@ exports.getRecommendations = async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error("获取推荐失败:", error);
-    res.status(200).json([]); // 静默失败，不影响主流程
+    res.status(200).json([]);
   }
 };
 
@@ -577,11 +483,7 @@ exports.purchaseProduct = async (req, res) => {
       await Product.findByIdAndUpdate(product._id, { status: "sold_out" });
     }
 
-    // 显式转换 Decimal128 价格为数字
-    const purchaseResult = product.toObject();
-    purchaseResult.price = Number(purchaseResult.price) || 0;
-
-    res.status(200).json({ message: "购买成功", product: purchaseResult });
+    res.status(200).json({ message: "购买成功", product });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "服务器内部错误" });

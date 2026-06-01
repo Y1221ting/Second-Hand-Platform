@@ -1,6 +1,5 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
 
 if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "change-me-in-production") {
   console.error("FATAL: JWT_SECRET 环境变量未设置，拒绝启动");
@@ -16,17 +15,14 @@ async function verifyPassword(password, hashedPassword) {
   return await bcrypt.compare(password, hashedPassword);
 }
 
-async function createSession(userId) {
-  const sessionId = crypto.randomUUID();
-  const token = jwt.sign({ userId, sessionId }, SECRET, {
-    expiresIn: "1d", // Adjust the expiration time as needed
-  });
-  return { token, sessionId };
+// 签发 JWT token（7 天有效期，免去频繁登录）
+function createToken(userId) {
+  return jwt.sign({ userId }, SECRET, { expiresIn: "7d" });
 }
 
 module.exports = {
   SECRET,
   hashPassword,
   verifyPassword,
-  createSession,
+  createToken,
 };

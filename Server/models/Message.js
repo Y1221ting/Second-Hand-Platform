@@ -1,19 +1,19 @@
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema({
-  conversationId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Conversation",
-    required: true,
-  },
-  senderId: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   content: {
     type: String,
-    required: [true, "消息内容不能为空"],
+    required: true,
     trim: true,
   },
   isRead: {
@@ -26,6 +26,6 @@ const messageSchema = new mongoose.Schema({
   },
 });
 
-messageSchema.index({ conversationId: 1, createdAt: -1 });
+messageSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Message", messageSchema);
