@@ -8,23 +8,32 @@ const authMiddleware = async (req, res, next) => {
     const token = req.header("Authorization")?.replace("Bearer ", "");
     
     if (!token) {
-      return res.status(401).json({ message: "No token, authorization denied" });
+      return res.status(401).json({ message: "未提供Token，请先登录", code: "NO_TOKEN" });
     }
 
     // 2. Verify token — 统一从 config/auth.js 读取密钥
-    const decoded = jwt.verify(token, SECRET);
-    
+    let decoded;
+    try {
+      decoded = jwt.verify(token, SECRET);
+    } catch (jwtError) {
+      if (jwtError.name === "TokenExpiredError") {
+        return res.status(401).json({ message: "Token已过期，请重新登录", code: "TOKEN_EXPIRED" });
+      }
+      return res.status(401).json({ message: "Token无效，JWT验证失败", code: "JWT_INVALID" });
+    }
+
     // 3. Find user
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(401).json({ message: "Token is not valid" });
+      return res.status(401).json({ message: "Token无效，用户不存在", code: "USER_NOT_FOUND" });
     }
 
     // 4. Attach user to request
     req.user = user;
     next();
   } catch (error) {
-    res.status(401).json({ message: "Token is not valid" });
+    console.error("authMiddleware未知错误:", error);
+    res.status(401).json({ message: "认证失败", code: "AUTH_UNKNOWN" });
   }
 };
 
