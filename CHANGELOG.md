@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] — 2026-06-01
+
+### 多设备登录互踢 + 同浏览器账号互斥
+
+**后端**
+- `User` 模型新增 `activeSessions` 数组（`{ sessionId, device, loginAt }`），限制只保留 1 个活跃 session
+- `config/auth.js` — `createSession` 使用 `crypto.randomUUID()` 生成唯一 sessionId 并写入 JWT payload
+- `authMiddleware` — 验证 JWT 后比对 sessionId 是否在 `activeSessions` 中，不在则 401 `SESSION_EXPIRED`
+- `userController.loginUser` — 登录时存储 session，`activeSessions` 超过 1 个自动踢旧
+- `userController.logoutUser`（新增）— 清除对应 sessionId
+- `POST /api/users/logout` — 新增登出路由
+
+**前端**
+- `utils/sessionGuard.js`（新建）— 全局 fetch 拦截器，检测 401 `SESSION_EXPIRED` 自动清登录态派发事件
+- `authContext` — login 时先调旧账号 logout 再设新状态 + 监听 `storage` 事件实现跨标签页互踢 + 监听 `session-expired` 事件
+- `Login` — 支持 `?session_expired=1` 参数显示"账号已在其他设备登录"黄色提示
+
+---
+
 ## [2.2.0] — 2026-06-01
 
 ### P0 优化 — 评价系统 + 站内私信 + 商品图集

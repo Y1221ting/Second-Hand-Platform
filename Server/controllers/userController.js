@@ -73,7 +73,19 @@ exports.loginUser = async (req, res) => {
       return res.status(403).json({ message: "该账号已被封禁" });
     }
     // Generate a JWT token and send it in the response
-    const token = await createSession(existingUser._id.toString());
+    const { token, sessionId } = await createSession(existingUser._id.toString());
+
+    // 将 session 存入用户记录，限制同时只有 1 个活跃设备
+    const device = req.headers["user-agent"]
+      ? req.headers["user-agent"].substring(0, 100)
+      : "未知设备";
+    existingUser.activeSessions.push({ sessionId, device, loginAt: new Date() });
+    // 只保留最新的 1 个 session（踢掉旧设备）
+    while (existingUser.activeSessions.length > 1) {
+      existingUser.activeSessions.shift();
+    }
+    await existingUser.save();
+
     // 返回前移除 password 字段
     const userData = existingUser.toObject();
     delete userData.password;
@@ -81,6 +93,26 @@ exports.loginUser = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Logout — 移除当前 session，允许多设备互踢
+exports.logoutUser = async (req, res) => {
+  try {
+    const sessionId = req.sessionId; // 由 authMiddleware 从 JWT 中提取
+    if (sessionId) {
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.activeSessions = user.activeSessions.filter(
+          (s) => s.sessionId !== sessionId
+        );
+        await user.save();
+      }
+    }
+    res.json({ message: "已登出" });
+  } catch (error) {
+    console.error("登出失败:", error);
+    res.status(500).json({ message: "登出失败" });
   }
 };
 

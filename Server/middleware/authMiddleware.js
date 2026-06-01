@@ -28,8 +28,22 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: "Token无效，用户不存在", code: "USER_NOT_FOUND" });
     }
 
-    // 4. Attach user to request
+    // 3.5 检查 session 是否仍然有效（防多设备同时登录）
+    if (decoded.sessionId) {
+      const sessionActive = user.activeSessions.some(
+        (s) => s.sessionId === decoded.sessionId
+      );
+      if (!sessionActive) {
+        return res.status(401).json({
+          message: "账号已在其他设备登录，请重新登录",
+          code: "SESSION_EXPIRED",
+        });
+      }
+    }
+
+    // 4. Attach user and sessionId to request
     req.user = user;
+    req.sessionId = decoded.sessionId || null;
     next();
   } catch (error) {
     console.error("authMiddleware未知错误:", error);

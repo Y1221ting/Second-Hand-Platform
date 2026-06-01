@@ -1,5 +1,6 @@
 // [修改] 引入 lazy, Suspense 实现路由级代码分割
 // [新增] ErrorBoundary 组件兜底 chunk 加载失败
+import "./utils/sessionGuard"; // 全局 fetch 拦截：检测多设备互踢
 import React, { lazy, Suspense } from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/authContext";

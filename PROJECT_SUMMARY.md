@@ -87,6 +87,8 @@ d:\Second-Hand-main\
 │           ├── Warnings.js              # 用户通知列表
 │           ├── NotificationModal.js     # 全局强制弹窗
 │           └── ProtectedRoute.js        # 路由守卫 + 封禁拦截
+│       └── utils/
+│           └── sessionGuard.js           # 全局 fetch 拦截（SESSION_EXPIRED 自动清登录态）
 └── Server/                     # 后端 Express
     ├── Dockerfile              # node:18-alpine
     ├── package.json
@@ -249,6 +251,13 @@ d:\Second-Hand-main\
     productId: ObjectId, // 商品ID
     quantity: Number,    // 数量
     addedAt: Date        // 添加时间
+  }],
+  role: String,         // "user" | "admin"，默认 "user"
+  status: String,       // "active" | "banned"，默认 "active"
+  activeSessions: [{    // 活跃登录会话（防多设备同时登录）
+    sessionId: String,  // crypto.randomUUID()
+    device: String,     // User-Agent 前100字符
+    loginAt: Date
   }]
 }
 // timestamps: true — 自动记录 createdAt 和 updatedAt
@@ -477,6 +486,7 @@ docker compose up -d --build frontend
 37. ✅ **评价/信用体系** - 买卖双方互评（1-5星），用户主页评分统计卡片，商品详情页卖家信用展示
 38. ✅ **站内私信 IM** - 会话列表 + 聊天窗口（气泡UI + 5s轮询 + 已读/未读），商品详情页"联系卖家"
 39. ✅ **商品图集轮播** - 多图主图+缩略图导航+左右箭头+灯箱全屏预览
+40. ✅ **多设备登录互踢** - 同一账号只允许 1 个活跃设备（服务端 activeSessions）+ 同浏览器跨标签页互斥（storage 事件 + 旧账号自动登出）
 
 ## 待优化/已知问题
 

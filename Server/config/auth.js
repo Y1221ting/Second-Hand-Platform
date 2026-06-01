@@ -1,5 +1,6 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 
 const SECRET = process.env.JWT_SECRET || "your-secret-key"; // Use environment variable for security
 
@@ -12,10 +13,11 @@ async function verifyPassword(password, hashedPassword) {
 }
 
 async function createSession(userId) {
-  const token = jwt.sign({ userId }, SECRET, {
+  const sessionId = crypto.randomUUID();
+  const token = jwt.sign({ userId, sessionId }, SECRET, {
     expiresIn: "1d", // Adjust the expiration time as needed
   });
-  return token; // 直接返回 token 字符串，控制器 res.json({ token }) 即可变成扁平的 { token: "xxx" }
+  return { token, sessionId };
 }
 
 module.exports = {

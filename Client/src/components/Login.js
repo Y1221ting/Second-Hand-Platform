@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 
@@ -12,7 +12,17 @@ const Login = () => {
   });
   const [error, setError] = useState("");
 
-  const bannedMessage = location.state?.banned ? "该账号已被封禁，如有疑问请联系管理员申诉" : null;
+  // 从 state 或 query string 读取提示标记
+  const bannerMessage = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("session_expired") === "1" || location.state?.sessionExpired) {
+      return { text: "账号已在其他设备登录，请重新登录", color: "yellow" };
+    }
+    if (location.state?.banned) {
+      return { text: "该账号已被封禁，如有疑问请联系管理员申诉", color: "red" };
+    }
+    return null;
+  }, [location]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -38,15 +48,14 @@ const Login = () => {
     );
     if (response.ok) {
       const data = await response.json();
-      localStorage.setItem("token", data.token);
-      login({
+      await login({
         id: data.user._id,
         name: data.user.fullName,
         fullName: data.user.fullName,
         college: data.user.college,
         department: data.user.department,
         role: data.user.role || "user",
-      });
+      }, data.token);
       navigate("/home");
     } else {
       const data = await response.json();
@@ -58,9 +67,15 @@ const Login = () => {
     <main className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="bg-white p-8 rounded-lg shadow-lg sm:w-96 md:w-1/2">
         <h1 className="text-3xl font-semibold text-gray-900 mb-4">登录</h1>
-        {bannedMessage && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
-            {bannedMessage}
+        {bannerMessage && (
+          <div
+            className={`mb-4 p-3 border rounded-lg text-sm ${
+              bannerMessage.color === "yellow"
+                ? "bg-yellow-100 border-yellow-400 text-yellow-800"
+                : "bg-red-100 border-red-400 text-red-700"
+            }`}
+          >
+            {bannerMessage.text}
           </div>
         )}
         {error && (
