@@ -16,12 +16,14 @@ exports.getCart = async (req, res) => {
       await user.save();
     }
 
-    // 将购物车转为纯对象并显式转换 Decimal128 价格为数字，防止前端 parseFloat NaN
+    // 将购物车转为纯对象并显式转换 Decimal128 价格为数字，同时标记商品是否可购买
     const cart = validItems.map(item => {
       const obj = item.toObject();
-      if (obj.productId && obj.productId.price) {
-        obj.productId.price = Number(obj.productId.price) || 0;
+      const product = obj.productId;
+      if (product && product.price) {
+        product.price = Number(product.price) || 0;
       }
+      obj.available = product && product.status === "unsold" && product.quantity > 0;
       return obj;
     });
 
@@ -132,9 +134,11 @@ exports.removeFromCart = async (req, res) => {
     await user.populate("cart.productId");
     const cart = user.cart.map(item => {
       const obj = item.toObject();
-      if (obj.productId && obj.productId.price) {
-        obj.productId.price = Number(obj.productId.price) || 0;
+      const product = obj.productId;
+      if (product && product.price) {
+        product.price = Number(product.price) || 0;
       }
+      obj.available = product && product.status === "unsold" && product.quantity > 0;
       return obj;
     });
 
@@ -183,9 +187,11 @@ exports.updateQuantity = async (req, res) => {
     await user.populate("cart.productId");
     const cart = user.cart.map(item => {
       const obj = item.toObject();
-      if (obj.productId && obj.productId.price) {
-        obj.productId.price = Number(obj.productId.price) || 0;
+      const product = obj.productId;
+      if (product && product.price) {
+        product.price = Number(product.price) || 0;
       }
+      obj.available = product && product.status === "unsold" && product.quantity > 0;
       return obj;
     });
 

@@ -137,8 +137,12 @@ const Cart = () => {
     }
   };
 
-  // 计算总价
-  const totalPrice = cartItems.reduce((sum, item) => {
+  // 分组：可用 + 失效
+  const availableItems = cartItems.filter((item) => item.available !== false);
+  const unavailableItems = cartItems.filter((item) => item.available === false);
+
+  // 计算总价（仅可用商品）
+  const totalPrice = availableItems.reduce((sum, item) => {
     if (!item.productId) return sum;
     const price = Number(item.productId.price ?? 0);
     return sum + price * item.quantity;
@@ -200,20 +204,16 @@ const Cart = () => {
           <>
             {/* 购物车列表 */}
             <div className="space-y-4">
-              {cartItems.map((item) => {
+              {/* 可用商品 */}
+              {availableItems.map((item) => {
                 if (!item.productId) return null;
                 const product = item.productId;
                 const price = Number(product.price ?? 0);
-                const outOfStock = product.quantity <= 0 || product.status === "sold_out" || product.status === "inactive";
-
                 return (
                   <div
                     key={product._id}
-                    className={`bg-white rounded-lg shadow p-4 flex gap-4 items-center ${
-                      outOfStock ? "opacity-60" : ""
-                    }`}
+                    className="bg-white rounded-lg shadow p-4 flex gap-4 items-center"
                   >
-                    {/* 商品图片 */}
                     <Link to={`/product/${product._id}`} className="flex-shrink-0">
                       <div
                         className="w-20 h-20 rounded-lg bg-gray-200 bg-cover bg-center"
@@ -224,8 +224,6 @@ const Cart = () => {
                         }}
                       />
                     </Link>
-
-                    {/* 商品信息 */}
                     <div className="flex-grow min-w-0">
                       <Link
                         to={`/product/${product._id}`}
@@ -236,16 +234,11 @@ const Cart = () => {
                       <p className="text-sm text-gray-500 mt-1">
                         单价：¥{price.toFixed(2)}
                       </p>
-                      {outOfStock && (
-                        <p className="text-sm text-red-500 mt-1 font-medium">该商品已售罄或已下架</p>
-                      )}
                     </div>
-
-                    {/* 数量操作 */}
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleUpdateQuantity(product._id, item.quantity - 1)}
-                        disabled={item.quantity <= 1 || outOfStock}
+                        disabled={item.quantity <= 1}
                         className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       >
                         <FaMinus size={12} />
@@ -255,21 +248,58 @@ const Cart = () => {
                       </span>
                       <button
                         onClick={() => handleUpdateQuantity(product._id, item.quantity + 1)}
-                        disabled={item.quantity >= product.quantity || outOfStock}
+                        disabled={item.quantity >= product.quantity}
                         className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                       >
                         <FaPlus size={12} />
                       </button>
                     </div>
-
-                    {/* 小计 */}
                     <div className="text-right min-w-[80px]">
                       <p className="text-lg font-semibold text-gray-900">
                         ¥{(price * item.quantity).toFixed(2)}
                       </p>
                     </div>
+                    <button
+                      onClick={() => handleRemoveItem(product._id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors p-2"
+                      title="移除"
+                    >
+                      <FaTrash size={16} />
+                    </button>
+                  </div>
+                );
+              })}
 
-                    {/* 删除 */}
+              {/* 失效商品 */}
+              {unavailableItems.map((item) => {
+                if (!item.productId) return null;
+                const product = item.productId;
+                const price = Number(product.price ?? 0);
+                return (
+                  <div
+                    key={product._id}
+                    className="bg-gray-100 rounded-lg shadow p-4 flex gap-4 items-center opacity-60"
+                  >
+                    <div
+                      className="w-20 h-20 rounded-lg bg-gray-300 bg-cover bg-center flex-shrink-0 grayscale"
+                      style={{
+                        backgroundImage: product.images?.[0]
+                          ? `url(${product.images[0]})`
+                          : "none",
+                      }}
+                    />
+                    <div className="flex-grow min-w-0">
+                      <p className="text-lg font-semibold text-gray-400 truncate line-through">
+                        {product.name}
+                      </p>
+                      <p className="text-sm text-gray-400 mt-1">
+                        单价：¥{price.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-red-400 mt-1">该商品已下架或售罄</p>
+                    </div>
+                    <span className="text-sm text-red-400 bg-red-50 px-2 py-0.5 rounded whitespace-nowrap font-medium">
+                      已失效
+                    </span>
                     <button
                       onClick={() => handleRemoveItem(product._id)}
                       className="text-gray-400 hover:text-red-500 transition-colors p-2"
@@ -285,21 +315,30 @@ const Cart = () => {
             {/* 底部汇总 */}
             <div className="mt-6 bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-lg text-gray-600">共 {cartItems.length} 件商品</span>
+                <div>
+                  <span className="text-lg text-gray-600">
+                    共 {availableItems.length} 件可用商品
+                  </span>
+                  {unavailableItems.length > 0 && (
+                    <span className="text-sm text-gray-400 ml-2">
+                      （{unavailableItems.length} 件已失效）
+                    </span>
+                  )}
+                </div>
                 <span className="text-2xl font-bold text-gray-900">
                   合计：¥{totalPrice.toFixed(2)}
                 </span>
               </div>
               <button
                 onClick={handleCheckout}
-                disabled={checkingOut}
+                disabled={checkingOut || availableItems.length === 0}
                 className={`w-full py-3 rounded-lg font-semibold text-lg transition-colors ${
-                  checkingOut
+                  checkingOut || availableItems.length === 0
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-yellow-500 hover:bg-yellow-600 text-gray-900"
                 }`}
               >
-                {checkingOut ? "结算中..." : "去结算"}
+                {checkingOut ? "结算中..." : availableItems.length === 0 ? "没有可结算的商品" : "去结算"}
               </button>
             </div>
           </>

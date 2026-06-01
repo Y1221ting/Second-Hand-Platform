@@ -170,9 +170,8 @@ const UserProfile = () => {
 
   // 按状态分类商品
   const unsoldProducts = userProducts.filter((p) => p.status === "unsold");
-  const soldOutProducts = userProducts.filter(
-    (p) => p.status === "sold_out"
-  );
+  const soldOutProducts = userProducts.filter((p) => p.status === "sold_out");
+  const inactiveProducts = userProducts.filter((p) => p.status === "inactive");
   const soldProducts = userProducts.filter((p) => p.status === "sold");
 
   // 格式化日期
@@ -274,7 +273,7 @@ const UserProfile = () => {
                 : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
             }`}
           >
-            刚刚发布 ({unsoldProducts.length})
+            在售 ({unsoldProducts.length})
           </button>
           <button
             onClick={() => setActiveTab("soldOut")}
@@ -284,7 +283,17 @@ const UserProfile = () => {
                 : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
             }`}
           >
-            已下架 ({soldOutProducts.length})
+            已售罄 ({soldOutProducts.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("inactive")}
+            className={`px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
+              activeTab === "inactive"
+                ? "bg-yellow-500 text-white"
+                : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
+            }`}
+          >
+            已下架 ({inactiveProducts.length})
           </button>
           <button
             onClick={() => setActiveTab("cart")}
@@ -336,7 +345,20 @@ const UserProfile = () => {
           />
         )}
         {activeTab === "soldOut" && soldOutProducts.length === 0 && (
-          <p className="text-gray-500 text-center py-12">暂无已下架的商品</p>
+          <p className="text-gray-500 text-center py-12">暂无已售罄的商品</p>
+        )}
+
+        {activeTab === "inactive" && inactiveProducts.length > 0 && (
+          <ProductList
+            userProducts={inactiveProducts}
+            onDeleteProduct={handleDeleteProduct}
+            showEdit={false}
+            showView={true}
+            showDelistReason
+          />
+        )}
+        {activeTab === "inactive" && inactiveProducts.length === 0 && (
+          <p className="text-gray-500 text-center py-12">没有被下架的商品</p>
         )}
 
         {activeTab === "sold" && soldProducts.length > 0 && (
@@ -369,7 +391,8 @@ const UserProfile = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               我的购物车 ({cartItems.length})
             </h3>
-            {cartItems.map((item) => {
+            {/* 可用商品 */}
+            {cartItems.filter((item) => item.available !== false).map((item) => {
               if (!item.productId) return null;
               const p = item.productId;
               const price = Number(p.price ?? 0);
@@ -396,6 +419,38 @@ const UserProfile = () => {
                   </div>
                   <span className="font-semibold text-gray-900 whitespace-nowrap">
                     ¥{(price * item.quantity).toFixed(2)}
+                  </span>
+                </div>
+              );
+            })}
+            {/* 失效商品 */}
+            {cartItems.filter((item) => item.available === false).map((item) => {
+              if (!item.productId) return null;
+              const p = item.productId;
+              const price = Number(p.price ?? 0);
+              return (
+                <div
+                  key={p._id}
+                  className="flex items-center gap-4 py-3 border-b border-gray-100 last:border-0 bg-gray-50 opacity-70"
+                >
+                  <div
+                    className="w-14 h-14 rounded-lg bg-gray-300 bg-cover bg-center flex-shrink-0 grayscale"
+                    style={{
+                      backgroundImage: p.images?.[0]
+                        ? `url(${p.images[0]})`
+                        : "none",
+                    }}
+                  />
+                  <div className="flex-grow min-w-0">
+                    <p className="font-semibold text-gray-400 truncate line-through">
+                      {p.name}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      ¥{price.toFixed(2)} × {item.quantity}
+                    </p>
+                  </div>
+                  <span className="text-xs text-red-400 bg-red-50 px-2 py-0.5 rounded whitespace-nowrap font-medium">
+                    已失效
                   </span>
                 </div>
               );

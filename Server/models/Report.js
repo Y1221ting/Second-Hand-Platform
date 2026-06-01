@@ -19,6 +19,18 @@ const reportSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  status: {
+    type: String,
+    enum: ["pending", "handled", "dismissed"],
+    default: "pending",
+  },
+  handledBy: {
+    type: String,
+  },
+  handleNote: {
+    type: String,
+    trim: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

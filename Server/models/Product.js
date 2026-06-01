@@ -55,7 +55,7 @@ const ProductSchema = new mongoose.Schema({
   specifications: [SpecificationSchema], // Embed specifications as an array of objects
   status: {
     type: String,
-    enum: ["unsold", "sold", "sold_out"],
+    enum: ["unsold", "sold", "sold_out", "inactive"],
     default: "unsold",
     required: true,
   },
@@ -63,6 +63,10 @@ const ProductSchema = new mongoose.Schema({
     type: Number,
     default: 1,
     min: 0,
+  },
+  delistReason: {
+    type: String,
+    default: "",
   },
   purchasedBy: {
     type: SellerSchema,

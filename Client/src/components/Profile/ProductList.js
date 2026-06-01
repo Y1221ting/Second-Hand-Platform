@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
+const ProductList = ({ userProducts, onDeleteProduct, showDelete = true, showEdit = true, showView = true, showDelistReason = false }) => {
+  const isInactive = showDelistReason;
   return (
     <div className="mt-8">
       <h2 className="text-2xl font-semibold mb-4">我的商品</h2>
@@ -9,7 +10,9 @@ const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
         {userProducts.map((product) => (
           <div
             key={product._id}
-            className="bg-white rounded-lg shadow p-4 flex gap-4 items-center relative"
+            className={`bg-white rounded-lg shadow p-4 flex gap-4 items-center relative ${
+              isInactive ? "opacity-75" : ""
+            }`}
           >
             {showDelete && (
               <button
@@ -24,10 +27,10 @@ const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
                 </svg>
               </button>
             )}
-            {/* 商品图片 — 点击进详情页 */}
+            {/* 商品图片 */}
             <Link to={`/product/${product._id}`} className="flex-shrink-0">
               <div
-                className="w-20 h-20 rounded-lg bg-gray-200 bg-cover bg-center"
+                className={`w-20 h-20 rounded-lg bg-gray-200 bg-cover bg-center ${isInactive ? "grayscale" : ""}`}
                 style={{
                   backgroundImage: product.images?.[0]
                     ? `url(${product.images[0]})`
@@ -35,35 +38,46 @@ const ProductList = ({ userProducts, onDeleteProduct, showDelete = true }) => {
                 }}
               />
             </Link>
-            {/* 商品信息（无描述） */}
+            {/* 商品信息 */}
             <div className="flex-grow min-w-0">
               <Link
                 to={`/product/${product._id}`}
-                className="text-lg font-semibold text-gray-900 hover:text-yellow-600 transition-colors truncate block"
+                className={`text-lg font-semibold hover:text-yellow-600 transition-colors truncate block ${
+                  isInactive ? "text-gray-400 line-through" : "text-gray-900"
+                }`}
               >
                 {product.name}
               </Link>
               <p className="text-yellow-500 mt-1">
                 ¥{Number(product.price ?? 0).toFixed(2)}
               </p>
+              {product.delistReason && (
+                <p className="text-xs text-red-500 mt-1">
+                  下架原因：{product.delistReason}
+                </p>
+              )}
               <span className="text-xs text-gray-400">
                 {new Date(product.createdAt).toLocaleDateString()}
               </span>
             </div>
             {/* 操作按钮 */}
             <div className="flex gap-2 shrink-0">
-              <Link
-                to={`/product/${product._id}/edit`}
-                className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
-              >
-                编辑
-              </Link>
-              <Link
-                to={`/product/${product._id}`}
-                className="px-3 py-1.5 bg-yellow-500 text-white text-sm rounded hover:bg-gray-900 transition-colors"
-              >
-                查看
-              </Link>
+              {showEdit && (
+                <Link
+                  to={`/product/${product._id}/edit`}
+                  className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded hover:bg-blue-600 transition-colors"
+                >
+                  编辑
+                </Link>
+              )}
+              {showView && (
+                <Link
+                  to={`/product/${product._id}`}
+                  className="px-3 py-1.5 bg-yellow-500 text-white text-sm rounded hover:bg-gray-900 transition-colors"
+                >
+                  查看
+                </Link>
+              )}
             </div>
           </div>
         ))}

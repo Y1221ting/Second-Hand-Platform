@@ -68,6 +68,10 @@ exports.loginUser = async (req, res) => {
     if (!isPasswordValid) {
       return res.status(400).json({ message: "Invalid email or password" });
     }
+    // 封禁检查
+    if (existingUser.status === "banned") {
+      return res.status(403).json({ message: "该账号已被封禁" });
+    }
     // Generate a JWT token and send it in the response
     const token = await createSession(existingUser._id.toString());
     // 返回前移除 password 字段
