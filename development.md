@@ -1130,3 +1130,1552 @@ const bannedKeywords = [
 对于校园二手平台来说，你唯一的 KPI 就是：**这周有没有新的商品发布？这周有没有新的交易完成？** 如果这两个问题的答案连续四周都是"有"——你的平台就活了。其他的一切，技术优化、功能迭代、推广运营，都围绕这一个目标展开。
 
 **不要追求完美，追求"能用"。不要追求大而全，追求"有人用"。**
+
+---
+
+# 第三部分：逐步实施手册
+
+> 以下是把前面的技术方案和运营方案，拆解成可一天天执行的详细步骤。每一步都标注了涉及的文件、具体操作、验证方法和预估耗时。
+
+---
+
+## 总览：七个阶段
+
+```
+Phase 0  代码备份与基线确立          ██░░░░░░░░  1 小时
+Phase 1  后端精简（砍功能）          ████░░░░░░  6 小时
+Phase 2  前端清理（去引用）          ████░░░░░░  5 小时
+Phase 3  数据模型改造               ███░░░░░░░  4 小时
+Phase 4  核心功能补强               ██████░░░░  8 小时
+Phase 5  架构与部署优化              ███░░░░░░░  3 小时
+Phase 6  运营就绪                   ████░░░░░░  5 小时
+Phase 7  冷启动执行                  ████░░░░░░  持续
+─────────────────────────────────────────────
+合计开发时间：约 32 小时（4-5 个工作日）
+```
+
+---
+
+## Phase 0：代码备份与基线确立
+
+> ⏱ 约 1 小时 | 🎯 确保随时可以回滚
+
+### Step 0.1 — 创建备份分支
+
+```bash
+# 在项目根目录执行
+git checkout single-school
+git pull origin single-school
+git checkout -b refactor/v3-simplify
+git push origin refactor/v3-simplify
+
+# 验证
+git branch --show-current
+# 应输出: refactor/v3-simplify
+```
+
+### Step 0.2 — 给当前版本打 tag
+
+```bash
+git tag v2.4.0-baseline -m "精简重构前基线"
+git push origin v2.4.0-baseline
+```
+
+### Step 0.3 — 导出当前 API 清单（方便重构后对照）
+
+```bash
+# 记录当前所有路由文件
+ls -la Server/routes/
+ls -la Server/models/
+ls -la Server/controllers/
+
+# 把当前文件列表存下来
+git ls-files Server/ Client/src/ > baseline-files.txt
+```
+
+### Phase 0 完成标准
+
+- [ ] 新分支 `refactor/v3-simplify` 已创建并推送
+- [ ] tag `v2.4.0-baseline` 已打
+- [ ] 随时可以 `git checkout single-school` 回到重构前状态
+
+---
+
+## Phase 1：后端精简（砍功能）
+
+> ⏱ 约 6 小时 | 🎯 9 个 Model → 5 个，12 个 Route → 9 个
+
+### Step 1.1 — 移除 AI 模块（30 分钟）
+
+**删除文件**：
+```bash
+rm Server/services/aiService.js
+rm Server/controllers/aiController.js
+rm Server/routes/aiRoutes.js
+```
+
+**修改文件**：`Server/server.js`
+
+```javascript
+// 删除这一行
+app.use("/api/ai", aiRoutes);
+
+// 删除这一行（文件顶部）
+const aiRoutes = require("./routes/aiRoutes");
+```
+
+**验证**：
+```bash
+# 启动后端，确认无报错
+cd Server && node server.js
+# 确认 /api/ai/generate-description 返回 404
+curl http://localhost:8000/api/ai/generate-description
+```
+
+### Step 1.2 — 移除站内私信 IM（30 分钟）
+
+**删除文件**：
+```bash
+rm Server/models/Conversation.js
+rm Server/models/Message.js
+rm Server/routes/messageRoutes.js
+```
+
+**修改文件**：`Server/server.js`
+
+```javascript
+// 删除
+app.use("/api", require("./routes/messageRoutes"));
+```
+
+**验证**：
+```bash
+# 确认消息相关 API 返回 404
+curl http://localhost:8000/api/conversations
+curl http://localhost:8000/api/conversations/unread-count
+```
+
+### Step 1.3 — 移除评价系统（20 分钟）
+
+**删除文件**：
+```bash
+rm Server/models/Review.js
+rm Server/routes/reviewRoutes.js
+```
+
+**修改文件**：`Server/server.js`
+
+```javascript
+// 删除
+app.use("/api/reviews", require("./routes/reviewRoutes"));
+```
+
+### Step 1.4 — 移除申诉系统（20 分钟）
+
+**删除文件**：
+```bash
+rm Server/models/Appeal.js
+rm Server/routes/appealRoutes.js
+```
+
+**修改文件**：`Server/server.js`
+
+```javascript
+// 删除
+app.use("/api/appeals", require("./routes/appealRoutes"));
+```
+
+**修改文件**：`Server/routes/adminRoutes.js`
+
+删除申诉管理相关的路由（约 100 行，包含 `GET /appeals` 和 `PUT /appeals/:id`）。
+
+### Step 1.5 — 精简通知系统 → 简单消息（1 小时）
+
+**重命名和精简**：
+
+将 `Warning` 模型简化为轻量的用户消息：
+
+```javascript
+// Server/models/Message.js（新建，替代 Warning.js）
+const mongoose = require("mongoose");
+
+const messageSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  content: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  isRead: {
+    type: Boolean,
+    default: false,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
+messageSchema.index({ userId: 1, isRead: 1, createdAt: -1 });
+
+module.exports = mongoose.model("Message", messageSchema);
+```
+
+**删除文件**：
+```bash
+rm Server/models/Warning.js
+rm Server/routes/warningRoutes.js
+```
+
+**修改文件**：`Server/server.js`
+```javascript
+// 将
+app.use("/api/warnings", require("./routes/warningRoutes"));
+// 改为
+app.use("/api/messages", require("./routes/messageRoutes"));
+```
+
+**新建**：`Server/routes/messageRoutes.js`（精简版，只有 GET 列表 + PUT 标记已读）
+
+**全局替换**：所有引用 `Warning` 模型的地方改为 `Message`：
+- `Server/routes/adminRoutes.js`：管理员操作后创建 Message 替代 Warning，去掉 severity/type/metadata 字段
+- `Server/controllers/userController.js`：如果有 Warning 引用
+
+### Step 1.6 — 简化认证：去掉 session 机制（1.5 小时）
+
+**修改文件**：`Server/config/auth.js`
+
+```javascript
+// 简化前
+async function createSession(userId) {
+  const sessionId = crypto.randomUUID();
+  const token = jwt.sign({ userId, sessionId }, SECRET, { expiresIn: "1d" });
+  return { token, sessionId };
+}
+
+// 简化后
+function createToken(userId) {
+  return jwt.sign({ userId }, SECRET, { expiresIn: "7d" }); // 7 天免登录
+}
+
+// 移除 crypto 的 require
+```
+
+**修改文件**：`Server/middleware/authMiddleware.js`
+
+```javascript
+// 简化前：验证 JWT → 检查 activeSessions → 挂载 req.user + req.sessionId
+// 简化后：
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const { SECRET } = require("../config/auth");
+
+module.exports = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "请先登录" });
+    }
+    const decoded = jwt.verify(token, SECRET);
+    const user = await User.findById(decoded.userId).select("-password");
+    if (!user) {
+      return res.status(401).json({ message: "用户不存在" });
+    }
+    if (user.status === "banned") {
+      return res.status(403).json({ message: "账号已被封禁" });
+    }
+    req.user = user;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "登录已过期，请重新登录" });
+  }
+};
+```
+
+**修改文件**：`Server/models/User.js`
+
+```javascript
+// 删除 activeSessions 字段
+// 删除 phoneUniqueEnforced 字段
+// 删除 partial unique index of phoneNo
+// 新增 wechat 和 qq 字段
+wechat: { type: String, trim: true, default: "" },
+qq:     { type: String, trim: true, default: "" },
+```
+
+**修改文件**：`Server/controllers/userController.js`
+
+```javascript
+// loginUser 简化：
+// - 去掉 session 生成
+// - 去掉 updateOne $push activeSessions
+// - 直接返回 token（不再返回 sessionId）
+
+exports.loginUser = async (req, res) => {
+  // ... 校验邮箱密码 ...
+  // ... 封禁检查 ...
+  
+  const token = createToken(existingUser._id.toString()); // 只需要 token
+  
+  const userData = existingUser.toObject();
+  delete userData.password;
+  delete userData.activeSessions; // 此字段已删除，但保留此行为旧数据兼容
+  res.status(200).json({ token, user: userData });
+};
+
+// logoutUser 简化或删除
+// logout 路由可以保留，但只是前端清除 token（后端不需要做任何事）
+```
+
+**修改文件**：`Server/routes/userRoutes.js`
+
+```javascript
+// POST /logout 路由保留，简化为直接返回成功
+router.post("/logout", authMiddleware, (req, res) => {
+  res.json({ message: "已登出" });
+});
+```
+
+**修改文件**：删除 `Client/src/utils/sessionGuard.js`
+
+### Step 1.7 — Decimal128 → Number（1 小时）
+
+**修改文件**：`Server/models/Product.js`
+
+```javascript
+// 修改前
+price: { type: mongoose.Types.Decimal128, required: true, validate: ... }
+
+// 修改后
+price: { type: Number, required: true, min: 0, max: 9999.9 }
+
+// 删除 toJSON 和 toObject 中的 Decimal128 transform
+```
+
+**修改文件**：`Server/models/Wanted.js`
+
+```javascript
+// 同样改 budget 从 Decimal128 → Number
+```
+
+**全局清理**：搜索并删除所有 `Number(product.price) || 0` 和 `Number(productObj.price) || 0`：
+```bash
+# 查找需要清理的行
+grep -rn "Number(.*price)" Server/controllers/
+grep -rn "\$numberDecimal" Server/
+```
+
+涉及文件：
+- `Server/controllers/productController.js`：~10 处
+- `Server/controllers/cartController.js`：~3 处
+- `Server/routes/adminRoutes.js`：~2 处
+
+全部改为直接使用 `product.price`（已经是 Number 类型）。
+
+### Step 1.8 — 简化推荐引擎（30 分钟）
+
+**修改文件**：`Server/controllers/productController.js` 中的 `getRecommendations`
+
+```javascript
+// 简化前：六层漏斗（~150 行）
+// 简化后：两层（~40 行）
+
+exports.getRecommendations = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 6;
+    const excludeId = req.query.excludeId || "";
+    const department = req.query.department || "";
+    const userId = req.query.userId || "";
+
+    const baseFilter = {
+      _id: { $ne: excludeId },
+      status: { $nin: ["sold_out", "inactive"] },
+    };
+    if (userId) baseFilter["uploadedBy.id"] = { $ne: userId };
+
+    // 第一层：同学院商品
+    let recommendations = [];
+    if (department) {
+      recommendations = await Product.find({ ...baseFilter, "uploadedBy.department": department })
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .select("name images price uploadedBy category status createdAt");
+    }
+
+    // 第二层：最新商品补足
+    const usedIds = recommendations.map(p => p._id.toString());
+    if (recommendations.length < limit) {
+      const fill = await Product.find({
+        ...baseFilter,
+        _id: { $nin: [...usedIds, excludeId].filter(Boolean) },
+      })
+        .sort({ createdAt: -1 })
+        .limit(limit - recommendations.length)
+        .select("name images price uploadedBy category status createdAt");
+      recommendations = [...recommendations, ...fill];
+    }
+
+    const result = recommendations.map(p => ({
+      ...p.toObject(),
+      price: p.price, // 已经是 Number，无需转换
+      images: p.images?.length > 0 ? [p.images[0]] : [],
+    }));
+
+    res.json(result);
+  } catch (err) {
+    console.error("推荐失败:", err);
+    res.json([]);
+  }
+};
+```
+
+### Phase 1 完成标准
+
+- [ ] 后端启动无报错
+- [ ] `ls Server/models/` 只有 User, Product, Wanted, Report, Message, Order(待加)
+- [ ] `ls Server/routes/` 只有 9 个模块
+- [ ] `curl http://localhost:8000/api/ai/...` 返回 404
+- [ ] `curl http://localhost:8000/api/conversations` 返回 404
+- [ ] `curl http://localhost:8000/api/reviews/...` 返回 404
+- [ ] 登录接口返回的 token 中不含 sessionId
+- [ ] 商品价格不再是 `{ $numberDecimal: "99.99" }` 而是 `99.99`
+
+---
+
+## Phase 2：前端清理（去引用）
+
+> ⏱ 约 5 小时 | 🎯 ~35 个组件 → ~20 个，无编译报错
+
+### Step 2.1 — 移除 AI 相关 UI（30 分钟）
+
+**修改文件**：`Client/src/components/AddProduct.js`
+
+```jsx
+// 找到 AI 生成描述按钮和 AI 推荐分类按钮
+// 删除相关 JSX 和状态变量
+
+// 替换为快捷描述模板按钮：
+const quickTemplates = [
+  "九成新，只用了不到一学期",
+  "正常使用痕迹，功能完好",
+  "全新未拆封",
+  "闲置很久了，便宜出",
+  "毕业清仓，给钱就卖",
+];
+```
+
+### Step 2.2 — 移除 IM 相关组件（20 分钟）
+
+**删除文件**：
+```bash
+rm Client/src/components/ConversationList.js
+rm Client/src/components/ChatWindow.js
+```
+
+**修改文件**：`Client/src/App.js`
+
+```jsx
+// 删除 lazy imports
+// const ConversationList = lazy(() => import("./components/ConversationList"));
+// const ChatWindow = lazy(() => import("./components/ChatWindow"));
+
+// 删除路由
+// <Route path="/messages" ... />
+// <Route path="/messages/:conversationId" ... />
+```
+
+**修改文件**：`Client/src/components/Utility/Navbar.js`
+
+```jsx
+// 删除消息图标和未读角标
+```
+
+### Step 2.3 — 移除/精简通知组件（30 分钟）
+
+**删除文件**：
+```bash
+rm Client/src/components/Warnings.js
+rm Client/src/components/NotificationModal.js
+```
+
+**修改文件**：`Client/src/App.js`
+
+```jsx
+// 删除 Warnings 路由
+// 删除 NotificationModal 的渲染
+```
+
+**修改文件**：`Client/src/context/NotificationContext.js`
+
+```jsx
+// 删除 critical warning 轮询逻辑
+// 简化为一个轻量的 unreadCount 状态（从 /api/messages 获取）
+```
+
+### Step 2.4 — 移除评价相关 UI（15 分钟）
+
+**修改文件**：`Client/src/components/ProductPage.js`
+
+```jsx
+// 删除卖家信用卡片（评分、好评率）
+// 保留卖家基本信息展示（学院、专业、宿舍楼）
+```
+
+**修改文件**：`Client/src/components/UserProfile.js`
+
+```jsx
+// 删除"评价"Tab
+// 只保留 [在售] [已售] 两个 Tab
+// 删除评分统计卡片
+```
+
+### Step 2.5 — 移除申诉相关 UI（15 分钟）
+
+**删除文件**：
+```bash
+rm Client/src/components/Profile/AppealForm.js
+rm Client/src/components/Profile/AppealList.js
+```
+
+**修改文件**：`Client/src/App.js`
+
+```jsx
+// 删除 AdminAppeals 路由
+// const AdminAppeals = lazy(() => import("./components/Admin/Appeals"));
+```
+
+**删除文件**：
+```bash
+rm Client/src/components/Admin/Appeals.js
+```
+
+### Step 2.6 — 更新 authContext 去 session 逻辑（30 分钟）
+
+**修改文件**：`Client/src/context/authContext.js`
+
+```jsx
+// 重新实现，去掉 session 相关逻辑：
+
+import React, { createContext, useContext, useState, useEffect } from "react";
+
+const AuthContext = createContext();
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  return context;
+};
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem("user");
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+
+  const login = (newUser, newToken) => {
+    setUser(newUser);
+    localStorage.setItem("user", JSON.stringify(newUser));
+    localStorage.setItem("token", newToken);
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    // 可选：调后端 logout
+    fetch("/api/users/logout", { method: "POST" }).catch(() => {});
+  };
+
+  const isAuthenticated = !!user;
+  const isAdmin = user?.role === "admin";
+
+  // 监听跨标签页 login（简化）
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === "token" && !e.newValue) {
+        // 其他标签页登出了
+        setUser(null);
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout, isAuthenticated, isAdmin }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+```
+
+**修改文件**：`Client/src/App.js`
+
+```jsx
+// 删除 import "./utils/sessionGuard"
+```
+
+### Step 2.7 — 更新商品详情页展示微信/QQ（30 分钟）
+
+**修改文件**：`Client/src/components/ProductPage.js`
+
+```jsx
+// 在卖家信息区新增微信/QQ 展示（替代"联系卖家"跳转聊天）
+// 仅购买后显示完整联系方式
+
+{isPurchased ? (
+  <div className="seller-contact">
+    <p>📱 微信：{product.uploadedBy.wechat || "未填写"}</p>
+    <p>💬 QQ：{product.uploadedBy.qq || "未填写"}</p>
+    <p>📞 电话：{product.uploadedBy.phone}</p>
+  </div>
+) : (
+  <p className="text-gray-400">购买后可查看联系方式</p>
+)}
+```
+
+### Step 2.8 — 编译验证（30 分钟）
+
+```bash
+cd Client
+npm run build
+
+# 修复所有编译报错（主要是 import 引用到了已删除的文件）
+# 逐个处理，常见报错：
+# - "Module not found" → 删除 import 语句
+# - "'X' is not exported" → 删除引用
+```
+
+### Phase 2 完成标准
+
+- [ ] `npm run build` 成功，无报错
+- [ ] `ls Client/src/components/` 中已删除 ConversationList, ChatWindow, Warnings, NotificationModal
+- [ ] Navbar 中无消息图标
+- [ ] ProductPage 中无评价展示
+- [ ] UserProfile 中无评价 Tab
+- [ ] Admin 后台无申诉管理入口
+- [ ] authContext 代码行数减少 ~40%
+
+---
+
+## Phase 3：数据模型改造
+
+> ⏱ 约 4 小时 | 🎯 User/Product 模型更新 + Order 模型新建
+
+### Step 3.1 — User 模型最终版（30 分钟）
+
+**修改文件**：`Server/models/User.js`
+
+```javascript
+const userSchema = new mongoose.Schema({
+  email:      { type: String, required: true, unique: true, lowercase: true, trim: true },
+  password:   { type: String, required: true, minlength: 6 },
+  fullName:   { type: String, required: true, trim: true },
+  college:    { type: String, default: "南昌师范学院" },
+  department: { type: String, required: true, enum: [/* 13学院 */] },
+  major:      { type: String, required: true },
+  dormitory:  { type: String, trim: true, default: "" },
+  phoneNo:    { type: String, required: true, validate: /^1[3-9]\d{9}$/ },
+  wechat:     { type: String, trim: true, default: "" },   // 新增
+  qq:         { type: String, trim: true, default: "" },   // 新增
+  address:    { type: String, trim: true, default: "南昌师范学院" },
+  cart: [{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+    quantity:  { type: Number, default: 1, min: 1 },
+    addedAt:   { type: Date, default: Date.now },
+  }],
+  role:   { type: String, enum: ["user", "admin"], default: "user" },
+  status: { type: String, enum: ["active", "banned"], default: "active" },
+}, { timestamps: true });
+```
+
+删除：`activeSessions`, `phoneUniqueEnforced`, phoneNo 部分唯一索引。
+
+### Step 3.2 — Product 模型最终版（20 分钟）
+
+**修改文件**：`Server/models/Product.js`
+
+```javascript
+// price 从 Decimal128 改为 Number
+price: { type: Number, required: true, min: 0, max: 9999.9 },
+
+// uploadedBy 新增 wechat 和 qq
+const SellerSchema = new mongoose.Schema({
+  id: String, name: String, college: String,
+  department: String, major: String, dormitory: String,
+  phone: String,
+  wechat: String,  // 新增
+  qq: String,      // 新增
+});
+
+// 删除 toJSON/toObject 的 Decimal128 transform
+
+// 保留所有索引
+ProductSchema.index({ name: "text", description: "text" });
+ProductSchema.index({ createdAt: -1 });
+ProductSchema.index({ status: 1, category: 1, createdAt: -1 });
+ProductSchema.index({ status: 1, "uploadedBy.department": 1, createdAt: -1 });
+ProductSchema.index({ "uploadedBy.id": 1, status: 1 });
+ProductSchema.index({ "purchasedBy.id": 1 });
+```
+
+### Step 3.3 — 新建 Order 模型（1 小时）
+
+**新建文件**：`Server/models/Order.js`
+
+```javascript
+const mongoose = require("mongoose");
+
+const orderSchema = new mongoose.Schema({
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product",
+    required: true,
+  },
+  buyerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  sellerId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+  status: {
+    type: String,
+    enum: ["pending", "confirmed", "completed", "cancelled"],
+    default: "pending",
+  },
+  buyerInfo: {
+    name: String, phone: String,
+    department: String, major: String, dormitory: String,
+  },
+  sellerInfo: {
+    name: String, phone: String,
+    department: String, major: String, dormitory: String,
+    wechat: String, qq: String,
+  },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+// 索引
+orderSchema.index({ buyerId: 1, status: 1, createdAt: -1 });   // 我买的
+orderSchema.index({ sellerId: 1, status: 1, createdAt: -1 });  // 我卖的
+orderSchema.index({ productId: 1 });                             // 查某商品的订单
+
+// 更新 updatedAt
+orderSchema.pre("findOneAndUpdate", function() {
+  this.set({ updatedAt: new Date() });
+});
+
+module.exports = mongoose.model("Order", orderSchema);
+```
+
+### Step 3.4 — 新建 Order 路由和控制器（1.5 小时）
+
+**新建文件**：`Server/controllers/orderController.js`
+
+```javascript
+const Order = require("../models/Order");
+const Product = require("../models/Product");
+
+// 创建订单（购买商品时调用）
+exports.createOrder = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: "商品不存在" });
+    if (product.uploadedBy.id === req.user._id.toString()) {
+      return res.status(400).json({ message: "不能购买自己的商品" });
+    }
+    if (product.status !== "unsold" || product.quantity < 1) {
+      return res.status(400).json({ message: "商品已售罄或已下架" });
+    }
+
+    // 原子操作：减库存
+    const updated = await Product.findOneAndUpdate(
+      { _id: product._id, quantity: { $gt: 0 }, status: "unsold" },
+      { $inc: { quantity: -1 } },
+      { new: true }
+    );
+    if (!updated) return res.status(400).json({ message: "库存不足" });
+
+    // 库存归零则标记售罄
+    if (updated.quantity === 0) {
+      await Product.findByIdAndUpdate(updated._id, { status: "sold_out" });
+    }
+
+    // 创建订单
+    const order = await Order.create({
+      productId: product._id,
+      buyerId: req.user._id,
+      sellerId: product.uploadedBy.id,
+      price: product.price,
+      buyerInfo: {
+        name: req.user.fullName,
+        phone: req.user.phoneNo,
+        department: req.user.department,
+        major: req.user.major,
+        dormitory: req.user.dormitory,
+      },
+      sellerInfo: {
+        name: product.uploadedBy.name,
+        phone: product.uploadedBy.phone,
+        department: product.uploadedBy.department,
+        major: product.uploadedBy.major,
+        dormitory: product.uploadedBy.dormitory,
+        wechat: product.uploadedBy.wechat || "",
+        qq: product.uploadedBy.qq || "",
+      },
+    });
+
+    res.status(201).json({ message: "购买成功，请等待卖家确认", order });
+  } catch (err) {
+    console.error("创建订单失败:", err);
+    res.status(500).json({ message: "服务器错误" });
+  }
+};
+
+// 我买的
+exports.getBuyOrders = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 20;
+  const [orders, total] = await Promise.all([
+    Order.find({ buyerId: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit).limit(limit)
+      .populate("productId", "name images price status"),
+    Order.countDocuments({ buyerId: req.user._id }),
+  ]);
+  res.json({ orders, total, page, totalPages: Math.ceil(total / limit) });
+};
+
+// 我卖的
+exports.getSellOrders = async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = 20;
+  const [orders, total] = await Promise.all([
+    Order.find({ sellerId: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit).limit(limit)
+      .populate("productId", "name images price status"),
+    Order.countDocuments({ sellerId: req.user._id }),
+  ]);
+  res.json({ orders, total, page, totalPages: Math.ceil(total / limit) });
+};
+
+// 卖家确认
+exports.confirmOrder = async (req, res) => {
+  const order = await Order.findOneAndUpdate(
+    { _id: req.params.id, sellerId: req.user._id, status: "pending" },
+    { status: "confirmed" },
+    { new: true }
+  );
+  if (!order) return res.status(400).json({ message: "订单不存在或状态不允许确认" });
+  res.json({ message: "已确认，请约时间当面交易", order });
+};
+
+// 完成交易
+exports.completeOrder = async (req, res) => {
+  const order = await Order.findOneAndUpdate(
+    { _id: req.params.id, status: "confirmed" },
+    { status: "completed" },
+    { new: true }
+  );
+  if (!order) return res.status(400).json({ message: "订单不存在或状态不允许" });
+  
+  // 标记商品为已售
+  await Product.findByIdAndUpdate(order.productId, {
+    status: "sold",
+    purchasedBy: order.buyerInfo,
+  });
+  
+  res.json({ message: "交易完成", order });
+};
+
+// 取消订单
+exports.cancelOrder = async (req, res) => {
+  const order = await Order.findOne({
+    _id: req.params.id,
+    $or: [{ buyerId: req.user._id }, { sellerId: req.user._id }],
+    status: { $in: ["pending", "confirmed"] },
+  });
+  if (!order) return res.status(400).json({ message: "订单不存在或状态不允许取消" });
+  
+  order.status = "cancelled";
+  await order.save();
+  
+  // 恢复库存
+  await Product.findByIdAndUpdate(order.productId, {
+    $inc: { quantity: 1 },
+    status: "unsold",
+  });
+  
+  res.json({ message: "订单已取消" });
+};
+```
+
+**新建文件**：`Server/routes/orderRoutes.js`
+
+```javascript
+const router = require("express").Router();
+const auth = require("../middleware/authMiddleware");
+const ctrl = require("../controllers/orderController");
+
+router.post("/:id", auth, ctrl.createOrder);        // 购买 = 创建订单
+router.get("/buy", auth, ctrl.getBuyOrders);         // 我买的
+router.get("/sell", auth, ctrl.getSellOrders);       // 我卖的
+router.put("/:id/confirm", auth, ctrl.confirmOrder); // 卖家确认
+router.put("/:id/complete", auth, ctrl.completeOrder); // 完成
+router.put("/:id/cancel", auth, ctrl.cancelOrder);   // 取消
+
+module.exports = router;
+```
+
+**修改文件**：`Server/server.js`
+
+```javascript
+// 新增
+app.use("/api/orders", require("./routes/orderRoutes"));
+```
+
+### Step 3.5 — Person 模型更新 createProduct（15 分钟）
+
+**修改文件**：`Server/controllers/productController.js` 中的 `createProduct`
+
+```javascript
+// uploadedBy 中新增 wechat 和 qq
+req.body.uploadedBy = {
+  id: req.user._id.toString(),
+  name: req.user.fullName,
+  college: "南昌师范学院",
+  department: req.user.department || "",
+  major: req.user.major || "",
+  dormitory: req.user.dormitory || "",
+  phone: req.user.phoneNo || "",
+  wechat: req.user.wechat || "",  // 新增
+  qq: req.user.qq || "",          // 新增
+};
+```
+
+### Phase 3 完成标准
+
+- [ ] `POST /api/orders/:productId` 创建订单成功，商品库存 -1
+- [ ] `GET /api/orders/buy` 返回买家订单列表
+- [ ] `GET /api/orders/sell` 返回卖家订单列表
+- [ ] `PUT /api/orders/:id/confirm` 卖家确认 → 状态变为 confirmed
+- [ ] `PUT /api/orders/:id/complete` 交易完成 → 商品标记 sold
+- [ ] `PUT /api/orders/:id/cancel` 取消 → 库存恢复 + 状态变为 cancelled
+- [ ] User 模型的 wechat/qq 字段可编辑
+
+---
+
+## Phase 4：核心功能补强
+
+> ⏱ 约 8 小时 | 🎯 搜索升级 + 用户注册页改版 + 商品发布优化 + 管理员后台精简
+
+### Step 4.1 — 搜索切换为文本索引（1 小时）
+
+**修改文件**：`Server/controllers/productController.js` 的 `getAllProducts`
+
+```javascript
+// 优先使用 $text（文本索引搜索），回退到 $regex
+if (search) {
+  query.$text = { $search: search };
+  sortObj = { score: { $meta: "textScore" } };
+  // 同时保留 $regex 作为 fallback（用户搜单个词时）
+  // 在返回结果中加上 textScore
+}
+
+// 查询时
+let products;
+if (query.$text) {
+  products = await Product.find(query, { score: { $meta: "textScore" } })
+    .sort(sortObj)
+    .skip((page - 1) * limit)
+    .limit(limit);
+} else {
+  products = await Product.find(query)
+    .sort(sortObj)
+    .skip((page - 1) * limit)
+    .limit(limit);
+}
+```
+
+**注意**：MongoDB 文本索引不支持中文分词。`$text` 搜索中文时效果一般。如果发现中文搜索效果差，保留 `$regex` 方案但确保转义。
+
+### Step 4.2 — 注册页新增微信/QQ 字段（30 分钟）
+
+**修改文件**：`Client/src/components/Register.js`
+
+```jsx
+// 在表单中新增两个选填字段
+<div className="form-group">
+  <label>微信号（选填，方便买家联系你）</label>
+  <input type="text" name="wechat" placeholder="选填" />
+</div>
+<div className="form-group">
+  <label>QQ号（选填）</label>
+  <input type="text" name="qq" placeholder="选填" />
+</div>
+```
+
+### Step 4.3 — 个人资料编辑新增微信/QQ（20 分钟）
+
+**修改文件**：`Client/src/components/Profile/UserDetails.js`
+
+```jsx
+// 编辑模式下增加 wechat/qq 字段
+```
+
+### Step 4.4 — 商品发布页优化（1.5 小时）
+
+**修改文件**：`Client/src/components/AddProduct.js`
+
+```jsx
+// 1. 去掉 AI 相关按钮（已在 Phase 2 完成）
+// 2. 新增快捷描述模板
+// 3. 分类选择简化（默认"其他"，可选填）
+// 4. 描述改为 textarea 但非必填（提供模板后可以一键填入）
+```
+
+### Step 4.5 — 管理后台精简（2 小时）
+
+**修改文件**：`Client/src/components/Admin/AdminLayout.js`
+
+```jsx
+// 侧边栏菜单删除"申诉管理"项
+```
+
+**修改文件**：`Server/routes/adminRoutes.js`
+
+```javascript
+// 删除申诉管理路由（GET/PUT /appeals）
+// 将 Warning 引用全部改为 Message（已在 Phase 1 处理）
+```
+
+精简后的 admin 侧边栏：
+```
+数据概览 → Dashboard
+举报管理 → Reports
+商品管理 → Products
+用户管理 → Users
+通知记录 → Messages (原 Warnings)
+```
+
+### Step 4.6 — 前端新增订单页面（2 小时）
+
+**新建文件**：`Client/src/components/Orders.js`
+
+```jsx
+// 两个 Tab：[我买的] [我卖的]
+
+// 我买的列表：
+// - 商品图片 + 名称 + 价格 + 卖家名 + 状态标签 + 时间
+// - 状态：待确认(pending) / 已确认(confirmed) / 已完成(completed) / 已取消(cancelled)
+// - pending/confirmed 可点击取消
+// - confirmed 可点击"完成交易"
+
+// 我卖的列表：
+// - 同上但视角相反
+// - pending 可点击"确认"或"取消"
+// - confirmed 等待买家确认完成
+```
+
+**修改文件**：`Client/src/App.js`
+
+```jsx
+const Orders = lazy(() => import("./components/Orders"));
+
+<Route path="/orders" element={
+  <ProtectedRoute><Orders /></ProtectedRoute>
+} />
+```
+
+**修改文件**：`Client/src/components/Utility/Navbar.js`
+
+```jsx
+// 用户下拉菜单新增"我的订单"入口
+// 新增订单状态角标（有待处理的订单时显示红点）
+```
+
+### Step 4.7 — 注册页手机号验证（可选，1 小时）
+
+如果预算允许，集成阿里云短信服务：
+
+```bash
+npm install @alicloud/sms-sdk
+```
+
+```javascript
+// Server/services/smsService.js
+const SMSClient = require("@alicloud/sms-sdk");
+
+const client = new SMSClient({
+  accessKeyId: process.env.ALI_ACCESS_KEY,
+  secretAccessKey: process.env.ALI_SECRET_KEY,
+});
+
+exports.sendVerifyCode = async (phoneNo) => {
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  await client.sendSMS({
+    PhoneNumbers: phoneNo,
+    SignName: "南昌师范二手集市",
+    TemplateCode: "SMS_XXXXX",
+    TemplateParam: JSON.stringify({ code }),
+  });
+  return code; // 存到 session 或 Redis 做 5 分钟过期验证
+};
+```
+
+**如果预算不允许**：保持现状（格式校验），管理员人工审核新用户。
+
+### Phase 4 完成标准
+
+- [ ] 搜索可用且支持中文
+- [ ] 注册/编辑资料可以填写微信/QQ
+- [ ] 发布商品有快捷描述模板
+- [ ] 管理后台无申诉入口
+- [ ] 用户有"我的订单"页面，能查看和管理订单状态
+- [ ] 商品详情页购买后显示卖家联系方式
+
+---
+
+## Phase 5：架构与部署优化
+
+> ⏱ 约 3 小时 | 🎯 3 容器 → 2 容器，数据库连接池调优
+
+### Step 5.1 — 合并前端到后端容器（1.5 小时）
+
+**修改文件**：`Server/server.js`
+
+```javascript
+// 在路由注册之后、app.listen 之前，新增静态文件服务
+
+// 生产环境：serve React build
+if (process.env.NODE_ENV === "production") {
+  const buildPath = path.join(__dirname, "..", "Client", "build");
+  app.use(express.static(buildPath));
+  app.get("*", (req, res) => {
+    // 排除 API 路由
+    if (!req.path.startsWith("/api/") && !req.path.startsWith("/uploads/")) {
+      res.sendFile(path.join(buildPath, "index.html"));
+    }
+  });
+}
+```
+
+**修改文件**：`docker-compose.yml`
+
+```yaml
+# 删除 frontend 服务（约 20 行）
+# backend 的 ports 改为映射 80 或 5000
+
+services:
+  mongodb:
+    # ... 保持不变
+  
+  backend:
+    build:
+      context: .
+      dockerfile: Server/Dockerfile
+    container_name: second-hand-backend
+    restart: always
+    ports:
+      - "5000:8000"    # 直接暴露给外部
+    environment:
+      - MONGODB_URI=${MONGODB_URI_FULL}
+      - PORT=8000
+      - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=production
+    depends_on:
+      - mongodb
+    networks:
+      - second-hand-network
+    volumes:
+      - ./Server/uploads:/app/uploads  # 只映射 uploads
+```
+
+**修改文件**：`Server/Dockerfile`
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+
+# 复制依赖文件
+COPY Server/package*.json ./
+RUN npm install --production
+
+# 复制后端代码
+COPY Server/ .
+
+# 复制前端 build（从宿主机）
+COPY Client/build ../Client/build
+
+EXPOSE 8000
+CMD ["node", "server.js"]
+```
+
+### Step 5.2 — 数据库连接池调优（30 分钟）
+
+**修改文件**：`Server/config/db.js`
+
+```javascript
+const mongoose = require("mongoose");
+
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI, {
+      maxPoolSize: 10,       // 原默认 100，改为 10
+      minPoolSize: 2,
+      serverSelectionTimeoutMS: 5000,
+      heartbeatFrequencyMS: 10000,
+    });
+    console.log("MongoDB connected");
+  } catch (err) {
+    console.error("MongoDB connection error:", err.message);
+    process.exit(1);
+  }
+};
+
+module.exports = connectDB;
+```
+
+### Step 5.3 — MongoDB 缓存降低（10 分钟）
+
+**修改文件**：`docker-compose.yml`
+
+```yaml
+mongodb:
+  command: --wiredTigerCacheSizeGB 0.25  # 从 0.5 降到 0.25（256MB）
+  deploy:
+    resources:
+      limits:
+        memory: 512M  # 从 768M 降到 512M
+```
+
+### Step 5.4 — 数据备份脚本（30 分钟）
+
+**新建文件**：`backup.sh`（放在项目根目录）
+
+```bash
+#!/bin/bash
+# 每天凌晨 3 点执行：crontab -e → 0 3 * * * /path/to/backup.sh
+
+BACKUP_DIR="/backup/mongodb"
+CONTAINER="second-hand-mongodb"
+RETENTION_DAYS=7
+
+mkdir -p "$BACKUP_DIR"
+DATE=$(date +%Y%m%d_%H%M%S)
+docker exec "$CONTAINER" mongodump \
+  --username admin \
+  --password "${MONGO_INITDB_ROOT_PASSWORD}" \
+  --authenticationDatabase admin \
+  --out "/tmp/backup_$DATE"
+
+docker cp "$CONTAINER:/tmp/backup_$DATE" "$BACKUP_DIR/"
+docker exec "$CONTAINER" rm -rf "/tmp/backup_$DATE"
+
+# 压缩
+tar -czf "$BACKUP_DIR/backup_$DATE.tar.gz" -C "$BACKUP_DIR" "backup_$DATE"
+rm -rf "$BACKUP_DIR/backup_$DATE"
+
+# 删除 7 天前的备份
+find "$BACKUP_DIR" -name "*.tar.gz" -mtime +$RETENTION_DAYS -delete
+
+echo "Backup completed: backup_$DATE.tar.gz"
+```
+
+### Step 5.5 — 全链路测试（30 分钟）
+
+```bash
+# 1. 构建和启动
+docker compose up -d --build
+
+# 2. 验证容器运行
+docker compose ps
+# 应只有 mongodb + backend 两个容器
+
+# 3. 核心流程测试（用 curl 或浏览器）
+# 注册 → 登录 → 发布商品 → 浏览首页 → 查看详情 → 购买 → 查看订单 → 确认 → 完成
+
+# 4. 检查日志
+docker compose logs backend --tail 20
+```
+
+### Phase 5 完成标准
+
+- [ ] `docker compose ps` 只显示 2 个容器
+- [ ] 访问 `http://服务器IP:5000` 能打开前端页面
+- [ ] API 请求正常（前端页面功能可用）
+- [ ] 数据库备份脚本可执行
+- [ ] 全链路测试通过
+
+---
+
+## Phase 6：运营就绪
+
+> ⏱ 约 5 小时 | 🎯 违禁词过滤 + 隐私政策 + FAQ + 种子商品
+
+### Step 6.1 — 违禁品关键词过滤（1 小时）
+
+**新建文件**：`Server/config/bannedKeywords.js`
+
+```javascript
+module.exports = [
+  "香烟", "烟草", "电子烟", "酒", "白酒", "啤酒", "红酒",
+  "药品", "处方药", "保健品", "壮阳", "减肥药",
+  "管制刀具", "甩棍", "电棍", "防狼喷雾",
+  "翻墙", "VPN", "梯子", "科学上网",
+  "代考", "代写", "代课", "代做", "毕业论文",
+  "高仿", "A货", "原单", "精仿",
+  "赌博", "彩票", "网赌",
+  "枪支", "弹药", "毒品",
+  "色情", "裸聊", "约炮",
+];
+```
+
+**修改文件**：`Server/controllers/productController.js` 的 `createProduct` 和 `updateProductById`
+
+```javascript
+const bannedKeywords = require("../config/bannedKeywords");
+
+// 在 createProduct 开头加入过滤
+const checkText = `${req.body.name || ""} ${req.body.description || ""}`.toLowerCase();
+const hit = bannedKeywords.find(kw => checkText.includes(kw.toLowerCase()));
+if (hit) {
+  return res.status(400).json({ message: `商品信息包含违禁词"${hit}"，请修改后重新发布` });
+}
+```
+
+### Step 6.2 — 隐私政策页面（30 分钟）
+
+**新建文件**：`Client/src/components/Privacy.js`
+
+```jsx
+// 一个简单的静态页面，说明：
+// 1. 我们收集哪些信息（邮箱、手机号、学院专业、宿舍楼）
+// 2. 信息用来做什么（展示商品、联系交易）
+// 3. 信息不会分享给第三方
+// 4. 用户有权删除自己的数据（注销账号功能）
+// 5. 联系方式（你的邮箱）
+
+// 路由：/privacy
+```
+
+### Step 6.3 — FAQ 页面（45 分钟）
+
+**新建文件**：`Client/src/components/FAQ.js`
+
+```jsx
+// FAQ 页面，涵盖：
+// - 怎么发布商品？
+// - 怎么搜索想要的商品？
+// - 怎么联系卖家？
+// - 怎么购买/下单？
+// - 交易怎么完成（当面交易流程）？
+// - 买/卖过程中出了问题怎么办？
+// - 怎么注销账号？
+// - 管理员是谁？怎么联系？
+```
+
+### Step 6.4 — 准备种子商品数据（1 小时）
+
+```javascript
+// Server/scripts/seed.js
+// 初始化 20 条模拟商品数据，让平台上线时首页不空
+
+const seedProducts = [
+  { name: "高等数学（第七版）上册", category: "教材教辅", price: 25,
+    description: "九成新，只有第一章有少量笔记，其他部分几乎全新。",
+    images: ["/uploads/seed/math_book_1.jpg"], /* 需要提前准备图片 */ },
+  { name: "大学英语四级真题 2024版", category: "教材教辅", price: 15,
+    description: "做了一半，后面都是空白的。附赠听力光盘未拆。",
+    images: ["/uploads/seed/cet4_1.jpg"] },
+  // ... 18 条更多商品
+];
+
+// 执行：node Server/scripts/seed.js
+```
+
+### Step 6.5 — 用户注销功能（30 分钟）
+
+**修改文件**：`Client/src/components/Profile/UserDetails.js`
+
+```jsx
+// "注销账号"按钮 → 二次确认弹窗 → 
+// DELETE /api/users/:userId → 清除所有个人信息
+```
+
+### Phase 6 完成标准
+
+- [ ] 发布含违禁词的商品被拦截
+- [ ] `/privacy` 页面可访问，底部有链接
+- [ ] `/faq` 页面可访问
+- [ ] 种子数据脚本可执行
+- [ ] 用户可自助注销
+
+---
+
+## Phase 7：冷启动执行
+
+> ⏱ 持续进行 | 🎯 从 0 用户到 500 活跃用户
+
+### Step 7.1 — 上线前检查清单
+
+```
+[ ] 域名能正常访问
+[ ] HTTPS 已配置（Let's Encrypt 免费证书）
+[ ] 注册流程走通
+[ ] 发布商品流程走通（含图片上传）
+[ ] 搜索/筛选可用
+[ ] 购买→订单→确认→完成 全流程走通
+[ ] 管理后台可登录
+[ ] 隐私政策页面有链接
+[ ] 数据库备份已配置
+[ ] 已知至少 20 件种子商品在首页
+```
+
+### Step 7.2 — 第一周：种子用户
+
+```
+Day 1: 你自己 + 3-5 个朋友注册，每人发 2-3 件商品
+       目标：首页有 20+ 件商品
+
+Day 2: 找 5 个班长/学生会成员，让他们在班级群转发
+       文案模板：
+       "做了一个咱们学校的二手交易网站，
+        不用加群、不用刷屏，直接搜就能找到想要的东西。
+        卖东西也简单，拍个照、写个价格就行。
+        链接：http://xxx.top:5000"
+
+Day 3-5: 关注注册量。每天手动回复前 10 个新用户的反馈
+         （早期用户反馈是改产品的最好依据）
+
+Day 6-7: 根据第一周反馈快速迭代（修 bug、改 UI）
+```
+
+### Step 7.3 — 第二周：内容运营
+
+```
+- 每周从首页挑选 3 件"值得买的"置顶
+- 在平台上发布 2 条"求购"（制造互动）
+- 关注每个新发布的商品——如果 3 天没卖出去，
+  考虑是否需要调价建议（私信卖家）
+```
+
+### Step 7.4 — 第一个月：用户习惯养成
+
+```
+关键指标：
+  周新增注册：___________
+  周新发布商品：___________
+  周交易完成：___________
+  周活跃用户（至少浏览了 5 个商品）：___________
+
+目标（第一个月）：
+  注册用户 > 200
+  在售商品 > 50 件
+  周交易 > 10 笔
+```
+
+### Step 7.5 — 毕业季/开学季冲刺
+
+```
+毕业季前 2 周（5月中旬）：
+  - 扫楼贴海报（每栋宿舍楼一楼公告栏）
+  - 找大四班长帮忙在班级群转发
+  - 目标：在售商品突破 200 件
+
+开学季前 1 周（8月底）：
+  - 迎新现场设摊（和学生会合作）
+  - 新生群推广（每个新生群都要覆盖）
+  - 目标：注册用户突破 1000
+```
+
+---
+
+## 附录：实施检查总表
+
+打印出来，做完一项划一项。
+
+```
+□ Phase 0: 代码备份
+  □ 0.1 创建 refactor/v3-simplify 分支
+  □ 0.2 打 tag v2.4.0-baseline
+  □ 0.3 导出文件清单
+
+□ Phase 1: 后端精简
+  □ 1.1 移除 AI 模块
+  □ 1.2 移除 IM 私信
+  □ 1.3 移除评价系统
+  □ 1.4 移除申诉系统
+  □ 1.5 精简通知为简单消息
+  □ 1.6 简化认证（去 session）
+  □ 1.7 Decimal128 → Number
+  □ 1.8 简化推荐引擎
+
+□ Phase 2: 前端清理
+  □ 2.1 移除 AI UI
+  □ 2.2 移除 IM 组件
+  □ 2.3 移除通知组件
+  □ 2.4 移除评价 UI
+  □ 2.5 移除申诉 UI
+  □ 2.6 更新 authContext
+  □ 2.7 更新联系方式展示
+  □ 2.8 npm run build 通过
+
+□ Phase 3: 数据模型改造
+  □ 3.1 User 模型最终版
+  □ 3.2 Product 模型最终版
+  □ 3.3 新建 Order 模型
+  □ 3.4 新建 Order 路由+控制器
+  □ 3.5 createProduct 补 wechat/qq
+
+□ Phase 4: 核心功能补强
+  □ 4.1 搜索切换文本索引
+  □ 4.2 注册页加微信/QQ
+  □ 4.3 编辑资料加微信/QQ
+  □ 4.4 发布页模板化
+  □ 4.5 管理后台精简
+  □ 4.6 前端订单页面
+  □ 4.7 手机号验证（可选）
+
+□ Phase 5: 架构与部署
+  □ 5.1 合并前后端容器
+  □ 5.2 DB 连接池调优
+  □ 5.3 MongoDB 缓存降低
+  □ 5.4 备份脚本
+  □ 5.5 全链路测试
+
+□ Phase 6: 运营就绪
+  □ 6.1 违禁词过滤
+  □ 6.2 隐私政策页
+  □ 6.3 FAQ 页面
+  □ 6.4 种子商品数据
+  □ 6.5 用户注销功能
+
+□ Phase 7: 冷启动
+  □ 7.1 上线前检查清单
+  □ 7.2 第一周种子用户
+  □ 7.3 第二周内容运营
+  □ 7.4 第一个月数据跟踪
+  □ 7.5 毕业季/开学季冲刺准备
+```
