@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 
 const AuthContext = createContext();
 
@@ -15,29 +15,32 @@ export const AuthProvider = ({ children }) => {
     const stored = localStorage.getItem("user");
     return stored ? JSON.parse(stored) : null;
   });
+  const userIdRef = useRef(user?.id);
 
   const login = async (newUser, newToken) => {
-    // 登录新账号前，先把旧账号的服务端 session 登出
+    const oldUser = JSON.parse(localStorage.getItem("user") || "null");
     const oldToken = localStorage.getItem("token");
-    if (oldToken && oldToken !== newToken) {
+
+    // 只在"同一账号"重新登录时，才登出旧 session
+    if (oldUser && oldUser.id === newUser.id && oldToken && oldToken !== newToken) {
       try {
         await fetch("/api/users/logout", {
           method: "POST",
           headers: { Authorization: `Bearer ${oldToken}` },
         });
       } catch (_) {
-        // 容错：网络异常不阻塞新登录
+        // 容错
       }
     }
 
     setUser(newUser);
+    userIdRef.current = newUser.id;
     localStorage.setItem("user", JSON.stringify(newUser));
     localStorage.setItem("token", newToken);
   };
 
   const logout = async () => {
     const token = localStorage.getItem("token");
-    // 调后端清除 session（容错：接口挂了也不影响前端登出）
     if (token) {
       try {
         await fetch("/api/users/logout", {
@@ -45,10 +48,11 @@ export const AuthProvider = ({ children }) => {
           headers: { Authorization: `Bearer ${token}` },
         });
       } catch (_) {
-        // 网络异常也继续清除前端状态
+        // 容错
       }
     }
     setUser(null);
+    userIdRef.current = null;
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   };
@@ -56,23 +60,32 @@ export const AuthProvider = ({ children }) => {
   const isAuthenticated = !!user;
   const isAdmin = user?.role === "admin";
 
-  // 监听全局 session-expired 事件（多设备互踢）
+  // 监听全局 session-expired 事件（服务端返回 SESSION_EXPIRED 时触发）
   useEffect(() => {
     const handler = () => {
       setUser(null);
+      userIdRef.current = null;
       window.location.href = "/login?session_expired=1";
     };
     window.addEventListener("session-expired", handler);
     return () => window.removeEventListener("session-expired", handler);
   }, []);
 
-  // 监听 localStorage 跨标签页变化（同浏览器只允许一个账号登录）
+  // 监听 localStorage 跨标签页变化：只在"同一账号"被其他标签页登录时踢出
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "user" && e.newValue) {
-        // 另一个标签页登录了新账号 → 清除当前页登录态
-        setUser(null);
-        window.location.href = "/login?session_expired=1";
+        try {
+          const newUser = JSON.parse(e.newValue);
+          // 只在同一个账号 ID 时踢出，不同账号不受影响
+          if (userIdRef.current && newUser.id === userIdRef.current) {
+            setUser(null);
+            userIdRef.current = null;
+            window.location.href = "/login?session_expired=1";
+          }
+        } catch (_) {
+          // JSON 解析失败忽略
+        }
       }
     };
     window.addEventListener("storage", handler);
