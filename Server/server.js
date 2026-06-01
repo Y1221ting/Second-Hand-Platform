@@ -43,6 +43,8 @@ app.use("/api/wanted", require("./routes/wantedRoutes"));
 app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/appeals", require("./routes/appealRoutes"));
 app.use("/api/warnings", require("./routes/warningRoutes"));
+app.use("/api/reviews", require("./routes/reviewRoutes"));
+app.use("/api", require("./routes/messageRoutes"));
 
 // 学院-专业映射（南昌师范学院单校版）
 app.get("/api/majorMap", (req, res) => {
