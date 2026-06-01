@@ -80,7 +80,7 @@ const ProductCard = memo(({ product, isRecommended }) => {
           库存 {product.quantity || 0}
         </p>
       </div>
-      <p className="text-xs text-gray-400 truncate">{product.uploadedBy?.college}</p>
+      <p className="text-xs text-gray-400 truncate">{product.uploadedBy?.department} · {product.uploadedBy?.major}</p>
 
       <div className="mt-1.5">
         <p className="text-center text-lg font-semibold text-yellow-400 mb-1.5">

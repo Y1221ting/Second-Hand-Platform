@@ -234,9 +234,13 @@ exports.checkoutCart = async (req, res) => {
             $inc: { quantity: -1 },
             $set: {
               purchasedBy: {
-                id: req.user._id.toString(),
-                name: req.user.fullName,
-                college: req.user.college || "",
+                id:         req.user._id.toString(),
+                name:       req.user.fullName,
+                college:    "南昌师范学院",
+                department: req.user.department || "",
+                major:      req.user.major || "",
+                dormitory:  req.user.dormitory || "",
+                phone:      req.user.phoneNo || "",
               },
               status: "sold",
             },

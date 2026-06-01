@@ -1,4 +1,6 @@
-# Second-Hand 二手交易平台 - 项目完整文档
+# Second-Hand 南昌师范学院校园二手平台 - 项目完整文档
+
+> 从38校通用平台改造为南昌师范学院单校专属版本，核心变化：学院/专业替代学校维度
 
 ## 技术栈
 - **前端**: React 18 + Tailwind CSS + React Router v6
@@ -73,7 +75,8 @@ d:\Second-Hand-main\
     ├── server.js               # 入口文件
     ├── config/
     │   ├── db.js               # MongoDB连接
-    │   └── auth.js             # JWT + bcrypt工具
+    │   ├── auth.js             # JWT + bcrypt工具
+    │   └── majorMap.js         # 学院-专业映射（南昌师范学院）
     ├── middleware/
     │   └── authMiddleware.js   # JWT认证中间件
     ├── models/
@@ -98,10 +101,15 @@ d:\Second-Hand-main\
 
 ## 后端 API 接口
 
+### 系统 `/`
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| GET | `/api/majorMap` | ❌ | 获取学院-专业映射（南昌师范学院13学院） |
+
 ### 用户 `/api/users`
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| POST | `/api/users/register` | ❌ | 注册 |
+| POST | `/api/users/register` | ❌ | 注册（college写死，接收department/major/dormitory） |
 | POST | `/api/users/login` | ❌ | 登录 |
 | GET | `/api/users/` | ❌ | 获取所有用户 |
 | GET | `/api/users/:userId` | ❌ | 获取用户详情 |
@@ -158,9 +166,12 @@ d:\Second-Hand-main\
   email: String,        // 必填，唯一，邮箱格式验证
   password: String,     // 必填，最少6位，bcrypt加密
   fullName: String,     // 必填
-  college: String,      // 必填
+  college: String,      // 系统写死"南昌师范学院"
+  department: String,   // 必填，学院（13选1）
+  major: String,        // 必填，专业（联动department）
+  dormitory: String,    // 选填，宿舍楼（如"1栋302"）
   phoneNo: String,      // 必填，11位数字
-  address: String,      // 必填（省市区+详情合并）
+  address: String,      // 必填（合并地址信息）
   cart: [{              // 购物车
     productId: ObjectId, // 商品ID
     quantity: Number,    // 数量
@@ -174,31 +185,40 @@ d:\Second-Hand-main\
 ```javascript
 {
   name: String,                    // 必填
-  uploadedBy: { id, name, college }, // 卖家信息
-  category: String,                // 枚举10种
+  uploadedBy: { id, name, college, department, major, dormitory, phone },
+  category: String,                // 枚举9种中文（教材教辅/电子数码/生活用品/体育用品/服饰美妆/文具办公/宿舍神器/乐器爱好/其他）
   description: String,             // 必填
-  price: Decimal128,               // 必填，>0
+  price: Decimal128,               // 必填，>0，≤9999.9
   images: [String],                // 图片路径数组 /uploads/xxx.jpg
   specifications: [{ key, value }], // 规格参数
   status: String,                  // "unsold" | "sold" | "sold_out"
   quantity: Number,                // 库存，默认1
-  purchasedBy: { id, name, college }, // 购买者
+  purchasedBy: { id, name, college, department, major, dormitory, phone },
+  listedByDepartment: String,      // 冗余字段（方便聚合查询）
+  listedByMajor: String,           // 冗余字段
   createdAt: Date
 }
 ```
 
-### 商品分类（10种）
+### 商品分类（9种中文）
 ```
-electronics  → 电子产品
-furniture    → 家具
-clothing     → 服装鞋帽
-books        → 书籍教材
-sports       → 运动户外
-food         → 食品生鲜
-transportation → 交通工具
-beauty       → 美妆个护
-home         → 家居日用
-other        → 其他
+教材教辅   → 课本、考研资料、考证资料
+电子数码   → 手机、电脑、耳机、平板
+生活用品   → 台灯、风扇、收纳、衣架
+体育用品   → 球拍、瑜伽垫、哑铃
+服饰美妆   → 衣服、鞋、化妆品
+文具办公   → 笔、笔记本、画材
+宿舍神器   → 床帘、床上桌、懒人支架
+乐器爱好   → 吉他、尤克里里
+其他       → 未分类
+```
+
+### 学院列表（南昌师范学院13学院）
+```
+数学与信息科学学院、教育学院、文学院、外国语学院、
+物理与电子信息学院、化学与食品科学学院、音乐舞蹈学院、
+美术学院、体育学院、马克思主义学院、旅游与经济管理学院、
+生命科学学院、其他学院
 ```
 
 ---
@@ -300,17 +320,21 @@ docker compose up -d --build frontend
 9. ✅ **界面中文** - 全界面已汉化
 10. ✅ **商品分类** - 扩展为10种
 11. ✅ **购物车系统** - 添加/移除/修改数量/清空/批量结算
-12. ✅ **商品推荐** - 规则引擎（同类目→同校→同卖家→同校用户→最新兜底）
-13. ✅ **学院模糊搜索** - 支持 $regex 模糊匹配
-14. ✅ **搜索优化** - 关键词搜索保留输入内容，空搜索重置；分页页码绑定 URL 参数刷新不丢失
+12. ✅ **商品推荐** - 五级漏斗（同类目→同学院→同专业→同卖家→同学院偏好+兜底）
+13. ✅ **学院/专业联动** - 注册、个人资料、筛选均支持学院→专业联动下拉
+14. ✅ **搜索优化** - 搜索范围扩到5字段（name + department + major + uploader + description）；800ms防抖
 15. ✅ **价格上限 9999.9** - 前后端双重校验，角为单位，超出内联提示
-16. ✅ **搜索范围优化** - 从搜索 name+description 改为 name+学校+发布者
+16. ✅ **单校专属** - college 写死"南昌师范学院"，学院/专业替代学校维度
 17. ✅ **移动端搜索** - Navbar 右侧搜索图标按钮，点击展开输入框
 18. ✅ **商品卡片 SPA 跳转** - `<a>` 改为 `<Link>`，无整页刷新
 19. ✅ **删除用户级联标记** - 删除用户时自动标记其商品为 inactive
 20. ✅ **密钥管理安全** - 全部密钥移入 .env（.gitignore），docker-compose 用 ${变量} 引用
 21. ✅ **API 不返回密码哈希** - 登录/列表/详情接口均已移除 password 字段
 22. ✅ **auth.js 返回值扁平化** - `createSession` 直接返回 token 字符串，响应变为 `{ token: "xxx" }`
+23. ✅ **电话脱敏** - 购买前显示 138****1234，购买后显示完整号码
+24. ✅ **宿舍楼定位** - 选填宿舍楼字段，方便同宿舍楼当面交易
+25. ✅ **排序"离我最近"** - 同学院→同专业→同宿舍楼→同学院其他→其他学院
+26. ✅ **修改学院/专业同步** - 编辑个人资料时自动更新所有在售商品信息
 
 ## 待优化/已知问题
 

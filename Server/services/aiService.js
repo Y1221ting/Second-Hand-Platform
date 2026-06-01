@@ -9,7 +9,7 @@ const generateDescription = async (productName, category) => {
         messages: [
           {
             role: "system",
-            content: "你是一个专业的二手商品描述生成助手。请根据商品名称和分类，生成一段简洁、吸引人的商品描述（100-200字）。描述应包含商品特点、使用状况、适合人群等信息。直接返回描述内容，不要加任何前缀或解释。",
+            content: "你是南昌师范学院校园二手平台的描述助手。请根据商品名称和分类，用亲切的同学间对话语气生成一段商品描述（80-150字）。描述应包含：成色（几成新）、使用时间、购买渠道或原价。教材类说明适用课程或考试，电子产品说明型号和电池情况，最后可提示当面交易。直接返回描述，不加前缀。",
           },
           {
             role: "user",
@@ -41,7 +41,7 @@ const recommendCategory = async (productName) => {
         messages: [
           {
             role: "system",
-            content: "你是一个专业的二手商品分类助手。请根据商品名称，从以下分类中选择最合适的一个：electronics（电子产品）、furniture（家具）、clothing（服装鞋帽）、books（书籍教材）、sports（运动户外）、food（食品生鲜）、transportation（交通工具）、beauty（美妆个护）、home（家居日用）、other（其他）。只返回分类的英文名称，不要加任何解释。",
+            content: "你是一个校园二手商品分类助手。请根据商品名称，从以下分类中选择最合适的一个：教材教辅、电子数码、生活用品、体育用品、服饰美妆、文具办公、宿舍神器、乐器爱好、其他。只返回分类的中文名称，不要加任何解释。",
           },
           {
             role: "user",

@@ -3,16 +3,15 @@ import { FaInfoCircle, FaPlus } from "react-icons/fa";
 
 // 按分类的常用规格建议
 const SPEC_SUGGESTIONS = {
-  electronics: ["品牌", "型号", "颜色", "存储容量", "成色", "购买时间"],
-  furniture: ["品牌", "材质", "尺寸", "颜色", "购买时间"],
-  clothing: ["品牌", "尺码", "颜色", "材质", "新旧程度"],
-  books: ["作者", "出版社", "出版年份", "版次", "新旧程度"],
-  sports: ["品牌", "型号", "尺寸", "成色", "购买时间"],
-  food: ["品牌", "规格", "保质期", "生产日期"],
-  transportation: ["品牌", "型号", "颜色", "购买时间", "里程数"],
-  beauty: ["品牌", "规格", "保质期", "颜色"],
-  home: ["品牌", "材质", "尺寸", "颜色"],
-  other: ["品牌", "型号", "尺寸", "颜色", "成色"],
+  教材教辅: ["作者", "出版社", "出版年份", "版次", "新旧程度", "适用课程"],
+  电子数码: ["品牌", "型号", "颜色", "存储容量", "成色", "购买时间", "电池情况"],
+  生活用品: ["品牌", "材质", "尺寸", "颜色"],
+  体育用品: ["品牌", "型号", "尺寸", "成色", "购买时间"],
+  服饰美妆: ["品牌", "尺码", "颜色", "材质", "新旧程度"],
+  文具办公: ["品牌", "型号", "颜色"],
+  宿舍神器: ["品牌", "材质", "尺寸", "颜色"],
+  乐器爱好: ["品牌", "型号", "成色", "购买时间"],
+  其他: ["品牌", "型号", "尺寸", "颜色", "成色"],
 };
 
 const ProductForm = ({
@@ -59,16 +58,15 @@ const ProductForm = ({
           className="w-full border rounded-lg py-2 px-3"
           required
         >
-          <option value="other">其他</option>
-          <option value="electronics">电子产品</option>
-          <option value="furniture">家具</option>
-          <option value="clothing">服装鞋帽</option>
-          <option value="books">书籍教材</option>
-          <option value="sports">运动户外</option>
-          <option value="food">食品生鲜</option>
-          <option value="transportation">交通工具</option>
-          <option value="beauty">美妆个护</option>
-          <option value="home">家居日用</option>
+          <option value="教材教辅">教材教辅</option>
+          <option value="电子数码">电子数码</option>
+          <option value="生活用品">生活用品</option>
+          <option value="体育用品">体育用品</option>
+          <option value="服饰美妆">服饰美妆</option>
+          <option value="文具办公">文具办公</option>
+          <option value="宿舍神器">宿舍神器</option>
+          <option value="乐器爱好">乐器爱好</option>
+          <option value="其他">其他</option>
         </select>
       </div>
 

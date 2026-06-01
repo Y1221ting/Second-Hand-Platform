@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import ProductCard from "../Utility/ProductCard";
 
-const Recommendations = ({ userId, excludeId, category, college, sellerId }) => {
+const Recommendations = ({ userId, excludeId, category, department, major, sellerId }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -14,7 +14,8 @@ const Recommendations = ({ userId, excludeId, category, college, sellerId }) => 
         if (userId) params.append("userId", userId);
         if (excludeId) params.append("excludeId", excludeId);
         if (category) params.append("category", category);
-        if (college) params.append("college", college);
+        if (department) params.append("department", department);
+        if (major) params.append("major", major);
         if (sellerId) params.append("sellerId", sellerId);
         params.append("limit", 6);
 
@@ -34,7 +35,7 @@ const Recommendations = ({ userId, excludeId, category, college, sellerId }) => 
     fetchRecommendations();
 
     return () => { mounted = false; };
-  }, [userId, excludeId, category, college, sellerId]);
+  }, [userId, excludeId, category, department, major, sellerId]);
 
   // 无数据时完全不渲染（加载中 or 空）
   if (loading || products.length === 0) return null;

@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0] - 2026-06-01
+
+### 单校版本改造（南昌师范学院）
+
+#### 第一阶段 — 数据模型 + 注册 + 个人中心
+- **新增 `majorMap.js`** — 13学院→专业映射配置，支持学院/专业联动
+- **新增 `GET /api/majorMap`** — 前端获取学院列表接口
+- **User 模型扩展** — 新增 `department`(学院/enum)、`major`(专业)、`dormitory`(宿舍楼/选填) 字段
+- **registerUser 改造** — `college` 写死为"南昌师范学院"，接收 department/major/dormitory
+- **updateUser 同步商品** — 修改学院/专业时自动更新所有在售商品的对应字段
+- **Register.js 重写** — 删除学校自由输入，改为学院下拉 + 专业联动下拉 + 宿舍楼选填
+- **UserProfile 更新** — 展示区显示学院·专业·宿舍楼
+- **UserDetails 重写** — 编辑模式用学院/专业下拉替代学校输入
+
+#### 第二阶段 — 商品全链路
+- **Product 模型改造** — SellerSchema 扩展 department/major/dormitory/phone；category 枚举从英文10种改为中文9种（教材教辅、电子数码、生活用品、体育用品、服饰美妆、文具办公、宿舍神器、乐器爱好、其他）；新增 listedByDepartment/listedByMajor 冗余字段
+- **createProduct 改造** — 自动写入学院/专业/宿舍楼到 uploadedBy 和 listedByDepartment/Major
+- **purchaseProduct 改造** — boughtBy 写入完整学院/专业/宿舍楼信息
+- **getAllProducts 改造** — 搜索字段从3个扩到5个（新增 department、major、description）；筛选从 college 改为 department；排序新增"离我最近"
+- **getRecommendations 改造** — 五级漏斗从"同类目→同校→同卖家→同校偏好→兜底"改为"同类目→同学院→同专业→同卖家→同学院偏好+兜底"
+- **AI 服务适配** — 生成描述 Prompt 改为校园同辈口吻；推荐分类 Prompt 改为中文9分类
+- **AddProduct.js 改造** — 分类下拉改为中文9种；规格建议标签同步更新
+- **ProductCard.js 改造** — 商品卡片显示"XX学院 · XX专业"替代学校名
+- **ProductDetails.js 改造** — 详情页显示学院·专业·宿舍楼；电话脱敏（未购买显示 138****1234）
+- **Recommendations 改造** — college 参数改为 department + major
+- **Filters 重写** — 学校搜索框改为学院+专业联动下拉；分类改为中文；排序新增"离我最近"
+- **Home/index.js 改造** — 筛选状态从 college 改为 department/major；集成 majorMap 联动逻辑
+
 ## [1.18.0] - 2026-05-27
 
 ### Performance

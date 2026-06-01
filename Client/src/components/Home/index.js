@@ -1,28 +1,43 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Filters from "./Filters";
 import ProductList from "./ProductList";
 import Pagination from "./Pagination";
 import Loading from "../Utility/Loading";
-import JIANGXI_COLLEGES from "../../constants/colleges";
+import { useAuth } from "../../context/authContext";
 
 const ProductsList = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentPage, setCurrentPage] = useState(1);
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [collegeQuery, setCollegeQuery] = useState("");
-  const [debouncedCollege, setDebouncedCollege] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("");
+  const [majorFilter, setMajorFilter] = useState("");
   const [products, setProducts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [sortBy, setSortBy] = useState("latest");
   const [priceRange, setPriceRange] = useState([0, 10000]);
   const [categoryFilter, setCategoryFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const debounceTimer = useRef(null);
-  const isComposingRef = useRef(false);
 
-  // 从 URL 参数同步搜索状态和页码（空值 = 重置）
+  // 学院-专业映射
+  const [majorMap, setMajorMap] = useState({});
+  const [departments, setDepartments] = useState([]);
+  const [majors, setMajors] = useState([]);
+  const [majorDisabled, setMajorDisabled] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/majorMap")
+      .then((res) => res.json())
+      .then((data) => {
+        setMajorMap(data);
+        setDepartments(Object.keys(data));
+      })
+      .catch(() => console.error("获取学院列表失败"));
+  }, []);
+
+  // 从 URL 参数同步搜索状态和页码
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const searchFromUrl = params.get("search");
@@ -31,40 +46,28 @@ const ProductsList = () => {
     setCurrentPage(pageFromUrl);
   }, [location.search]);
 
-  const collegeOptions = [
-    "全部",
-    ...JIANGXI_COLLEGES,
-  ];
-
   const triggerSearch = () => {
     const params = new URLSearchParams(location.search);
-    params.delete("page"); // 切筛选条件回到第 1 页
+    params.delete("page");
     navigate(`/home?${params.toString()}`, { replace: true });
   };
 
-  const handleCollegeCompositionStart = () => {
-    isComposingRef.current = true;
-  };
-
-  const handleCollegeCompositionEnd = (e) => {
-    isComposingRef.current = false;
-  };
-
-  const handleCollegeKeyDown = (e) => {
-    if (e.key === "Enter") {
-      clearTimeout(debounceTimer.current);
-      setDebouncedCollege(collegeQuery);
-      triggerSearch();
+  const handleDepartmentChange = (e) => {
+    const dept = e.target.value;
+    setDepartmentFilter(dept);
+    setMajorFilter("");
+    if (dept && majorMap[dept]) {
+      setMajors(majorMap[dept]);
+      setMajorDisabled(false);
+    } else {
+      setMajors([]);
+      setMajorDisabled(true);
     }
+    triggerSearch();
   };
 
-  const handleCollegeQueryChange = (e) => {
-    setCollegeQuery(e.target.value);
-  };
-
-  const handleCollegeSelect = (e) => {
-    setCollegeQuery(e.target.value);
-    setDebouncedCollege(e.target.value);
+  const handleMajorChange = (e) => {
+    setMajorFilter(e.target.value);
     triggerSearch();
   };
 
@@ -91,8 +94,12 @@ const ProductsList = () => {
       params.append("limit", 20);
       if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
       if (categoryFilter) params.append("category", categoryFilter);
-      if (debouncedCollege && debouncedCollege !== "全部") params.append("college", debouncedCollege);
+      if (departmentFilter) params.append("department", departmentFilter);
+      if (majorFilter) params.append("major", majorFilter);
       params.append("sort", sortBy);
+      if (sortBy === "closest" && user?.department) {
+        params.append("userDepartment", user.department);
+      }
       if (priceRange[0] > 0) params.append("minPrice", priceRange[0]);
       if (priceRange[1] < 10000) params.append("maxPrice", priceRange[1]);
 
@@ -110,7 +117,7 @@ const ProductsList = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, debouncedCollege, sortBy, priceRange, categoryFilter]);
+  }, [debouncedSearch, departmentFilter, majorFilter, sortBy, priceRange, categoryFilter, user?.department]);
 
   useEffect(() => {
     fetchProducts(currentPage);
@@ -124,7 +131,6 @@ const ProductsList = () => {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -143,13 +149,13 @@ const ProductsList = () => {
         {!isLoading ? (
           <div className="flex flex-col md:flex-row">
             <Filters
-              collegeQuery={collegeQuery}
-              handleCollegeQueryChange={handleCollegeQueryChange}
-              handleCollegeSelect={handleCollegeSelect}
-              handleCollegeKeyDown={handleCollegeKeyDown}
-              handleCollegeCompositionStart={handleCollegeCompositionStart}
-              handleCollegeCompositionEnd={handleCollegeCompositionEnd}
-              collegeOptions={collegeOptions}
+              departmentFilter={departmentFilter}
+              handleDepartmentChange={handleDepartmentChange}
+              majorFilter={majorFilter}
+              handleMajorChange={handleMajorChange}
+              departments={departments}
+              majors={majors}
+              majorDisabled={majorDisabled}
               sortBy={sortBy}
               handleSortChange={handleSortChange}
               priceRange={priceRange}

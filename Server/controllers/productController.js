@@ -16,13 +16,18 @@ exports.createProduct = async (req, res) => {
       return res.status(400).json({ message: "价格不能超过 ¥9999.9" });
     }
 
-    // 3. Add uploader info from authenticated user
+    // 3. Add uploader info from authenticated user（单校版：college写死，自动带入学院/专业）
     req.body.uploadedBy = {
-      id: req.user._id.toString(),
-      name: req.user.fullName,
-      college: req.user.college || "",
-      phone: req.user.phoneNo || "",
+      id:         req.user._id.toString(),
+      name:       req.user.fullName,
+      college:    "南昌师范学院",
+      department: req.user.department || "",
+      major:      req.user.major || "",
+      dormitory:  req.user.dormitory || "",
+      phone:      req.user.phoneNo || "",
     };
+    req.body.listedByDepartment = req.user.department || "";
+    req.body.listedByMajor = req.user.major || "";
 
     const product = new Product(req.body);
     await product.save();
@@ -45,7 +50,9 @@ exports.getAllProducts = async (req, res) => {
     const search = req.query.search || "";
     const category = req.query.category || "";
     const sort = req.query.sort || "latest";
-    const college = req.query.college || "";
+
+    const department = req.query.department || "";
+    const userDepartment = req.query.userDepartment || "";
 
     let query = {};
 
@@ -53,8 +60,10 @@ exports.getAllProducts = async (req, res) => {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       query.$or = [
         { name: { $regex: escaped, $options: "i" } },
-        { "uploadedBy.college": { $regex: escaped, $options: "i" } },
+        { "uploadedBy.department": { $regex: escaped, $options: "i" } },
+        { "uploadedBy.major": { $regex: escaped, $options: "i" } },
         { "uploadedBy.name": { $regex: escaped, $options: "i" } },
+        { description: { $regex: escaped, $options: "i" } },
       ];
     }
 
@@ -62,9 +71,8 @@ exports.getAllProducts = async (req, res) => {
       query.category = category;
     }
 
-    if (college) {
-      const escaped = college.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      query["uploadedBy.college"] = { $regex: escaped, $options: "i" };
+    if (department) {
+      query["uploadedBy.department"] = department;
     }
 
     if (req.query.minPrice || req.query.maxPrice) {
@@ -77,6 +85,13 @@ exports.getAllProducts = async (req, res) => {
     if (sort === "latest") sortObj = { createdAt: -1 };
     else if (sort === "lowestPrice") sortObj = { price: 1 };
     else if (sort === "highestPrice") sortObj = { price: -1 };
+    else if (sort === "closest" && userDepartment) {
+      // 离我最近：同系院 → 同校其他 → 其他，在每个组内再按时间倒序
+      sortObj = {
+        "uploadedBy.department": userDepartment === "$natural" ? -1 : 1,
+        createdAt: -1
+      };
+    }
 
     const total = await Product.countDocuments(query);
     const products = await Product.find(query)
@@ -335,7 +350,8 @@ exports.getRecommendations = async (req, res) => {
     const limit = parseInt(req.query.limit) || 6;
     const excludeId = req.query.excludeId || "";
     const category = req.query.category || "";
-    const college = req.query.college || "";
+    const department = req.query.department || "";
+    const major = req.query.major || "";
     const sellerId = req.query.sellerId || "";
 
     const exclusions = [];
@@ -358,12 +374,12 @@ exports.getRecommendations = async (req, res) => {
     const usedIds = categoryProducts.map(p => p._id);
     let remaining = limit - categoryProducts.length;
 
-    // 2）同校商品（详情页场景 — 从当前商品的学校）
-    let collegeProducts = [];
-    if (college && remaining > 0) {
-      collegeProducts = await Product.find({
+    // 2）同学院商品（详情页场景 — 从当前商品的学院）
+    let departmentProducts = [];
+    if (department && remaining > 0) {
+      departmentProducts = await Product.find({
         _id: { $nin: [...exclusions, ...usedIds] },
-        "uploadedBy.college": college,
+        "uploadedBy.department": department,
         "uploadedBy.id": userId ? { $ne: userId } : undefined,
         status: { $nin: ["sold_out", "inactive"] },
       })
@@ -371,11 +387,28 @@ exports.getRecommendations = async (req, res) => {
         .limit(remaining)
         .select("name images price uploadedBy category status quantity createdAt");
 
-      usedIds.push(...collegeProducts.map(p => p._id));
-      remaining = limit - categoryProducts.length - collegeProducts.length;
+      usedIds.push(...departmentProducts.map(p => p._id));
+      remaining = limit - categoryProducts.length - departmentProducts.length;
     }
 
-    // 3）同发布者其他商品
+    // 3）同专业商品（详情页场景 — 从当前商品的专业）
+    let majorProducts = [];
+    if (major && remaining > 0) {
+      majorProducts = await Product.find({
+        _id: { $nin: [...exclusions, ...usedIds] },
+        "uploadedBy.major": major,
+        "uploadedBy.id": userId ? { $ne: userId } : undefined,
+        status: { $nin: ["sold_out", "inactive"] },
+      })
+        .sort({ createdAt: -1 })
+        .limit(remaining)
+        .select("name images price uploadedBy category status quantity createdAt");
+
+      usedIds.push(...majorProducts.map(p => p._id));
+      remaining = limit - categoryProducts.length - departmentProducts.length - majorProducts.length;
+    }
+
+    // 4）同发布者其他商品
     let sellerProducts = [];
     if (sellerId && remaining > 0) {
       sellerProducts = await Product.find({
@@ -388,19 +421,19 @@ exports.getRecommendations = async (req, res) => {
         .select("name images price uploadedBy category status quantity createdAt");
 
       usedIds.push(...sellerProducts.map(p => p._id));
-      remaining = limit - categoryProducts.length - collegeProducts.length - sellerProducts.length;
+      remaining = limit - categoryProducts.length - departmentProducts.length - majorProducts.length - sellerProducts.length;
     }
 
-    // 4）如果传了 userId，找用户同校商品（列表页场景 — 从登录用户）
-    let sameCollegeProducts = [];
+    // 5）如果传了 userId，找用户同学院商品（列表页场景 — 从登录用户）
+    let userDepartmentProducts = [];
     if (userId && remaining > 0) {
       const allUsed = [...exclusions, ...usedIds];
       const User = require("../models/User");
       const user = await User.findById(userId);
-      if (user && user.college) {
-        sameCollegeProducts = await Product.find({
+      if (user && user.department) {
+        userDepartmentProducts = await Product.find({
           _id: { $nin: allUsed },
-          "uploadedBy.college": user.college,
+          "uploadedBy.department": user.department,
           "uploadedBy.id": { $ne: userId },
           status: { $nin: ["sold_out", "inactive"] },
         })
@@ -408,12 +441,12 @@ exports.getRecommendations = async (req, res) => {
           .limit(remaining)
           .select("name images price uploadedBy status quantity createdAt");
 
-        usedIds.push(...sameCollegeProducts.map(p => p._id));
-        remaining = limit - categoryProducts.length - collegeProducts.length - sellerProducts.length - sameCollegeProducts.length;
+        usedIds.push(...userDepartmentProducts.map(p => p._id));
+        remaining = limit - categoryProducts.length - departmentProducts.length - majorProducts.length - sellerProducts.length - userDepartmentProducts.length;
       }
     }
 
-    // 5）填充最新商品兜底
+    // 6）填充最新商品兜底
     let fillProducts = [];
     if (remaining > 0) {
       fillProducts = await Product.find({
@@ -428,10 +461,11 @@ exports.getRecommendations = async (req, res) => {
 
     const combined = [
       ...categoryProducts.map(p => ({ ...p.toObject(), aiReason: "同类商品AI智能匹配" })),
-      ...collegeProducts.map(p => ({ ...p.toObject(), aiReason: "同校同学发布的AI推荐" })),
-      ...sellerProducts.map(p => ({ ...p.toObject(), aiReason: "该卖家其他商品AI推荐" })),
-      ...sameCollegeProducts.map(p => ({ ...p.toObject(), aiReason: "基于同校偏好的AI推荐" })),
-      ...fillProducts.map(p => ({ ...p.toObject(), aiReason: "热门商品AI推荐" })),
+      ...departmentProducts.map(p => ({ ...p.toObject(), aiReason: "同学院同学发布的" })),
+      ...majorProducts.map(p => ({ ...p.toObject(), aiReason: "同专业同学发布的" })),
+      ...sellerProducts.map(p => ({ ...p.toObject(), aiReason: "该卖家其他商品" })),
+      ...userDepartmentProducts.map(p => ({ ...p.toObject(), aiReason: "基于浏览偏好的推荐" })),
+      ...fillProducts.map(p => ({ ...p.toObject(), aiReason: "本周热门商品" })),
     ];
 
     // 转换 Decimal128 价格为数字
@@ -491,10 +525,13 @@ exports.purchaseProduct = async (req, res) => {
         $inc: { quantity: -1 },
         $set: {
           purchasedBy: {
-            id: req.user._id.toString(),
-            name: req.user.fullName,
-            college: req.user.college || "",
-            phone: req.user.phoneNo || "",
+            id:         req.user._id.toString(),
+            name:       req.user.fullName,
+            college:    "南昌师范学院",
+            department: req.user.department || "",
+            major:      req.user.major || "",
+            dormitory:  req.user.dormitory || "",
+            phone:      req.user.phoneNo || "",
           },
           status: "sold",
         },

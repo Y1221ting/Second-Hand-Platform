@@ -148,13 +148,24 @@ const ProductDetails = ({ productId }) => {
           <h1 className="text-3xl font-semibold">{productDetails.name}</h1>
           <p className="text-gray-500 mt-2">
             发布者：{productDetails.uploadedBy?.name || '未知'}
-            {productDetails.uploadedBy?.college && (
-              <span className="ml-2">| {productDetails.uploadedBy.college}</span>
+            {productDetails.uploadedBy?.department && (
+              <span className="ml-2">| {productDetails.uploadedBy.department} · {productDetails.uploadedBy.major}</span>
             )}
           </p>
+          {productDetails.uploadedBy?.dormitory && (
+            <p className="text-gray-500 mt-1">
+              宿舍楼：{productDetails.uploadedBy.dormitory}
+            </p>
+          )}
           {productDetails.uploadedBy?.phone && (
             <p className="text-gray-500 mt-1">
-              联系电话：{productDetails.uploadedBy.phone}
+              联系电话：{" "}
+              {!user
+                ? "登录后查看联系方式"
+                : productDetails.purchasedBy?.id === userId
+                  ? productDetails.uploadedBy.phone
+                  : productDetails.uploadedBy.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2") + " [购买后查看完整号码]"
+              }
             </p>
           )}
           <p className="text-2xl font-semibold mt-4">
@@ -261,7 +272,8 @@ const ProductDetails = ({ productId }) => {
         userId={user?.id}
         excludeId={productId}
         category={productDetails.category}
-        college={productDetails.uploadedBy?.college}
+        department={productDetails.uploadedBy?.department}
+        major={productDetails.uploadedBy?.major}
         sellerId={productDetails.uploadedBy?.id}
       />
     </div>

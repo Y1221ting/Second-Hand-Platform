@@ -1,10 +1,13 @@
 const mongoose = require("mongoose");
 
 const SellerSchema = new mongoose.Schema({
-  id: String,
-  name: String,
-  college: String,
-  phone: String,
+  id:         String,
+  name:       String,
+  college:    String,
+  department: String,
+  major:      String,
+  dormitory:  String,
+  phone:      String,
 });
 
 // Define the specifications schema
@@ -25,10 +28,12 @@ const ProductSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ["electronics", "furniture", "clothing", "books", "sports", "food", "transportation", "beauty", "home", "other"],
-    default: "other",
+    enum: ["教材教辅", "电子数码", "生活用品", "体育用品", "服饰美妆", "文具办公", "宿舍神器", "乐器爱好", "其他"],
+    default: "其他",
     required: true,
   },
+  listedByDepartment: String,
+  listedByMajor: String,
   description: {
     type: String,
     required: true,
