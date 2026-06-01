@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import UserField from "./UserField";
-import JIANGXI_COLLEGES from "../../constants/colleges";
 
 const UserDetails = ({
   userData,
@@ -11,35 +10,41 @@ const UserDetails = ({
   handleEditClick,
   handleSaveClick,
 }) => {
-  const [showCollegeDropdown, setShowCollegeDropdown] = useState(false);
-  const [collegeFocused, setCollegeFocused] = useState(false);
+  const [majorMap, setMajorMap] = useState({});
+  const [departments, setDepartments] = useState([]);
+  const [majors, setMajors] = useState([]);
 
-  // 根据输入过滤学校列表
-  const filteredColleges = formData.college
-    ? JIANGXI_COLLEGES.filter((c) =>
-        c.toLowerCase().includes(formData.college.toLowerCase())
-      )
-    : [];
+  useEffect(() => {
+    fetch("/api/majorMap")
+      .then((res) => res.json())
+      .then((data) => {
+        setMajorMap(data);
+        setDepartments(Object.keys(data));
+        // 如果已有 department，加载对应专业列表
+        const dept = formData.department || userData.department;
+        if (dept && data[dept]) {
+          setMajors(data[dept]);
+        }
+      })
+      .catch(() => console.error("获取学院列表失败"));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 手动输入的学校后缀校验
-  const isCustomCollege =
-    formData.college &&
-    !JIANGXI_COLLEGES.includes(formData.college);
-  const isCollegeValid =
-    !isCustomCollege ||
-    /(大学|学院)$/.test(formData.college);
+  const handleDepartmentChange = (e) => {
+    const dept = e.target.value;
+    handleChange({ target: { name: "department", value: dept } });
+    handleChange({ target: { name: "major", value: "" } });
+    if (dept && majorMap[dept]) {
+      setMajors(majorMap[dept]);
+    } else {
+      setMajors([]);
+    }
+  };
 
   // 手机号实时校验
   const phoneRegex = /^1[3-9]\d{9}$/;
   const phoneError =
     editMode && formData.phoneNo && !phoneRegex.test(formData.phoneNo)
       ? "手机号格式不正确"
-      : "";
-
-  // 地址长度实时校验
-  const addressError =
-    editMode && formData.address && formData.address.trim().length > 0 && formData.address.trim().length < 5
-      ? "地址至少需要5个字符"
       : "";
 
   return (
@@ -76,79 +81,73 @@ const UserDetails = ({
               <p className="text-red-500 text-xs mt-1">{phoneError}</p>
             )}
           </div>
-          {/* 学校 — 编辑模式下模糊搜索+下拉 */}
-          <div className="mb-4 relative">
-            <label className="font-semibold">学校:</label>{" "}
+
+          {/* 学院 — 编辑模式下拉，展示模式禁用输入框 */}
+          <div className="mb-4">
+            <label className="font-semibold">学院:</label>{" "}
             {editMode ? (
-              <div>
-                <input
-                  type="text"
-                  name="college"
-                  value={formData.college || ""}
-                  onChange={(e) => {
-                    handleChange(e);
-                    setShowCollegeDropdown(true);
-                  }}
-                  onFocus={() => {
-                    setCollegeFocused(true);
-                    setShowCollegeDropdown(true);
-                  }}
-                  onBlur={() =>
-                    setTimeout(() => setShowCollegeDropdown(false), 200)
-                  }
-                  className="w-full py-2 px-4 rounded-lg bg-gray-100 border border-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                />
-                {/* 手动输入且后缀无效时显示提示 */}
-                {isCustomCollege && !isCollegeValid && (
-                  <p className="text-red-500 text-xs mt-1">
-                    学校名称必须以"大学"或"学院"结尾
-                  </p>
-                )}
-                {/* 下拉列表 */}
-                {showCollegeDropdown &&
-                  collegeFocused &&
-                  filteredColleges.length > 0 && (
-                    <ul className="absolute z-50 w-full bg-white border border-gray-300 rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
-                      {filteredColleges.slice(0, 8).map((college) => (
-                        <li
-                          key={college}
-                          className="px-3 py-2 hover:bg-yellow-100 cursor-pointer text-sm"
-                          onMouseDown={() => {
-                            handleChange({
-                              target: { name: "college", value: college },
-                            });
-                            setShowCollegeDropdown(false);
-                          }}
-                        >
-                          {college}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-              </div>
+              <select
+                name="department"
+                value={formData.department || ""}
+                onChange={handleDepartmentChange}
+                className="w-full py-2 px-4 rounded-lg bg-gray-100 border border-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              >
+                <option value="">请选择学院</option>
+                {departments.map((dept) => (
+                  <option key={dept} value={dept}>{dept}</option>
+                ))}
+              </select>
             ) : (
               <input
                 type="text"
-                name="college"
-                value={userData.college || ""}
+                value={userData.department || ""}
                 readOnly
                 disabled
-                className="w-full py-2 px-4 rounded-lg bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                className="w-full py-2 px-4 rounded-lg bg-gray-100 border border-gray-300 focus:outline-none"
               />
             )}
           </div>
 
+          {/* 专业 — 编辑模式联动下拉，展示模式禁用输入框 */}
+          <div className="mb-4">
+            <label className="font-semibold">专业:</label>{" "}
+            {editMode ? (
+              <select
+                name="major"
+                value={formData.major || ""}
+                onChange={handleChange}
+                disabled={!formData.department}
+                className={`w-full py-2 px-4 rounded-lg bg-gray-100 border border-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
+                  !formData.department ? "text-gray-400 cursor-not-allowed" : ""
+                }`}
+              >
+                <option value="">
+                  {!formData.department ? "请先选择学院" : "请选择专业"}
+                </option>
+                {majors.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={userData.major || ""}
+                readOnly
+                disabled
+                className="w-full py-2 px-4 rounded-lg bg-gray-100 border border-gray-300 focus:outline-none"
+              />
+            )}
+          </div>
+
+          {/* 宿舍楼 — 选填 */}
           <div className="mb-4">
             <UserField
-              label="地址"
-              name="address"
-              value={editMode ? formData.address : userData.address}
+              label="宿舍楼"
+              name="dormitory"
+              value={editMode ? (formData.dormitory || "") : (userData.dormitory || "")}
               onChange={handleChange}
               editMode={editMode}
             />
-            {addressError && (
-              <p className="text-red-500 text-xs mt-1">{addressError}</p>
-            )}
           </div>
         </div>
       </form>

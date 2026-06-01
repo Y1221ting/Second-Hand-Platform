@@ -42,6 +42,24 @@ const userSchema = new mongoose.Schema({
     },
     required: [true, "手机号不能为空"],
   },
+  department: {
+    type: String,
+    required: [true, "学院不能为空"],
+    enum: [
+      "数学与信息科学学院", "教育学院", "文学院", "外国语学院",
+      "物理与电子信息学院", "化学与食品科学学院", "音乐舞蹈学院",
+      "美术学院", "体育学院", "马克思主义学院", "旅游与经济管理学院",
+      "生命科学学院", "其他学院"
+    ]
+  },
+  major: {
+    type: String,
+    required: [true, "专业不能为空"]
+  },
+  dormitory: {
+    type: String,
+    trim: true
+  },
   address: {
     type: String,
     required: [true, "地址不能为空"],

@@ -88,16 +88,9 @@ const UserProfile = () => {
       return;
     }
 
-    // 地址长度校验
-    if (!formData.address || formData.address.trim().length < 5) {
-      alert("地址至少需要5个字符");
-      return;
-    }
-
-    // 学校字段校验：手动输入的必须以"大学"或"学院"结尾
-    const college = formData.college || "";
-    if (college && !(/(大学|学院)$/.test(college))) {
-      alert('学校名称必须以"大学"或"学院"结尾');
+    // 地址长度校验（仅当填写了地址时）
+    if (formData.address && formData.address.trim().length < 2) {
+      alert("地址至少需要2个字符");
       return;
     }
 
@@ -237,6 +230,16 @@ const UserProfile = () => {
                 {userData.college && (
                   <p className="text-sm text-gray-500">
                     🏫 {userData.college}
+                  </p>
+                )}
+                {userData.department && (
+                  <p className="text-sm text-gray-500">
+                    📚 {userData.department} · {userData.major}
+                  </p>
+                )}
+                {userData.dormitory && (
+                  <p className="text-sm text-gray-500">
+                    🏠 {userData.dormitory}
                   </p>
                 )}
               </div>

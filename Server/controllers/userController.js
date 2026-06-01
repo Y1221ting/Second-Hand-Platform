@@ -20,8 +20,18 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: "Email already exists" });
     }
 
-    // Create a new user
-    const newUser = new User(req.body);
+    // Create a new user（单校版：college 写死为南昌师范学院）
+    const newUser = new User({
+      email: req.body.email,
+      password: req.body.password,
+      fullName: req.body.fullName,
+      college: "南昌师范学院",
+      department: req.body.department,
+      major: req.body.major,
+      phoneNo: req.body.phoneNo,
+      address: req.body.address || req.body.dormitory || "南昌师范学院",
+      dormitory: req.body.dormitory || ""
+    });
     newUser.password = await hashPassword(req.body.password);
     await newUser.save();
 
@@ -120,6 +130,23 @@ exports.updateUser = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({ error: "User not found" });
+    }
+
+    // 若修改了学院或专业，同步更新所有在售商品
+    if (body.department || body.major) {
+      const updateFields = {};
+      if (body.department) {
+        updateFields["uploadedBy.department"] = body.department;
+        updateFields.listedByDepartment = body.department;
+      }
+      if (body.major) {
+        updateFields["uploadedBy.major"] = body.major;
+        updateFields.listedByMajor = body.major;
+      }
+      await Product.updateMany(
+        { "uploadedBy.id": userId, status: { $nin: ["sold_out", "inactive"] } },
+        { $set: updateFields }
+      );
     }
 
     res.json(user);

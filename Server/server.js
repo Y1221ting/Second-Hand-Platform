@@ -40,6 +40,11 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/upload", uploadRoutes);
 
+// 学院-专业映射（南昌师范学院单校版）
+app.get("/api/majorMap", (req, res) => {
+  res.json(require("./config/majorMap"));
+});
+
 // 静态文件服务：/uploads → Server/uploads/
 app.use("/uploads", express.static(uploadsDir));
 
