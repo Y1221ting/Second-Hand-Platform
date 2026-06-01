@@ -76,18 +76,21 @@ exports.loginUser = async (req, res) => {
     const { token, sessionId } = await createSession(existingUser._id.toString());
 
     // 将 session 存入用户记录，限制同时只有 1 个活跃设备
+    // 用 updateOne 而非 save()，避免旧文档缺少新增必填字段触发全量校验
     const device = req.headers["user-agent"]
       ? req.headers["user-agent"].substring(0, 100)
       : "未知设备";
-    if (!existingUser.activeSessions) {
-      existingUser.activeSessions = [];
-    }
-    existingUser.activeSessions.push({ sessionId, device, loginAt: new Date() });
-    // 只保留最新的 1 个 session（踢掉旧设备）
-    while (existingUser.activeSessions.length > 1) {
-      existingUser.activeSessions.shift();
-    }
-    await existingUser.save();
+    await User.updateOne(
+      { _id: existingUser._id },
+      {
+        $push: {
+          activeSessions: {
+            $each: [{ sessionId, device, loginAt: new Date() }],
+            $slice: -1, // 只保留最新的 1 个
+          },
+        },
+      }
+    );
 
     // 返回前移除 password 字段
     const userData = existingUser.toObject();
@@ -104,15 +107,10 @@ exports.logoutUser = async (req, res) => {
   try {
     const sessionId = req.sessionId; // 由 authMiddleware 从 JWT 中提取
     if (sessionId) {
-      const user = await User.findById(req.user._id);
-      if (user) {
-        if (user.activeSessions) {
-          user.activeSessions = user.activeSessions.filter(
-            (s) => s.sessionId !== sessionId
-          );
-        }
-        await user.save();
-      }
+      await User.updateOne(
+        { _id: req.user._id },
+        { $pull: { activeSessions: { sessionId } } }
+      );
     }
     res.json({ message: "已登出" });
   } catch (error) {
