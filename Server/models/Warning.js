@@ -16,6 +16,20 @@ const warningSchema = new mongoose.Schema({
     required: [true, "警告内容不能为空"],
     trim: true,
   },
+  type: {
+    type: String,
+    enum: ["warning", "product_delisted", "account_banned", "appeal_result"],
+    default: "warning",
+  },
+  severity: {
+    type: String,
+    enum: ["info", "critical"],
+    default: "info",
+  },
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {},
+  },
   createdBy: {
     type: String,
     required: true,

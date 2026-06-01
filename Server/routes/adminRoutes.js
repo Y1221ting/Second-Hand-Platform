@@ -94,11 +94,24 @@ router.put("/reports/:id", async (req, res) => {
       const reason = note
         ? `举报原因：${report.reason}；处理备注：${note}`
         : `举报原因：${report.reason}`;
-      await Product.findByIdAndUpdate(
+      const product = await Product.findByIdAndUpdate(
         report.productId,
         { status: "inactive", delistReason: reason },
         { runValidators: true }
       );
+
+      // 自动通知卖家
+      if (product && product.uploadedBy?.id) {
+        await Warning.create({
+          userId: product.uploadedBy.id,
+          title: `商品"${product.name}"因被举报已下架`,
+          content: reason,
+          type: "product_delisted",
+          severity: "critical",
+          metadata: { productId: product._id.toString(), reason },
+          createdBy: req.user._id.toString(),
+        });
+      }
     }
 
     res.json({ message: "处理成功", report });
@@ -149,6 +162,12 @@ router.put("/products/:id", async (req, res) => {
       return res.status(400).json({ message: "状态值无效" });
     }
 
+    // 先获取商品信息（含卖家ID）
+    const existing = await Product.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ message: "商品不存在" });
+    }
+
     const update = { status };
     if (status === "inactive" && reason) {
       update.delistReason = `管理员下架：${reason.trim()}`;
@@ -161,8 +180,20 @@ router.put("/products/:id", async (req, res) => {
       update,
       { new: true, runValidators: true }
     );
-    if (!product) {
-      return res.status(404).json({ message: "商品不存在" });
+
+    // 自动创建通知给卖家
+    if (existing.uploadedBy?.id) {
+      await Warning.create({
+        userId: existing.uploadedBy.id,
+        title: status === "inactive" ? `商品"${existing.name}"已被管理员下架` : `商品"${existing.name}"已恢复上架`,
+        content: status === "inactive"
+          ? `下架原因：${update.delistReason || "违反平台规定"}`
+          : "您的商品已恢复上架，可以正常浏览和购买。",
+        type: "product_delisted",
+        severity: status === "inactive" ? "critical" : "info",
+        metadata: { productId: existing._id.toString(), reason: update.delistReason || "" },
+        createdBy: req.user._id.toString(),
+      });
     }
 
     res.json({ message: status === "inactive" ? "已下架" : "已恢复", product });
@@ -217,18 +248,36 @@ router.put("/users/:id", async (req, res) => {
       return res.status(400).json({ message: "状态值无效" });
     }
 
+    // 互保检查：不能封禁/解封其他管理员
+    const targetUser = await User.findById(req.params.id);
+    if (!targetUser) {
+      return res.status(404).json({ message: "用户不存在" });
+    }
+    if (targetUser.role === "admin") {
+      return res.status(403).json({ message: "不能对其他管理员执行此操作" });
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { status },
       { new: true, runValidators: true }
     );
-    if (!user) {
-      return res.status(404).json({ message: "用户不存在" });
-    }
 
     // 返回前去除密码
     const data = user.toObject();
     delete data.password;
+
+    // 自动创建通知
+    await Warning.create({
+      userId: targetUser._id,
+      title: status === "banned" ? "您的账号已被封禁" : "您的账号已解封",
+      content: status === "banned"
+        ? "如有疑问，请通过申诉渠道联系管理员。"
+        : "感谢您的理解，请继续遵守平台规则。",
+      type: "account_banned",
+      severity: status === "banned" ? "critical" : "info",
+      createdBy: req.user._id.toString(),
+    });
 
     res.json({ message: status === "banned" ? "已封禁" : "已解封", user: data });
   } catch (error) {
@@ -309,6 +358,23 @@ router.put("/appeals/:id", async (req, res) => {
       );
     }
 
+    // 自动创建通知给申诉人
+    const appealedProduct = await Product.findById(appeal.productId);
+    const productName = appealedProduct ? appealedProduct.name : "未知商品";
+    await Warning.create({
+      userId: appeal.sellerId,
+      title: action === "approve"
+        ? `申诉已通过 — 商品"${productName}"已恢复`
+        : `申诉已驳回 — 商品"${productName}"`,
+      content: action === "approve"
+        ? "您的申诉已通过审核，商品已恢复上架。"
+        : `驳回理由：${note || "经审核，您的申诉不符合恢复条件"}`,
+      type: "appeal_result",
+      severity: "info",
+      metadata: { productId: appeal.productId.toString(), appealStatus: action === "approve" ? "approved" : "rejected" },
+      createdBy: req.user._id.toString(),
+    });
+
     res.json({
       message: action === "approve" ? "申诉已通过，商品已恢复" : "申诉已驳回",
       appeal,
@@ -341,10 +407,17 @@ router.post("/warnings", async (req, res) => {
       return res.status(404).json({ message: "用户不存在" });
     }
 
+    // 互保检查：不能警告其他管理员
+    if (user.role === "admin") {
+      return res.status(403).json({ message: "不能对其他管理员发送警告" });
+    }
+
     const warning = new Warning({
       userId,
       title: title.trim(),
       content: content.trim(),
+      type: "warning",
+      severity: "critical",
       createdBy: req.user._id.toString(),
     });
     await warning.save();

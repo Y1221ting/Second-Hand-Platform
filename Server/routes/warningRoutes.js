@@ -3,6 +3,21 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const Warning = require("../models/Warning");
 
+// 获取未读的 critical 级别通知（供前端弹窗用）
+router.get("/critical", authMiddleware, async (req, res) => {
+  try {
+    const notifications = await Warning.find({
+      userId: req.user._id.toString(),
+      isRead: false,
+      severity: "critical",
+    }).sort({ createdAt: -1 }).limit(10);
+    res.json({ notifications });
+  } catch (error) {
+    console.error("获取紧急通知失败:", error);
+    res.status(500).json({ message: "获取通知失败" });
+  }
+});
+
 // 用户查看自己的警告
 router.get("/", authMiddleware, async (req, res) => {
   try {
