@@ -200,51 +200,57 @@ const Users = () => {
                     {new Date(u.createdAt).toLocaleDateString("zh-CN")}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-1">
-                      {confirmId === u._id ? (
-                        <div className="flex gap-1 items-center text-xs">
-                          <span className="text-gray-600">确认?</span>
-                          <button
-                            onClick={() => handleBan(u._id, confirmAction)}
-                            disabled={submitting}
-                            className="px-2 py-0.5 bg-red-500 text-white rounded hover:bg-red-600"
-                          >
-                            是
-                          </button>
-                          <button
-                            onClick={() => setConfirmId(null)}
-                            className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-                          >
-                            否
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => {
-                              setConfirmId(u._id);
-                              setConfirmAction(u.status === "banned" ? "active" : "banned");
-                            }}
-                            className={`px-2 py-1 rounded text-xs transition-colors ${
-                              u.status === "banned"
-                                ? "bg-green-500 text-white hover:bg-green-600"
-                                : "bg-red-500 text-white hover:bg-red-600"
-                            }`}
-                          >
-                            {u.status === "banned" ? "解封" : "封禁"}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setWarningUserId(u._id);
-                              setShowWarningModal(true);
-                            }}
-                            className="px-2 py-1 bg-yellow-500 text-gray-900 rounded text-xs hover:bg-yellow-600 transition-colors"
-                          >
-                            警告
-                          </button>
-                        </>
-                      )}
-                    </div>
+                    {u.role === "admin" ? (
+                      <span className="px-2 py-1 rounded text-xs font-medium bg-gray-200 text-gray-500">
+                        管理员
+                      </span>
+                    ) : (
+                      <div className="flex gap-1">
+                        {confirmId === u._id ? (
+                          <div className="flex gap-1 items-center text-xs">
+                            <span className="text-gray-600">确认?</span>
+                            <button
+                              onClick={() => handleBan(u._id, confirmAction)}
+                              disabled={submitting}
+                              className="px-2 py-0.5 bg-red-500 text-white rounded hover:bg-red-600"
+                            >
+                              是
+                            </button>
+                            <button
+                              onClick={() => setConfirmId(null)}
+                              className="px-2 py-0.5 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                            >
+                              否
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => {
+                                setConfirmId(u._id);
+                                setConfirmAction(u.status === "banned" ? "active" : "banned");
+                              }}
+                              className={`px-2 py-1 rounded text-xs transition-colors ${
+                                u.status === "banned"
+                                  ? "bg-green-500 text-white hover:bg-green-600"
+                                  : "bg-red-500 text-white hover:bg-red-600"
+                              }`}
+                            >
+                              {u.status === "banned" ? "解封" : "封禁"}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setWarningUserId(u._id);
+                                setShowWarningModal(true);
+                              }}
+                              className="px-2 py-1 bg-yellow-500 text-gray-900 rounded text-xs hover:bg-yellow-600 transition-colors"
+                            >
+                              警告
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

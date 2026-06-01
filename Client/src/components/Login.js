@@ -1,15 +1,18 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [error, setError] = useState("");
+
+  const bannedMessage = location.state?.banned ? "该账号已被封禁，如有疑问请联系管理员申诉" : null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -55,6 +58,11 @@ const Login = () => {
     <main className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="bg-white p-8 rounded-lg shadow-lg sm:w-96 md:w-1/2">
         <h1 className="text-3xl font-semibold text-gray-900 mb-4">登录</h1>
+        {bannedMessage && (
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+            {bannedMessage}
+          </div>
+        )}
         {error && (
           <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
             {error}

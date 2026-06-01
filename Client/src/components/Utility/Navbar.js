@@ -1,26 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { FaUser, FaSearch, FaBell, FaShieldAlt } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { Link, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [unreadWarnings, setUnreadWarnings] = useState(0);
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const token = localStorage.getItem("token");
-    fetch("/api/warnings/?isRead=false", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => setUnreadWarnings(data.unreadCount || 0))
-      .catch(() => {});
-  }, [isAuthenticated]);
 
   const handleSearch = (e) => {
     if (e.key === "Enter") {
@@ -125,9 +115,9 @@ const Navbar = () => {
               title="系统通知"
             >
               <FaBell className="text-sm" />
-              {unreadWarnings > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                  {unreadWarnings > 9 ? "9+" : unreadWarnings}
+                  {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
             </Link>

@@ -3,6 +3,8 @@
 import React, { lazy, Suspense } from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/authContext";
+import { NotificationProvider } from "./context/NotificationContext";
+import NotificationModal from "./components/NotificationModal";
 
 // 高频 + 入口页面保持同步加载，避免直接访问时出现瀑布加载
 import Home from "./components/Home";
@@ -67,11 +69,12 @@ class ErrorBoundary extends React.Component {
 const App = () => {
   return (
     <AuthProvider>
-      <Router>
-        {/* [新增] ErrorBoundary + Suspense 包裹路由 */}
-        <ErrorBoundary>
-          <Suspense fallback={<PageLoading />}>
-            <Routes>
+      <NotificationProvider>
+        <Router>
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoading />}>
+              <NotificationModal />
+              <Routes>
               {/* 公开路由 */}
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
@@ -144,7 +147,8 @@ const App = () => {
           </Suspense>
         </ErrorBoundary>
       </Router>
-    </AuthProvider>
+    </NotificationProvider>
+  </AuthProvider>
   );
 };
 

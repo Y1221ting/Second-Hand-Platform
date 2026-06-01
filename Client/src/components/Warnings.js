@@ -1,9 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
+import { FaExclamationTriangle, FaBoxOpen, FaBan, FaClipboardCheck, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
 import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import Loading from "./Utility/Loading";
+
+const typeMeta = {
+  warning: { icon: FaExclamationTriangle, color: "text-yellow-500", label: "管理警告" },
+  product_delisted: { icon: FaBoxOpen, color: "text-orange-500", label: "商品下架" },
+  account_banned: { icon: FaBan, color: "text-red-500", label: "账号封禁" },
+  appeal_result: { icon: FaClipboardCheck, color: "text-blue-500", label: "申诉结果" },
+};
 
 const Warnings = () => {
   const { isAuthenticated } = useAuth();
@@ -102,37 +110,59 @@ const Warnings = () => {
           <Loading />
         ) : warnings.length > 0 ? (
           <div className="space-y-3">
-            {warnings.map((w) => (
-              <div
-                key={w._id}
-                onClick={() => !w.isRead && markAsRead(w._id)}
-                className={`bg-white rounded-xl shadow-sm p-5 flex gap-4 cursor-pointer transition-colors hover:bg-gray-50 ${
-                  !w.isRead ? "border-l-4 border-yellow-500" : ""
-                }`}
-              >
-                <div className="flex-grow min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-gray-900">{w.title}</h3>
-                    {!w.isRead && (
-                      <span className="bg-yellow-100 text-yellow-800 text-[10px] px-1.5 py-0.5 rounded">
-                        新
-                      </span>
-                    )}
+            {warnings.map((w) => {
+              const meta = typeMeta[w.type] || typeMeta.warning;
+              const Icon = meta.icon;
+              const isAppealApproved = w.type === "appeal_result" && w.metadata?.appealStatus === "approved";
+              return (
+                <div
+                  key={w._id}
+                  onClick={() => !w.isRead && markAsRead(w._id)}
+                  className={`bg-white rounded-xl shadow-sm p-5 flex gap-4 cursor-pointer transition-colors hover:bg-gray-50 ${
+                    !w.isRead ? "border-l-4 border-yellow-500" : ""
+                  }`}
+                >
+                  <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${meta.color} bg-gray-50`}>
+                    <Icon className="text-lg" />
                   </div>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{w.content}</p>
-                  <p className="text-xs text-gray-400 mt-2">
-                    {new Date(w.createdAt).toLocaleDateString("zh-CN", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                    {w.readAt && " · 已读"}
-                  </p>
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${meta.color} bg-gray-50`}>
+                        {meta.label}
+                      </span>
+                      {w.type === "appeal_result" && (
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                          isAppealApproved ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50"
+                        }`}>
+                          {isAppealApproved ? <FaCheckCircle className="text-[10px]" /> : <FaTimesCircle className="text-[10px]" />}
+                          {isAppealApproved ? "已通过" : "已驳回"}
+                        </span>
+                      )}
+                      {!w.isRead && (
+                        <span className="bg-yellow-100 text-yellow-800 text-[10px] px-1.5 py-0.5 rounded">
+                          新
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-semibold text-gray-900">{w.title}</h3>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap mt-1">{w.content}</p>
+                    {w.metadata?.reason && (
+                      <p className="text-xs text-gray-400 mt-1">原因：{w.metadata.reason}</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(w.createdAt).toLocaleDateString("zh-CN", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      {w.readAt && " · 已读"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="text-center py-16">
