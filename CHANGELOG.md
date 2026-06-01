@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.0] — 2026-06-01
+
+### 全量安全审计 + 修复（14 漏洞 + 12 索引）
+
+**致命漏洞修复**
+- JWT 密钥去硬编码回退 `"your-secret-key"`，未设置环境变量拒绝启动
+- `updateProductStatus` / 5 个图片规格端点加所有权校验
+- `GET /api/users/` 加 auth + 分页 + 脱敏（activeSessions/cart）
+- `GET /api/users/:id` 加 auth + 去 activeSessions
+- AI 路由加 authMiddleware（防刷 API 费用）
+
+**高危修复**
+- adminRoutes `$regex` 搜索参数转义（NoSQL 注入防护）
+- `updateProductById` 改为字段白名单（防修改 status/uploadedBy）
+- `updateUser` 响应去 password 哈希
+- appealRoutes 去内部 ID 泄露
+
+**中低修复**
+- wantedRoutes 公开列表去手机号
+- 用户列表加分页防全量拉取
+
+**数据库索引（12 个新增）**
+- Product: category/department/uploadedBy.id/purchasedBy.id 复合索引
+- Warning: userId+isRead+createdAt
+- Report: status+createdAt
+- Appeal: sellerId+createdAt, status+createdAt, 查重索引
+- Wanted: createdAt
+
+**其他**
+- nginx 加 `X-Forwarded-For` + Express `trust proxy`（限流 IP 识别修复）
+- express-rate-limit 降级容错（未安装时跳过）
+
+---
+
 ## [2.3.0] — 2026-06-01
 
 ### 多设备登录互踢 + 同浏览器账号互斥

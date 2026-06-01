@@ -31,8 +31,12 @@
 | 商品浏览 | 搜索、分类/学校/价格筛选、排序、分页 |
 | 商品详情 | 图片、描述、规格、库存、购买按钮 |
 | 购买功能 | 原子操作减库存，防超卖 |
+| 购物车 | 添加/修改/结算，批量购买 |
 | 个人资料 | 编辑信息、查看发布/购买记录 |
+| 求购/举报/申诉 | 完整的内容治理体系 |
 | AI 辅助 | 通义千问 API 生成描述、推荐分类 |
+| 管理后台 | 数据概览、举报/商品/用户/申诉管理 |
+| 安全防护 | IP 限流、手机号唯一、NoSQL 注入防护、多设备互踢 |
 
 **线上地址：** http://freevian.top:5000  
 **GitHub：** https://github.com/Y1221ting/Second-Hand-Platform.git
@@ -384,19 +388,23 @@ const product = await Product.findOneAndUpdate(
 5. 返回 { message: "注册成功" }
 ```
 
-### 登录
+### 登录（v2.3.0 重构：引入 session 机制）
 
 ```
 1. 前端填写邮箱+密码 → POST /api/users/login
-2. 后端查邮箱是否存在
-3. bcrypt.compare(password, hashedPassword)
-4. jwt.sign({ userId }, SECRET, { expiresIn: "1d" })
-5. 返回 { token: "xxx", user: { ... } }  — 扁平结构，前端直接存 localStorage
-6. 前端保存：localStorage.setItem("token", data.token)
-                localStorage.setItem("user", JSON.stringify(data.user))
+2. 后端查邮箱是否存在 → bcrypt.compare(password, hashedPassword)
+3. crypto.randomUUID() 生成唯一 sessionId（标识"这次登录"）
+4. jwt.sign({ userId, sessionId }, SECRET, { expiresIn: "1d" })
+   — JWT 里不再只有 userId，还带上 sessionId
+5. 用 updateOne + $push + $slice:-1 原子操作存储 session：
+   — activeSessions 数组只保留最近 1 条（自动踢掉旧设备）
+6. 返回 { token: "xxx", user: { ... } }
+7. 前端：localStorage.setItem("token", token)
+         localStorage.setItem("user", JSON.stringify(user))
+         authContext.setUser(user) → React 全局状态更新
 ```
 
-### 认证请求
+### 认证请求（每次 API 调用都会验证 session）
 
 ```
 // 所有需要登录的接口都在 Header 带 Token
@@ -404,23 +412,68 @@ headers: {
   Authorization: `Bearer ${localStorage.getItem("token")}`
 }
 
-// 后端解析 — authMiddleware
+// 后端解析 — authMiddleware：
 // 1. 取 Header 中的 Token
-// 2. jwt.verify → 得到 userId
-// 3. User.findById(userId) → req.user
-// 4. next()
+// 2. jwt.verify → 得到 { userId, sessionId }
+// 3. User.findById(userId) → 拿到用户文档（含 activeSessions）
+// 4. 检查 sessionId 是否在 activeSessions 中：
+//    - 在 → OK，req.user = user，放行
+//    - 不在 → 401 { code: "SESSION_EXPIRED" }（账号在别处登录了）
+// 5. next()
+```
+
+### 多设备登录互踢（v2.3.0 新增）
+
+核心原理：**一个账号只保留 1 个活跃 session**。
+
+```
+设备A 登录 → activeSessions = [sessionA]
+设备B 登录同一账号 → $push + $slice:-1 → activeSessions = [sessionB]
+设备A 下次请求 → sessionA 不在 activeSessions → 401 → 跳登录页
+```
+
+### 同浏览器跨标签页互斥（v2.4.0 修复）
+
+`localStorage` 是同源所有标签页共享的。`storage` 事件可以监听其他标签页的修改：
+
+```javascript
+// authContext.js 中的 storage 监听
+window.addEventListener("storage", (e) => {
+  if (e.key === "user" && e.newValue) {
+    const newUser = JSON.parse(e.newValue);
+    if (newUser.id === userIdRef.current) {
+      // 同一账号被另一个标签页重新登录 → 踢出当前页
+      window.location.href = "/login?session_expired=1";
+    } else {
+      // 不同账号 → 同步 React 状态到新账号
+      setUser(newUser);
+    }
+  }
+});
+```
+
+**为什么不同账号也要同步？** 因为 localStorage 是浏览器级别共享的。Tab2 登录账号 B 后，localStorage 里存的是 B 的 token。如果 Tab1 不更新 React 状态，UI 显示账号 A 但 API 请求带的是 B 的 token → 数据错乱。
+
+### 全局 fetch 拦截器（sessionGuard.js）
+
+```javascript
+// 劫持 window.fetch，检测 401 SESSION_EXPIRED
+// 服务端踢出 → 前端自动清登录态 → 派发 "session-expired" 事件
+// authContext 监听该事件 → 强制跳转登录页
 ```
 
 ### 前端认证状态
 
 ```
 // authContext.js — 全局 Context
-// 页面刷新时从 localStorage 恢复用户信息
-useEffect(() => {
-  const storedUser = localStorage.getItem("user")
-  if (storedUser) setUser(JSON.parse(storedUser))
-}, [])
+const [user, setUser] = useState(() => {
+  // 初始化时从 localStorage 恢复（页面刷新不丢登录态）
+  const stored = localStorage.getItem("user");
+  return stored ? JSON.parse(stored) : null;
+});
 
+// login(newUser, newToken) — 保存到 state + localStorage
+// logout() — 调后端登出接口 + 清除 state + localStorage
 // isAuthenticated = !!user
 // ProtectedRoute 根据 isAuthenticated 决定是否跳转登录
 ```
@@ -538,6 +591,83 @@ address: { type: String, minlength: [5, "地址至少需要5个字符"] }
 | beauty | 美妆个护 |
 | home | 家居日用 |
 | other | 其他 |
+
+---
+
+### 8.9 安全防护体系（v2.4.0 全量审计新增）
+
+#### IP 限流（防暴力破解）
+
+```javascript
+// Server/config/rateLimiter.js — 降级容错设计
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 分钟窗口
+  max: 20,                     // 最多 20 次
+  message: "登录请求过于频繁，请15分钟后再试",
+});
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,  // 1 小时窗口
+  max: 5,                      // 最多 5 次（防批量注册小号）
+});
+```
+
+**降级容错**：如果 `express-rate-limit` 没装（Docker 缓存问题），自动 fallback 为透传中间件，不影响正常使用。
+
+**nginx 配合**：必须配置 `X-Forwarded-For` 头 + Express `trust proxy`，否则限流会把所有请求当成同一 IP（Docker 内网 IP）。
+
+#### 手机号唯一性（防一人多号）
+
+```javascript
+// MongoDB 部分唯一索引 — 只对新用户生效，老用户不受影响
+userSchema.index(
+  { phoneNo: 1 },
+  { unique: true, partialFilterExpression: { phoneUniqueEnforced: true } }
+);
+// 新注册的用户 phoneUniqueEnforced 默认为 true → 手机号不能重复
+// 老用户 phoneUniqueEnforced 为 false → 不受影响
+```
+
+#### NoSQL 注入防护
+
+```javascript
+// 危险：用户输入直接拼进 $regex
+new RegExp(search)  // 输入 ".*" 会匹配所有
+
+// 安全：转义所有正则特殊字符
+const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+new RegExp(escaped, "i")
+```
+
+#### 字段白名单（防越权修改）
+
+```javascript
+// 危险：直接把 req.body 传给数据库
+await Product.findByIdAndUpdate(id, req.body);
+// 攻击者可以 POST { status: "deleted", uploadedBy: { id: "hacker" } }
+
+// 安全：只允许修改指定的字段
+const allowedFields = ["name", "description", "price", "category", "images"];
+const safeUpdate = {};
+allowedFields.forEach(f => {
+  if (req.body[f] !== undefined) safeUpdate[f] = req.body[f];
+});
+await Product.findByIdAndUpdate(id, safeUpdate);
+```
+
+#### 数据库索引（12 个，防全表扫描）
+
+| 模型 | 索引 | 加速场景 |
+|------|------|---------|
+| Product | `{ status, category, createdAt }` | 首页按分类筛选在售商品 |
+| Product | `{ status, "uploadedBy.department", createdAt }` | 同学院商品推荐 |
+| Product | `{ "uploadedBy.id", status }` | 查看我发布的商品 |
+| Product | `{ "purchasedBy.id" }` | 查看我购买的商品 |
+| Warning | `{ userId, isRead, createdAt }` | 用户通知列表 |
+| Report | `{ status, createdAt }` | 管理员举报列表 |
+| Appeal | `{ sellerId, createdAt }` | 用户申诉列表 |
+| Appeal | `{ status, createdAt }` | 管理员申诉列表 |
+| Appeal | `{ productId, sellerId, status }` | 申诉查重 |
+| Wanted | `{ createdAt }` | 求购列表按时间排序 |
 
 ---
 
@@ -1118,42 +1248,71 @@ A: 目前备份没有加密——这是安全缺口。`mongodump` 导出的 BSON
 ```
 d:\Second-Hand-main\
 ├── docker-compose.yml          # Docker 编排
-├── PROJECT_SUMMARY.md           # 项目文档（含API和模型说明）
-├── CHANGELOG.md                 # 版本历史
+├── PROJECT_SUMMARY.md           # 项目完整文档（含API和模型说明）
+├── CHANGELOG.md                 # 版本历史（v2.0.0 ~ v2.4.0）
+├── STUDY.md                     # 本文件：学习指南
 ├── Client/                      # 前端
-│   ├── Dockerfile               # nginx:alpine
-│   ├── nginx.conf               # 反向代理配置
+│   ├── Dockerfile               # nginx:alpine（直接 COPY build/）
+│   ├── nginx.conf               # 反向代理 + Gzip + 缓存 + X-Forwarded-For
 │   ├── tailwind.config.js
 │   └── src/
-│       ├── App.js               # 路由配置
-│       ├── index.js             # 入口
+│       ├── App.js               # 路由配置（React Router v6）
+│       ├── index.js             # React 入口
 │       ├── index.css            # Tailwind 指令
 │       ├── context/
-│       │   └── authContext.js   # 认证上下文
-│       └── components/          # 全部组件
+│       │   ├── authContext.js   # 认证上下文（登录态 + 多标签页同步）
+│       │   └── NotificationContext.js  # 通知上下文（30s 轮询）
+│       ├── components/          # 全部页面和通用组件
+│       │   ├── Home/            # 首页：搜索 + 筛选 + 列表 + 推荐 + 分页
+│       │   ├── Product_Details/ # 商品详情 + 推荐 + 购买弹窗
+│       │   ├── Profile/         # 个人主页 + 申诉
+│       │   ├── Admin/           # 管理后台
+│       │   ├── Edit_Product/    # 商品编辑表单
+│       │   ├── Utility/         # Navbar / Footer / ProductCard / Loading
+│       │   ├── Login.js         # 登录（含 session 过期提示）
+│       │   ├── Register.js      # 注册
+│       │   ├── ProductPage.js   # 商品详情 + 图集轮播 + 联系卖家
+│       │   ├── Cart.js          # 购物车
+│       │   ├── AddProduct.js    # 发布商品 + AI 辅助
+│       │   ├── UserProfile.js   # 用户主页
+│       │   ├── NotificationModal.js  # 强制通知弹窗
+│       │   └── ProtectedRoute.js     # 路由守卫 + 封禁拦截
+│       └── utils/
+│           └── sessionGuard.js  # 全局 fetch 拦截（SESSION_EXPIRED 自动清登录态）
 └── Server/
     ├── Dockerfile               # node:18-alpine
-    ├── server.js                # 入口
+    ├── server.js                # 入口（中间件链 + 路由注册）
+    ├── .env.example             # 环境变量模板
     ├── config/
-    │   ├── db.js                # MongoDB 连接
-    │   └── auth.js              # JWT + bcrypt
+    │   ├── db.js                # MongoDB 连接（Mongoose）
+    │   ├── auth.js              # JWT 签发/验证 + bcrypt 密码加密
+    │   ├── rateLimiter.js       # 登录/注册限流（降级容错设计）
+    │   └── majorMap.js          # 南昌师范学院学院-专业映射（13学院）
     ├── middleware/
-    │   └── authMiddleware.js    # JWT 认证
+    │   └── authMiddleware.js    # JWT 认证 + session 验证
     ├── models/
-    │   ├── User.js              # 用户模型
-    │   └── Product.js           # 商品模型
+    │   ├── User.js              # 用户（含 activeSessions, phoneUniqueEnforced）
+    │   ├── Product.js           # 商品（含 4 个复合索引）
+    │   ├── Wanted.js            # 求购
+    │   ├── Report.js            # 举报
+    │   ├── Appeal.js            # 申诉（含 3 个索引）
+    │   └── Warning.js           # 通知/警告（critical 强制弹窗）
     ├── controllers/
-    │   ├── userController.js
-    │   ├── productController.js   # + 推荐引擎
-    │   ├── aiController.js
-    │   ├── cartController.js      # 购物车
-    │   └── uploadController.js
+    │   ├── userController.js    # 注册/登录（原子操作）/登出/CRUD
+    │   ├── productController.js # 商品CRUD + 推荐引擎 + 购买（原子操作）
+    │   ├── aiController.js      # AI 生成描述 / 推荐分类
+    │   └── cartController.js    # 购物车 CRUD + 批量结算
     ├── routes/
-    │   ├── userRoutes.js
-    │   ├── productRoutes.js
-    │   ├── aiRoutes.js
-    │   ├── cartRoutes.js          # 购物车路由
-    │   └── uploadRoutes.js
+    │   ├── userRoutes.js        # /api/users（含 logout）
+    │   ├── productRoutes.js     # /api/products（含图片/规格子路由）
+    │   ├── aiRoutes.js          # /api/ai（auth 保护）
+    │   ├── cartRoutes.js        # /api/cart
+    │   ├── uploadRoutes.js      # /api/upload（multer 文件上传）
+    │   ├── wantedRoutes.js      # /api/wanted
+    │   ├── reportRoutes.js      # /api/reports
+    │   ├── adminRoutes.js       # /api/admin（含 NoSQL 注入防护）
+    │   ├── warningRoutes.js     # /api/warnings
+    │   └── appealRoutes.js      # /api/appeals
     └── services/
-        └── aiService.js           # 通义千问调用
+        └── aiService.js         # 通义千问 API 调用（qwen-plus）
 ```

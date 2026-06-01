@@ -96,6 +96,7 @@ d:\Second-Hand-main\
     ├── config/
     │   ├── db.js               # MongoDB连接
     │   ├── auth.js             # JWT + bcrypt工具
+    │   ├── rateLimiter.js      # 登录/注册限流（降级容错）
     │   └── majorMap.js         # 学院-专业映射（南昌师范学院）
     ├── middleware/
     │   └── authMiddleware.js   # JWT认证中间件
@@ -140,10 +141,10 @@ d:\Second-Hand-main\
 |------|------|------|------|
 | POST | `/api/users/register` | ❌ | 注册（college写死，接收department/major/dormitory） |
 | POST | `/api/users/login` | ❌ | 登录 |
-| GET | `/api/users/` | ❌ | 获取所有用户 |
-| GET | `/api/users/:userId` | ❌ | 获取用户详情 |
+| GET | `/api/users/` | ✅ | 获取所有用户（分页+脱敏） |
+| GET | `/api/users/:userId` | ✅ | 获取用户详情 |
 | PUT | `/api/users/:userId` | ✅ | 更新用户 |
-| DELETE | `/api/users/:userId` | ❌ | 删除用户 |
+| DELETE | `/api/users/:userId` | ✅ | 删除用户（本人校验） |
 
 ### 商品 `/api/products`
 | 方法 | 路径 | 认证 | 说明 |
@@ -167,8 +168,8 @@ d:\Second-Hand-main\
 ### AI `/api/ai`
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| POST | `/api/ai/generate-description` | ❌ | AI生成商品描述 |
-| POST | `/api/ai/recommend-category` | ❌ | AI推荐分类 |
+| POST | `/api/ai/generate-description` | ✅ | AI生成商品描述 |
+| POST | `/api/ai/recommend-category` | ✅ | AI推荐分类 |
 
 ### 购物车 `/api/cart`
 | 方法 | 路径 | 认证 | 说明 |
@@ -487,6 +488,9 @@ docker compose up -d --build frontend
 38. ✅ **站内私信 IM** - 会话列表 + 聊天窗口（气泡UI + 5s轮询 + 已读/未读），商品详情页"联系卖家"
 39. ✅ **商品图集轮播** - 多图主图+缩略图导航+左右箭头+灯箱全屏预览
 40. ✅ **多设备登录互踢** - 同一账号只允许 1 个活跃设备（服务端 activeSessions）+ 同浏览器跨标签页互斥（storage 事件 + 旧账号自动登出）
+41. ✅ **IP 限流** - 登录 15 分钟限 20 次，注册 1 小时限 5 次（express-rate-limit 降级容错）
+42. ✅ **手机号唯一性** - 新注册手机号不可重复（MongoDB partial unique index，老用户不受影响）
+43. ✅ **全量安全审计** - 修复 14 个漏洞（越权/注入/信息泄露）+ 12 个数据库索引
 
 ## 待优化/已知问题
 
@@ -500,7 +504,7 @@ docker compose up -d --build frontend
 
 ## 安全与稳定性审计
 
-### ✅ 已修复汇总
+### ✅ 已修复汇总（第一批 v1.x）
 
 | 问题 | 危险等级 | 说明 |
 |------|---------|------|
@@ -518,6 +522,23 @@ docker compose up -d --build frontend
 | **body-parser 50MB DoS 风险** | 🟡中 | 降为 10MB |
 | **删除用户→商品变孤儿** | 🟡中 | 级联标记为 inactive |
 | **auth.js 返回值嵌套** | 🟡中 | createSession 直接返回字符串，响应扁平化 |
+
+### ✅ 已修复汇总（第二批 v2.4.0）
+
+| 问题 | 危险等级 | 说明 |
+|------|---------|------|
+| **JWT 密钥回退硬编码** | 🔴致命 | 移除 `"your-secret-key"` 回退，未设环境变量拒绝启动 |
+| **5 个图片/规格端点无所有权校验** | 🔴致命 | updateProductStatus + 图片增删 + 规格增删改 全部加 ownership check |
+| **GET /api/users 全量泄露** | 🔴致命 | 加 authMiddleware + 分页 + 脱敏 activeSessions/cart |
+| **GET /api/users/:id 泄露 session** | 🟡中 | 加 authMiddleware + 去 activeSessions |
+| **AI 路由无认证** | 🟡中 | 加 authMiddleware，防外部刷 API 费用 |
+| **adminRoutes $regex 注入** | 🔴致命 | 搜索参数正则转义，防 NoSQL 注入 |
+| **updateProductById 字段可篡改** | 🔴致命 | 改为字段白名单，status/uploadedBy 不可通过此接口修改 |
+| **updateUser 响应泄露密码哈希** | 🟡中 | 返回前 delete password |
+| **appealRoutes 内部 ID 泄露** | 🟢低 | 403/500 错误消息去掉内部用户 ID |
+| **wantedRoutes 手机号泄露** | 🟡中 | 公开列表去掉 postedBy.phone |
+| **用户列表无分页** | 🟡中 | 全量拉取 → 分页查询 |
+| **无 IP 限流** | 🟡中 | 登录 15min/20次 + 注册 1h/5次 + 降级容错 |
 
 ### ⚠️ 需注意
 
