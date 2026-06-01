@@ -29,7 +29,7 @@ const authMiddleware = async (req, res, next) => {
     }
 
     // 3.5 检查 session 是否仍然有效（防多设备同时登录）
-    if (decoded.sessionId) {
+    if (decoded.sessionId && user.activeSessions) {
       const sessionActive = user.activeSessions.some(
         (s) => s.sessionId === decoded.sessionId
       );

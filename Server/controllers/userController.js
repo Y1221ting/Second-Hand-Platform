@@ -79,6 +79,9 @@ exports.loginUser = async (req, res) => {
     const device = req.headers["user-agent"]
       ? req.headers["user-agent"].substring(0, 100)
       : "未知设备";
+    if (!existingUser.activeSessions) {
+      existingUser.activeSessions = [];
+    }
     existingUser.activeSessions.push({ sessionId, device, loginAt: new Date() });
     // 只保留最新的 1 个 session（踢掉旧设备）
     while (existingUser.activeSessions.length > 1) {
@@ -103,9 +106,11 @@ exports.logoutUser = async (req, res) => {
     if (sessionId) {
       const user = await User.findById(req.user._id);
       if (user) {
-        user.activeSessions = user.activeSessions.filter(
-          (s) => s.sessionId !== sessionId
-        );
+        if (user.activeSessions) {
+          user.activeSessions = user.activeSessions.filter(
+            (s) => s.sessionId !== sessionId
+          );
+        }
         await user.save();
       }
     }
