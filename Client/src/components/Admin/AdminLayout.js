@@ -1,14 +1,7 @@
 import React from "react";
 import { NavLink, Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
-import {
-  FaTachometerAlt,
-  FaFlag,
-  FaBox,
-  FaUsers,
-  FaGavel,
-  FaExclamationTriangle,
-} from "react-icons/fa";
+import { FaTachometerAlt, FaFlag, FaBox, FaUsers, FaGavel, FaExclamationTriangle, FaHome } from "react-icons/fa";
 
 const AdminLayout = () => {
   const { isAdmin, user } = useAuth();
@@ -29,14 +22,14 @@ const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* 侧边栏 */}
-      <aside className="w-56 bg-gray-900 text-white flex-shrink-0 min-h-screen">
+      <aside className="w-56 bg-gray-900 text-white flex-shrink-0 min-h-screen flex flex-col">
         <div className="p-4 border-b border-gray-700">
           <h2 className="text-lg font-bold">
             <span className="text-yellow-500">管理</span>后台
           </h2>
           <p className="text-gray-400 text-xs mt-1 truncate">{user?.fullName || user?.name}</p>
         </div>
-        <nav className="py-2">
+        <nav className="py-2 flex-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
@@ -55,6 +48,17 @@ const AdminLayout = () => {
             </NavLink>
           ))}
         </nav>
+
+        {/* 返回首页 */}
+        <div className="p-3 border-t border-gray-700">
+          <NavLink
+            to="/home"
+            className="flex items-center gap-3 px-4 py-3 text-sm text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-colors"
+          >
+            <FaHome className="text-xs" />
+            返回首页
+          </NavLink>
+        </div>
       </aside>
 
       {/* 内容区 */}
