@@ -49,4 +49,6 @@ wantedSchema.set("toObject", {
   },
 });
 
+wantedSchema.index({ createdAt: -1 }); // 求购列表按时间排序
+
 module.exports = mongoose.model("Wanted", wantedSchema);

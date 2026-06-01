@@ -37,4 +37,6 @@ const reportSchema = new mongoose.Schema({
   },
 });
 
+reportSchema.index({ status: 1, createdAt: -1 }); // 管理员举报列表
+
 module.exports = mongoose.model("Report", reportSchema);

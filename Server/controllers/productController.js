@@ -155,19 +155,28 @@ exports.updateProductById = async (req, res) => {
       return res.status(403).json({ message: "Forbidden: You can only update your own products" });
     }
 
+    // 字段白名单：防止通过 req.body 修改 status/purchasedBy/uploadedBy 等敏感字段
+    const allowedFields = ["name", "description", "price", "category", "images", "specifications", "quantity"];
+    const safeUpdate = {};
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        safeUpdate[field] = req.body[field];
+      }
+    });
+
     // Validate price if it's being updated
-    if (req.body.price !== undefined) {
-      if (req.body.price <= 0) {
+    if (safeUpdate.price !== undefined) {
+      if (safeUpdate.price <= 0) {
         return res.status(400).json({ message: "Price must be greater than 0" });
       }
-      if (req.body.price > 9999.9) {
+      if (safeUpdate.price > 9999.9) {
         return res.status(400).json({ message: "价格不能超过 ¥9999.9" });
       }
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, req.body, {
+    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, safeUpdate, {
       new: true,
-      runValidators: true, // 确保 price > 0 等校验被触发
+      runValidators: true,
     });
     // 显式转换 Decimal128 价格为数字
     const updateResult = updatedProduct.toObject();
@@ -256,6 +265,15 @@ exports.getPurchasedProducts = async (req, res) => {
   }
 };
 
+// Check product ownership helper
+function checkOwnership(product, userId, res) {
+  if (product.uploadedBy.id !== userId) {
+    res.status(403).json({ message: "Forbidden" });
+    return false;
+  }
+  return true;
+}
+
 // Add an image to a product
 exports.addImageToProduct = async (req, res) => {
   try {
@@ -263,6 +281,7 @@ exports.addImageToProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    if (!checkOwnership(product, req.user._id.toString(), res)) return;
     product.images.push(req.body.imageUrl);
     await product.save();
     res.status(200).json(product);
@@ -279,7 +298,7 @@ exports.removeImageFromProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-
+    if (!checkOwnership(product, req.user._id.toString(), res)) return;
     product.images.splice(req.params.imageIndex, 1);
     await product.save();
     res.status(200).json(product);
@@ -296,6 +315,7 @@ exports.addSpecificationToProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    if (!checkOwnership(product, req.user._id.toString(), res)) return;
     product.specifications.push(req.body);
     await product.save();
     res.status(200).json(product);
@@ -312,6 +332,7 @@ exports.updateProductSpecification = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    if (!checkOwnership(product, req.user._id.toString(), res)) return;
     const specification = product.specifications.id(req.params.specificationId);
     if (!specification) {
       return res.status(404).json({ message: "Specification not found" });
@@ -333,6 +354,7 @@ exports.removeProductSpecification = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    if (!checkOwnership(product, req.user._id.toString(), res)) return;
     const specification = product.specifications.id(req.params.specificationId);
     if (!specification) {
       return res.status(404).json({ message: "Specification not found" });
@@ -493,17 +515,18 @@ exports.updateProductStatus = async (req, res) => {
   const { status } = req.body;
 
   try {
-    // Find the product by ID
     const product = await Product.findById(id);
 
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    // Update the status of the product
-    product.status = status;
+    // 所有权校验：只能修改自己的商品
+    if (product.uploadedBy.id !== req.user._id.toString()) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
 
-    // Save the updated product
+    product.status = status;
     await product.save();
 
     res.json(product);

@@ -8,8 +8,8 @@ const { loginLimiter, registerLimiter } = require("../config/rateLimiter");
 router.post("/register", registerLimiter, userController.registerUser);
 router.post("/login", loginLimiter, userController.loginUser);
 router.post("/logout", authMiddleware, userController.logoutUser);
-router.get("/", userController.getAllUsers);
-router.get("/:userId", userController.getUserById);
+router.get("/", authMiddleware, userController.getAllUsers);
+router.get("/:userId", authMiddleware, userController.getUserById);
 router.put("/:userId", authMiddleware, userController.updateUser);
 router.delete("/:userId", authMiddleware, userController.deleteUser);
 

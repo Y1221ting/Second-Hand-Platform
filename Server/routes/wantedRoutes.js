@@ -45,6 +45,9 @@ router.get("/", async (req, res) => {
     const result = wanteds.map((w) => {
       const obj = w.toObject();
       obj.budget = Number(obj.budget) || 0;
+      if (obj.postedBy) {
+        delete obj.postedBy.phone; // 公开列表不暴露手机号
+      }
       return obj;
     });
     res.json(result);

@@ -33,4 +33,8 @@ const appealSchema = new mongoose.Schema({
   },
 });
 
+appealSchema.index({ sellerId: 1, createdAt: -1 });           // 用户申诉列表
+appealSchema.index({ status: 1, createdAt: -1 });              // 管理员申诉列表
+appealSchema.index({ productId: 1, sellerId: 1, status: 1 }); // 查重
+
 module.exports = mongoose.model("Appeal", appealSchema);

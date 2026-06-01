@@ -130,12 +130,14 @@ router.get("/products", async (req, res) => {
     const search = req.query.search || "";
     const status = req.query.status || "";
 
+    const escaped = search ? search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : "";
+
     const query = {};
-    if (search) {
+    if (escaped) {
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { "uploadedBy.name": { $regex: search, $options: "i" } },
-        { "uploadedBy.department": { $regex: search, $options: "i" } },
+        { name: { $regex: escaped, $options: "i" } },
+        { "uploadedBy.name": { $regex: escaped, $options: "i" } },
+        { "uploadedBy.department": { $regex: escaped, $options: "i" } },
       ];
     }
     if (status) query.status = status;
@@ -214,13 +216,15 @@ router.get("/users", async (req, res) => {
     const role = req.query.role || "";
     const status = req.query.status || "";
 
+    const escapedUserSearch = search ? search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : "";
+
     const conditions = [];
-    if (search) {
+    if (escapedUserSearch) {
       conditions.push({
         $or: [
-          { fullName: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } },
-          { department: { $regex: search, $options: "i" } },
+          { fullName: { $regex: escapedUserSearch, $options: "i" } },
+          { email: { $regex: escapedUserSearch, $options: "i" } },
+          { department: { $regex: escapedUserSearch, $options: "i" } },
         ],
       });
     }

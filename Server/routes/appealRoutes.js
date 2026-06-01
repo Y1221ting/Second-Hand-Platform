@@ -23,7 +23,7 @@ router.post("/", authMiddleware, async (req, res) => {
     }
     if (product.uploadedBy.id !== req.user._id.toString()) {
       return res.status(403).json({
-        message: `只能申诉自己的商品（当前用户: ${req.user._id}, 商品所属: ${product.uploadedBy.id}）`,
+        message: "只能申诉自己的商品",
         code: "NOT_OWNER",
       });
     }
@@ -63,7 +63,7 @@ router.post("/", authMiddleware, async (req, res) => {
     if (error.name === "CastError") {
       return res.status(400).json({ message: `无效的商品ID格式: ${req.body.productId}`, code: "INVALID_ID" });
     }
-    res.status(500).json({ message: "服务器内部错误", detail: error.message, code: "SERVER_ERROR" });
+    res.status(500).json({ message: "服务器内部错误", code: "SERVER_ERROR" });
   }
 });
 

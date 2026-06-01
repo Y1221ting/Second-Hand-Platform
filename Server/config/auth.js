@@ -2,7 +2,11 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 
-const SECRET = process.env.JWT_SECRET || "your-secret-key"; // Use environment variable for security
+if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "change-me-in-production") {
+  console.error("FATAL: JWT_SECRET 环境变量未设置，拒绝启动");
+  process.exit(1);
+}
+const SECRET = process.env.JWT_SECRET;
 
 async function hashPassword(password) {
   return await bcrypt.hash(password, 8);

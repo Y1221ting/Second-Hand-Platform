@@ -125,8 +125,17 @@ exports.logoutUser = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
-    res.json(users);
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const [users, total] = await Promise.all([
+      User.find()
+        .select("-password -activeSessions -cart")
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      User.countDocuments(),
+    ]);
+    res.json({ users, total, page, totalPages: Math.ceil(total / limit) });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
@@ -142,6 +151,7 @@ exports.getUserById = async (req, res) => {
     // 兼容旧用户没有 createdAt 的情况
     const result = user.toObject();
     delete result.password;
+    delete result.activeSessions; // 不暴露登录会话信息
     if (!result.createdAt) {
       result.createdAt = result.updatedAt || new Date("2026-01-01");
     }
@@ -201,7 +211,11 @@ exports.updateUser = async (req, res) => {
       );
     }
 
-    res.json(user);
+    // 返回前移除 password 和 activeSessions
+    const result = user.toObject();
+    delete result.password;
+    delete result.activeSessions;
+    res.json(result);
   } catch (error) {
     // Check for specific validation errors
     if (error.name === "ValidationError") {

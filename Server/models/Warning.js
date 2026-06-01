@@ -47,4 +47,7 @@ const warningSchema = new mongoose.Schema({
   },
 });
 
+warningSchema.index({ userId: 1, isRead: 1, createdAt: -1 }); // 用户通知列表
+warningSchema.index({ createdAt: -1 });                         // 管理员通知列表
+
 module.exports = mongoose.model("Warning", warningSchema);

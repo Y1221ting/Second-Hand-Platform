@@ -81,6 +81,11 @@ const ProductSchema = new mongoose.Schema({
 // 索引定义必须在 model() 之前才生效
 ProductSchema.index({ name: "text", description: "text" });
 ProductSchema.index({ createdAt: -1 });
+// 复合索引：覆盖常见筛选 + 排序组合
+ProductSchema.index({ status: 1, category: 1, createdAt: -1 });         // 分类筛选 + 最新
+ProductSchema.index({ status: 1, "uploadedBy.department": 1, createdAt: -1 }); // 学院排序
+ProductSchema.index({ "uploadedBy.id": 1, status: 1 });                 // 用户商品列表
+ProductSchema.index({ "purchasedBy.id": 1 });                           // 已购商品列表
 
 // 确保 Decimal128 类型的 price 始终以字符串形式输出
 ProductSchema.set("toJSON", {
