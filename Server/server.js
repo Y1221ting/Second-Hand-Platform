@@ -16,6 +16,8 @@ connectDB();
 const app = express();
 
 // Middleware
+// [新增] 信任反向代理 — 使 rate-limit 能正确获取真实客户端 IP
+app.set("trust proxy", 1);
 // [新增] 响应压缩（需放在其他中间件之前）
 app.use(compression());
 app.use(bodyParser.json({ limit: "10mb" }));
