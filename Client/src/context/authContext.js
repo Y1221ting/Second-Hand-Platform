@@ -71,17 +71,22 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener("session-expired", handler);
   }, []);
 
-  // 监听 localStorage 跨标签页变化：只在"同一账号"被其他标签页登录时踢出
+  // 监听 localStorage 跨标签页变化（同浏览器只允许一个账号登录）
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "user" && e.newValue) {
         try {
           const newUser = JSON.parse(e.newValue);
-          // 只在同一个账号 ID 时踢出，不同账号不受影响
-          if (userIdRef.current && newUser.id === userIdRef.current) {
+          if (!userIdRef.current) return;
+          if (newUser.id === userIdRef.current) {
+            // 同一账号被其他标签页重新登录 → 踢出当前页
             setUser(null);
             userIdRef.current = null;
             window.location.href = "/login?session_expired=1";
+          } else {
+            // 不同账号 → 同步到新账号（同浏览器只能有一个账号）
+            setUser(newUser);
+            userIdRef.current = newUser.id;
           }
         } catch (_) {
           // JSON 解析失败忽略
