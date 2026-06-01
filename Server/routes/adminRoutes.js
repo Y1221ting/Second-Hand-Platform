@@ -214,16 +214,29 @@ router.get("/users", async (req, res) => {
     const role = req.query.role || "";
     const status = req.query.status || "";
 
-    const query = {};
+    const conditions = [];
     if (search) {
-      query.$or = [
-        { fullName: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { department: { $regex: search, $options: "i" } },
-      ];
+      conditions.push({
+        $or: [
+          { fullName: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } },
+          { department: { $regex: search, $options: "i" } },
+        ],
+      });
     }
-    if (role) query.role = role;
-    if (status) query.status = status;
+    if (role) {
+      if (role === "user") {
+        // 兼容旧数据：早期用户可能没有 role 字段
+        conditions.push({
+          $or: [{ role: "user" }, { role: { $exists: false } }],
+        });
+      } else {
+        conditions.push({ role });
+      }
+    }
+    if (status) conditions.push({ status });
+
+    const query = conditions.length > 0 ? { $and: conditions } : {};
 
     const [users, total] = await Promise.all([
       User.find(query)
