@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] — 2026-06-01
+
+### P0 优化 — 评价系统 + 站内私信 + 商品图集
+
+**后端**
+- 新增 `Review` 模型：评分 1-5 星，买卖双方互评，一个订单仅一次
+- 新增 `Conversation` / `Message` 模型：会话 + 消息 + 已读/未读状态
+- 新增 `reviewRoutes`：创建评价 / 用户评价列表 / 评分统计 / 商品评价
+- 新增 `messageRoutes`：会话列表 / 创建会话 / 消息列表 / 发送消息 / 未读总数
+
+**前端**
+- `ProductDetails` — 图片轮播（主图+缩略图+灯箱全屏预览）+ 卖家信用展示 + "联系卖家"按钮
+- `UserProfile` — 新增"评价"Tab（评分统计卡片 + 评价列表）
+- `ConversationList`（新建）— 会话列表 + 未读角标 + 关联商品预览
+- `ChatWindow`（新建）— 聊天窗口（气泡UI + 5s轮询 + 已读/未读）
+- `Navbar` — 新增消息图标 + 蓝色未读角标（15s轮询）
+- `AdminLayout` — 侧边栏底部"返回首页"链接
+- `App.js` — 新增 `/messages` 和 `/messages/:conversationId` 路由
+
+---
+
 ## [2.1.0] — 2026-06-01
 
 ### 通知系统 + 管理员互保

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { FaUser, FaSearch, FaBell, FaShieldAlt } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaUser, FaSearch, FaBell, FaEnvelope, FaShieldAlt } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -8,9 +8,27 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
+
+  // 消息未读数轮询
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const fetchUnread = () => {
+      const token = localStorage.getItem("token");
+      fetch("/api/conversations/unread-count", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => setUnreadMessages(data.unreadCount || 0))
+        .catch(() => {});
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 15000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const handleSearch = (e) => {
     if (e.key === "Enter") {
@@ -106,6 +124,20 @@ const Navbar = () => {
               className="hidden md:inline text-white hover:text-yellow-500 px-3 py-1 text-sm font-medium transition-colors whitespace-nowrap"
             >
               个人中心
+            </Link>
+
+            {/* 私信 */}
+            <Link
+              to="/messages"
+              className="relative text-gray-400 hover:text-yellow-500 p-2 transition-colors"
+              title="消息"
+            >
+              <FaEnvelope className="text-sm" />
+              {unreadMessages > 0 && (
+                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                  {unreadMessages > 9 ? "9+" : unreadMessages}
+                </span>
+              )}
             </Link>
 
             {/* 警告通知铃铛 */}

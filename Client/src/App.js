@@ -20,6 +20,8 @@ const AddProduct = lazy(() => import("./components/AddProduct"));
 const EditProduct = lazy(() => import("./components/EditProduct"));
 const Cart = lazy(() => import("./components/Cart"));
 const Warnings = lazy(() => import("./components/Warnings"));
+const ConversationList = lazy(() => import("./components/ConversationList"));
+const ChatWindow = lazy(() => import("./components/ChatWindow"));
 
 // 管理后台懒加载
 const AdminLayout = lazy(() => import("./components/Admin/AdminLayout"));
@@ -122,6 +124,24 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <Warnings />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 站内私信 */}
+              <Route
+                path="/messages"
+                element={
+                  <ProtectedRoute>
+                    <ConversationList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/messages/:conversationId"
+                element={
+                  <ProtectedRoute>
+                    <ChatWindow />
                   </ProtectedRoute>
                 }
               />

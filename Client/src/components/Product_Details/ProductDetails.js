@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaEdit, FaShoppingCart } from "react-icons/fa";
+import { FaEdit, FaShoppingCart, FaStar, FaComment, FaChevronLeft, FaChevronRight, FaTimes, FaExpand } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
 import Dialog from "./Dialog";
@@ -13,6 +13,9 @@ const ProductDetails = ({ productId }) => {
   const [clickedButtonId, setClickedButtonId] = useState(null);
   const [productDetails, setProductDetails] = useState(null);
   const [cartAdded, setCartAdded] = useState(false);
+  const [activeImage, setActiveImage] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [sellerRating, setSellerRating] = useState(null);
 
   const [isDialogOpen, setDialogOpen] = useState(false);
 
@@ -114,6 +117,44 @@ const ProductDetails = ({ productId }) => {
     fetchProductDetails();
   }, [productId]);
 
+  // 获取卖家评分
+  useEffect(() => {
+    if (!productDetails?.uploadedBy?.id) return;
+    fetch(`/api/reviews/user/${productDetails.uploadedBy.id}/stats`)
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => { if (data) setSellerRating(data); })
+      .catch(() => {});
+  }, [productDetails?.uploadedBy?.id]);
+
+  // 联系卖家 → 创建/查找会话 → 跳转聊天
+  const handleContactSeller = async () => {
+    if (!user) {
+      alert("请先登录");
+      navigate("/login");
+      return;
+    }
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/conversations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          participantId: productDetails.uploadedBy.id,
+          productId: productDetails._id,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        navigate(`/messages/${data.conversation._id}`);
+      }
+    } catch {
+      alert("网络错误");
+    }
+  };
+
   if (!productDetails) {
     return <Loading />;
   }
@@ -132,18 +173,111 @@ const ProductDetails = ({ productId }) => {
         </Link>
       )}
       <div className="flex flex-col md:flex-row p-4 gap-6">
-        {/* [修正] 图片适配：宽度占一半，自然显示，不裁不压 */}
+        {/* 图片轮播 */}
         <div className="w-full md:w-1/2 rounded-lg overflow-hidden bg-gray-200">
-          <img
-            src={productDetails.images[0]}
-            alt={productDetails.name}
-            width={800}
-            height={600}
-            loading="lazy"
-            className="w-full h-auto"
-            style={{ display: 'block' }}
-          />
+          {productDetails.images && productDetails.images.length > 1 ? (
+            <>
+              {/* 主图 */}
+              <div className="relative group">
+                <img
+                  src={productDetails.images[activeImage]}
+                  alt={productDetails.name}
+                  width={800}
+                  height={600}
+                  className="w-full h-auto cursor-pointer"
+                  style={{ display: 'block' }}
+                  onClick={() => setLightboxOpen(true)}
+                />
+                {/* 左右箭头 */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); setActiveImage((prev) => prev === 0 ? productDetails.images.length - 1 : prev - 1); }}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <FaChevronLeft className="text-sm" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setActiveImage((prev) => prev === productDetails.images.length - 1 ? 0 : prev + 1); }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <FaChevronRight className="text-sm" />
+                </button>
+                {/* 放大按钮 */}
+                <button
+                  onClick={() => setLightboxOpen(true)}
+                  className="absolute right-2 bottom-2 w-8 h-8 bg-black/50 hover:bg-black/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <FaExpand className="text-xs" />
+                </button>
+              </div>
+              {/* 缩略图导航 */}
+              <div className="flex gap-1 p-2 overflow-x-auto">
+                {productDetails.images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setActiveImage(idx)}
+                    className={`shrink-0 w-14 h-14 rounded overflow-hidden border-2 transition-colors ${
+                      idx === activeImage ? "border-yellow-500" : "border-transparent hover:border-gray-400"
+                    }`}
+                  >
+                    <img src={img} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <img
+              src={productDetails.images?.[0] || productDetails.image}
+              alt={productDetails.name}
+              width={800}
+              height={600}
+              loading="lazy"
+              className="w-full h-auto"
+              style={{ display: 'block' }}
+            />
+          )}
         </div>
+
+        {/* 灯箱全屏预览 */}
+        {lightboxOpen && productDetails.images && productDetails.images.length > 1 && (
+          <div className="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center" onClick={() => setLightboxOpen(false)}>
+            <button
+              onClick={() => setLightboxOpen(false)}
+              className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
+            >
+              <FaTimes className="text-lg" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setActiveImage((prev) => prev === 0 ? productDetails.images.length - 1 : prev - 1); }}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
+            >
+              <FaChevronLeft className="text-lg" />
+            </button>
+            <img
+              src={productDetails.images[activeImage]}
+              alt={productDetails.name}
+              className="max-w-[90vw] max-h-[90vh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={(e) => { e.stopPropagation(); setActiveImage((prev) => prev === productDetails.images.length - 1 ? 0 : prev + 1); }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
+            >
+              <FaChevronRight className="text-lg" />
+            </button>
+            {/* 灯箱缩略图 */}
+            <div className="absolute bottom-4 flex gap-1">
+              {productDetails.images.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setActiveImage(idx); }}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    idx === activeImage ? "bg-yellow-500" : "bg-white/50 hover:bg-white/80"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        )}
         <div className="md:mt-0 flex-1 min-w-0">
           <h1 className="text-3xl font-semibold">{productDetails.name}</h1>
           <p className="text-gray-500 mt-2">
@@ -168,6 +302,17 @@ const ProductDetails = ({ productId }) => {
               }
             </p>
           )}
+
+          {/* 卖家信用卡片 */}
+          {sellerRating && sellerRating.totalReviews > 0 && (
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <FaStar className="text-yellow-500" />
+              <span className="font-semibold text-gray-900">{sellerRating.avgRating}</span>
+              <span className="text-gray-500">· 好评率 {sellerRating.positiveRate}%</span>
+              <span className="text-gray-400">· {sellerRating.totalReviews} 条评价</span>
+            </div>
+          )}
+
           <p className="text-2xl font-semibold mt-4">
             ¥{Math.min(Number(productDetails.price ?? 0), 9999.9).toFixed(1)}
           </p>
@@ -178,7 +323,7 @@ const ProductDetails = ({ productId }) => {
             {userId === productDetails.uploadedBy?.id ? (
               <p className="mt-8 text-lg text-gray-500 italic">这是您的商品</p>
             ) : (
-              <div className="mt-8 flex gap-4">
+              <div className="mt-8 flex gap-4 flex-wrap">
                 <button
                   onClick={() => {
                     if (productDetails.status !== "sold_out" && productDetails.quantity > 0) {
@@ -230,6 +375,13 @@ const ProductDetails = ({ productId }) => {
                   {productDetails.status === "sold_out" || productDetails.quantity <= 0
                     ? "已售罄"
                     : "立即购买"}
+                </button>
+                <button
+                  onClick={handleContactSeller}
+                  className="flex items-center px-5 py-3 rounded text-lg bg-blue-500 hover:bg-blue-600 text-white transition duration-300"
+                >
+                  <FaComment className="mr-2" />
+                  联系卖家
                 </button>
               </div>
             )}
