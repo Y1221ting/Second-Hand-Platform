@@ -38,7 +38,11 @@ exports.registerUser = async (req, res) => {
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
     console.error(error);
-    // 2. Handle validation errors (missing fields, invalid format)
+    // 手机号重复（MongoDB 唯一索引冲突）
+    if (error.code === 11000 && error.keyPattern?.phoneNo) {
+      return res.status(400).json({ message: "该手机号已注册，请直接登录" });
+    }
+    // Handle validation errors (missing fields, invalid format)
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: error.message });
     }

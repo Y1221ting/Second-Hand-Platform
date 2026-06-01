@@ -101,7 +101,17 @@ const userSchema = new mongoose.Schema({
     ],
     default: [],
   },
+  phoneUniqueEnforced: {
+    type: Boolean,
+    default: true,
+  },
 }, { timestamps: true });
+
+// 部分唯一索引：只对新注册用户（phoneUniqueEnforced=true）强制手机号唯一，老用户不受影响
+userSchema.index(
+  { phoneNo: 1 },
+  { unique: true, partialFilterExpression: { phoneUniqueEnforced: true } }
+);
 
 const User = mongoose.model("User", userSchema);
 
