@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { FaUser, FaSearch } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaUser, FaSearch, FaBell, FaShieldAlt } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -7,8 +7,20 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const { isAuthenticated, user, logout } = useAuth();
+  const [unreadWarnings, setUnreadWarnings] = useState(0);
+  const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const token = localStorage.getItem("token");
+    fetch("/api/warnings/?isRead=false", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => setUnreadWarnings(data.unreadCount || 0))
+      .catch(() => {});
+  }, [isAuthenticated]);
 
   const handleSearch = (e) => {
     if (e.key === "Enter") {
@@ -106,6 +118,20 @@ const Navbar = () => {
               个人中心
             </Link>
 
+            {/* 警告通知铃铛 */}
+            <Link
+              to="/warnings"
+              className="relative text-gray-400 hover:text-yellow-500 p-2 transition-colors"
+              title="系统通知"
+            >
+              <FaBell className="text-sm" />
+              {unreadWarnings > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                  {unreadWarnings > 9 ? "9+" : unreadWarnings}
+                </span>
+              )}
+            </Link>
+
             {/* 头像 + 下拉菜单 */}
             <div className="relative ml-1">
               <button
@@ -153,6 +179,16 @@ const Navbar = () => {
                     >
                       发布商品
                     </Link>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        className="block px-4 py-2.5 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition-colors text-sm flex items-center gap-2"
+                        onClick={() => setIsDropdownOpen(false)}
+                      >
+                        <FaShieldAlt className="text-xs" />
+                        管理后台
+                      </Link>
+                    )}
                     <hr className="my-1 border-gray-100" />
                     <button
                       onClick={handleLogout}

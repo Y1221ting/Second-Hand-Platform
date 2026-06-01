@@ -17,6 +17,16 @@ const UserProfile = lazy(() => import("./components/UserProfile"));
 const AddProduct = lazy(() => import("./components/AddProduct"));
 const EditProduct = lazy(() => import("./components/EditProduct"));
 const Cart = lazy(() => import("./components/Cart"));
+const Warnings = lazy(() => import("./components/Warnings"));
+
+// 管理后台懒加载
+const AdminLayout = lazy(() => import("./components/Admin/AdminLayout"));
+const Dashboard = lazy(() => import("./components/Admin/Dashboard"));
+const AdminReports = lazy(() => import("./components/Admin/Reports"));
+const AdminProducts = lazy(() => import("./components/Admin/Products"));
+const AdminUsers = lazy(() => import("./components/Admin/Users"));
+const AdminAppeals = lazy(() => import("./components/Admin/Appeals"));
+const AdminWarnings = lazy(() => import("./components/Admin/Warnings"));
 
 // [新增] 懒加载时显示的 loading 状态
 const PageLoading = () => (
@@ -102,6 +112,34 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
+
+              {/* 用户警告页 */}
+              <Route
+                path="/warnings"
+                element={
+                  <ProtectedRoute>
+                    <Warnings />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 管理员后台 */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="reports" element={<AdminReports />} />
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="appeals" element={<AdminAppeals />} />
+                <Route path="warnings" element={<AdminWarnings />} />
+              </Route>
             </Routes>
           </Suspense>
         </ErrorBoundary>

@@ -39,7 +39,10 @@ const Login = () => {
       login({
         id: data.user._id,
         name: data.user.fullName,
+        fullName: data.user.fullName,
         college: data.user.college,
+        department: data.user.department,
+        role: data.user.role || "user",
       });
       navigate("/home");
     } else {

@@ -6,6 +6,8 @@ import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import ConfirmDialog from "./Profile/ConfirmDialog";
 import ProductList from "./Profile/ProductList";
+import AppealList from "./Profile/AppealList";
+import AppealForm from "./Profile/AppealForm";
 import Loading from "./Utility/Loading";
 
 const UserProfile = () => {
@@ -21,6 +23,8 @@ const UserProfile = () => {
   const [formData, setFormData] = useState({});
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState(null);
+  const [appeals, setAppeals] = useState([]);
+  const [appealProduct, setAppealProduct] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -74,7 +78,19 @@ const UserProfile = () => {
       })
       .catch(() => setCartItems([]))
       .finally(() => setCartLoading(false));
-  }, []);
+
+    // 获取申诉记录（仅本人查看时）
+    if (user && user.id === id) {
+      fetch("/api/appeals", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setAppeals(data.appeals || []);
+        })
+        .catch(() => setAppeals([]));
+    }
+  }, [user, id]);
 
   const handleEditClick = () => {
     setEditMode(true);
@@ -349,16 +365,24 @@ const UserProfile = () => {
         )}
 
         {activeTab === "inactive" && inactiveProducts.length > 0 && (
-          <ProductList
-            userProducts={inactiveProducts}
-            onDeleteProduct={handleDeleteProduct}
-            showEdit={false}
-            showView={true}
-            showDelistReason
-          />
+          <>
+            <ProductList
+              userProducts={inactiveProducts}
+              onDeleteProduct={handleDeleteProduct}
+              showEdit={false}
+              showView={true}
+              showDelistReason
+              showAppeal={user && user.id === id}
+              onAppeal={setAppealProduct}
+            />
+            {user && user.id === id && <AppealList appeals={appeals} />}
+          </>
         )}
         {activeTab === "inactive" && inactiveProducts.length === 0 && (
-          <p className="text-gray-500 text-center py-12">没有被下架的商品</p>
+          <>
+            <p className="text-gray-500 text-center py-12">没有被下架的商品</p>
+            {user && user.id === id && <AppealList appeals={appeals} />}
+          </>
         )}
 
         {activeTab === "sold" && soldProducts.length > 0 && (
@@ -485,6 +509,24 @@ const UserProfile = () => {
           <ConfirmDialog
             onCancel={handleCancelDelete}
             onConfirm={handleConfirmDelete}
+          />
+        )}
+
+        {/* Appeal form modal */}
+        {appealProduct && (
+          <AppealForm
+            product={appealProduct}
+            onClose={() => setAppealProduct(null)}
+            onSuccess={() => {
+              // 重新获取申诉列表
+              const token = localStorage.getItem("token");
+              fetch("/api/appeals", {
+                headers: { Authorization: `Bearer ${token}` },
+              })
+                .then((res) => res.json())
+                .then((data) => setAppeals(data.appeals || []))
+                .catch(() => {});
+            }}
           />
         )}
       </div>

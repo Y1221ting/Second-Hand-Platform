@@ -1,0 +1,68 @@
+import React from "react";
+import { NavLink, Outlet, Navigate } from "react-router-dom";
+import { useAuth } from "../../context/authContext";
+import {
+  FaTachometerAlt,
+  FaFlag,
+  FaBox,
+  FaUsers,
+  FaGavel,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+
+const AdminLayout = () => {
+  const { isAdmin, user } = useAuth();
+
+  if (!isAdmin) {
+    return <Navigate to="/home" replace />;
+  }
+
+  const navItems = [
+    { to: "/admin/dashboard", icon: FaTachometerAlt, label: "仪表盘" },
+    { to: "/admin/reports", icon: FaFlag, label: "举报管理" },
+    { to: "/admin/products", icon: FaBox, label: "商品管理" },
+    { to: "/admin/users", icon: FaUsers, label: "用户管理" },
+    { to: "/admin/appeals", icon: FaGavel, label: "申诉管理" },
+    { to: "/admin/warnings", icon: FaExclamationTriangle, label: "警告管理" },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* 侧边栏 */}
+      <aside className="w-56 bg-gray-900 text-white flex-shrink-0 min-h-screen">
+        <div className="p-4 border-b border-gray-700">
+          <h2 className="text-lg font-bold">
+            <span className="text-yellow-500">管理</span>后台
+          </h2>
+          <p className="text-gray-400 text-xs mt-1 truncate">{user?.fullName || user?.name}</p>
+        </div>
+        <nav className="py-2">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.to === "/admin/dashboard"}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
+                  isActive
+                    ? "bg-yellow-500 text-gray-900 font-medium"
+                    : "text-gray-300 hover:bg-gray-800 hover:text-white"
+                }`
+              }
+            >
+              <item.icon className="text-xs" />
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
+
+      {/* 内容区 */}
+      <main className="flex-1 p-6 overflow-auto">
+        <Outlet />
+      </main>
+    </div>
+  );
+};
+
+export default AdminLayout;
