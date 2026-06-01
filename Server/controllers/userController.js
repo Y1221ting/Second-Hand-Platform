@@ -89,7 +89,7 @@ exports.getAllUsers = async (req, res) => {
     const users = await User.find().select("-password");
     res.json(users);
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -98,7 +98,7 @@ exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
     // 兼容旧用户没有 createdAt 的情况
     const result = user.toObject();
@@ -108,7 +108,7 @@ exports.getUserById = async (req, res) => {
     }
     res.json(result);
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -119,33 +119,42 @@ exports.updateUser = async (req, res) => {
   try {
     // Check if the request body is empty
     if (!body) {
-      return res.status(400).json({ error: "Request body is empty" });
+      return res.status(400).json({ message: "Request body is empty" });
     }
 
     // ⚠️ 越权检查：只能修改自己的资料
     if (req.user._id.toString() !== userId) {
-      return res.status(403).json({ error: "无权修改他人资料" });
+      return res.status(403).json({ message: "无权修改他人资料" });
     }
 
-    const user = await User.findByIdAndUpdate(userId, body, {
+    // 字段白名单：防止通过修改 role/status 等字段提权
+    const allowedFields = ["fullName", "phoneNo", "department", "major", "dormitory", "address"];
+    const safeUpdate = {};
+    allowedFields.forEach(field => {
+      if (body[field] !== undefined) {
+        safeUpdate[field] = body[field];
+      }
+    });
+
+    const user = await User.findByIdAndUpdate(userId, safeUpdate, {
       new: true,
       runValidators: true,
     });
 
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
 
     // 若修改了学院或专业，同步更新所有在售商品
-    if (body.department || body.major) {
+    if (safeUpdate.department || safeUpdate.major) {
       const updateFields = {};
-      if (body.department) {
-        updateFields["uploadedBy.department"] = body.department;
-        updateFields.listedByDepartment = body.department;
+      if (safeUpdate.department) {
+        updateFields["uploadedBy.department"] = safeUpdate.department;
+        updateFields.listedByDepartment = safeUpdate.department;
       }
-      if (body.major) {
-        updateFields["uploadedBy.major"] = body.major;
-        updateFields.listedByMajor = body.major;
+      if (safeUpdate.major) {
+        updateFields["uploadedBy.major"] = safeUpdate.major;
+        updateFields.listedByMajor = safeUpdate.major;
       }
       await Product.updateMany(
         { "uploadedBy.id": userId, status: { $nin: ["sold_out", "inactive"] } },
@@ -157,9 +166,9 @@ exports.updateUser = async (req, res) => {
   } catch (error) {
     // Check for specific validation errors
     if (error.name === "ValidationError") {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({ message: error.message });
     }
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -168,21 +177,21 @@ exports.deleteUser = async (req, res) => {
   try {
     // ⚠️ 越权检查：只能删除自己的账户
     if (req.user._id.toString() !== userId) {
-      return res.status(403).json({ error: "无权删除他人账户" });
+      return res.status(403).json({ message: "无权删除他人账户" });
     }
 
     // 级联处理：将该用户的所有商品标记为 inactive，避免成为"孤儿商品"
     await Product.updateMany(
       { "uploadedBy.id": userId },
-      { $set: { status: "inactive" } }
+      { $set: { status: "inactive", delistReason: "卖家已注销账户" } }
     );
 
-    const user = await User.findByIdAndRemove(userId);
+    const user = await User.findByIdAndDelete(userId);
     if (!user) {
-      return res.status(404).json({ error: "User not found" });
+      return res.status(404).json({ message: "User not found" });
     }
     res.json({ message: "User and associated products deactivated" });
   } catch (error) {
-    res.status(500).json({ error: "Internal Server Error" });
+    res.status(500).json({ message: "Internal server error" });
   }
 };

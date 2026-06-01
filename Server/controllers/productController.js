@@ -81,6 +81,9 @@ exports.getAllProducts = async (req, res) => {
       if (req.query.maxPrice) query.price.$lte = parseFloat(req.query.maxPrice);
     }
 
+    // 默认排除已售罄和已下架商品
+    query.status = { $nin: ["sold_out", "inactive"] };
+
     let sortObj = {};
     if (sort === "latest") sortObj = { createdAt: -1 };
     else if (sort === "lowestPrice") sortObj = { price: 1 };
@@ -533,7 +536,6 @@ exports.purchaseProduct = async (req, res) => {
             dormitory:  req.user.dormitory || "",
             phone:      req.user.phoneNo || "",
           },
-          status: "sold",
         },
       },
       { new: true }
@@ -547,7 +549,7 @@ exports.purchaseProduct = async (req, res) => {
       return res.status(400).json({ message: "库存不足或商品已下架" });
     }
 
-    // 如果库存归零，更新状态为售罄（非关键路径，可容忍两次写入）
+    // 库存归零 → 售罄；仍有库存 → 保持可购买（非关键路径，可容忍两次写入）
     if (product.quantity === 0) {
       await Product.findByIdAndUpdate(product._id, { status: "sold_out" });
     }

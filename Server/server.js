@@ -20,7 +20,6 @@ const app = express();
 app.use(compression());
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
-app.use(express.json());
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "*",

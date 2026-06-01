@@ -374,7 +374,8 @@ router.get("/warnings", async (req, res) => {
       Warning.find(query)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
-        .limit(limit),
+        .limit(limit)
+        .populate("userId", "fullName email department"),
       Warning.countDocuments(query),
     ]);
 

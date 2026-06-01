@@ -23,7 +23,7 @@ exports.getCart = async (req, res) => {
       if (product && product.price) {
         product.price = Number(product.price) || 0;
       }
-      obj.available = product && product.status === "unsold" && product.quantity > 0;
+      obj.available = product && !["sold_out", "inactive"].includes(product.status) && product.quantity > 0;
       return obj;
     });
 
@@ -138,7 +138,7 @@ exports.removeFromCart = async (req, res) => {
       if (product && product.price) {
         product.price = Number(product.price) || 0;
       }
-      obj.available = product && product.status === "unsold" && product.quantity > 0;
+      obj.available = product && !["sold_out", "inactive"].includes(product.status) && product.quantity > 0;
       return obj;
     });
 
@@ -191,7 +191,7 @@ exports.updateQuantity = async (req, res) => {
       if (product && product.price) {
         product.price = Number(product.price) || 0;
       }
-      obj.available = product && product.status === "unsold" && product.quantity > 0;
+      obj.available = product && !["sold_out", "inactive"].includes(product.status) && product.quantity > 0;
       return obj;
     });
 
@@ -248,7 +248,6 @@ exports.checkoutCart = async (req, res) => {
                 dormitory:  req.user.dormitory || "",
                 phone:      req.user.phoneNo || "",
               },
-              status: "sold",
             },
           },
           { new: true }
