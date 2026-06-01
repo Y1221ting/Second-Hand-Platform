@@ -4,6 +4,9 @@ import Filters from "./Filters";
 import ProductList from "./ProductList";
 import Pagination from "./Pagination";
 import Loading from "../Utility/Loading";
+import HomeBanner from "./HomeBanner";
+import Recommendations from "./Recommendations";
+import WantedList from "./WantedList";
 import { useAuth } from "../../context/authContext";
 
 const ProductsList = () => {
@@ -144,7 +147,22 @@ const ProductsList = () => {
 
   return (
     <main className="lg:w-4/5 mx-4 md:mx-auto py-4">
-      <h1 className="text-3xl font-semibold mb-4">全部商品</h1>
+      {/* 顶部统计 Banner */}
+      <HomeBanner departments={departments} />
+
+      {/* 同学求购 */}
+      <WantedList />
+
+      {/* 你所在专业的热门 */}
+      {user?.department && (
+        <Recommendations
+          userId={user.id}
+          department={user.department}
+          limit={4}
+        />
+      )}
+
+      <h1 className="text-2xl font-semibold mb-4">最近上新</h1>
       <div>
         {!isLoading ? (
           <div className="flex flex-col md:flex-row">

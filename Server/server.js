@@ -39,10 +39,27 @@ app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/reports", require("./routes/reportRoutes"));
+app.use("/api/wanted", require("./routes/wantedRoutes"));
 
 // 学院-专业映射（南昌师范学院单校版）
 app.get("/api/majorMap", (req, res) => {
   res.json(require("./config/majorMap"));
+});
+
+// 首页统计数据
+app.get("/api/stats", async (req, res) => {
+  try {
+    const User = require("./models/User");
+    const Product = require("./models/Product");
+    const [userCount, productCount] = await Promise.all([
+      User.countDocuments(),
+      Product.countDocuments({ status: { $nin: ["sold_out", "inactive"] } }),
+    ]);
+    res.json({ userCount, productCount });
+  } catch (err) {
+    res.status(500).json({ message: "获取统计数据失败" });
+  }
 });
 
 // 静态文件服务：/uploads → Server/uploads/

@@ -40,8 +40,11 @@ d:\Second-Hand-main\
 │       └── components/
 │           ├── Home/
 │           │   ├── index.js        # 商品列表页
+│           │   ├── HomeBanner.js    # 首页统计横幅
+│           │   ├── WantedList.js    # 求购列表
 │           │   ├── Filters.js      # 筛选组件
 │           │   ├── ProductList.js  # 商品卡片列表
+│           │   ├── Recommendations.js # 猜你喜欢推荐
 │           │   └── Pagination.js   # 分页
 │           ├── Product_Details/
 │           │   ├── ProductDetails.js  # 商品详情
@@ -81,7 +84,9 @@ d:\Second-Hand-main\
     │   └── authMiddleware.js   # JWT认证中间件
     ├── models/
     │   ├── User.js             # 用户模型
-    │   └── Product.js          # 商品模型
+    │   ├── Product.js          # 商品模型
+    │   ├── Wanted.js           # 求购模型
+    │   └── Report.js           # 举报模型
     ├── controllers/
     │   ├── userController.js   # 用户CRUD
     │   ├── productController.js# 商品CRUD + 购买 + 推荐
@@ -92,7 +97,9 @@ d:\Second-Hand-main\
     │   ├── productRoutes.js    # /api/products（含推荐 /recommendations）
     │   ├── aiRoutes.js         # /api/ai
     │   ├── cartRoutes.js       # /api/cart
-    │   └── uploadRoutes.js     # /api/upload
+    │   ├── uploadRoutes.js     # /api/upload
+    │   ├── wantedRoutes.js     # /api/wanted
+    │   └── reportRoutes.js     # /api/reports
     └── services/
         └── aiService.js        # 通义千问API调用
 ```
@@ -156,6 +163,22 @@ d:\Second-Hand-main\
 |------|------|------|------|
 | POST | `/api/upload/` | ✅ | 上传图片（最多9张，单张上限20MB） |
 
+### 求购 `/api/wanted`
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| GET | `/api/wanted/` | ❌ | 获取求购列表（limit参数，默认10，按最新排序） |
+| POST | `/api/wanted/` | ✅ | 发布求购（name/budget必填） |
+
+### 举报 `/api/reports`
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| POST | `/api/reports/` | ✅ | 举报商品（productId必填，reason四选一） |
+
+### 统计 `/api`
+| 方法 | 路径 | 认证 | 说明 |
+|------|------|------|------|
+| GET | `/api/stats` | ❌ | 首页统计数据（注册人数 + 在售商品数） |
+
 ---
 
 ## 数据模型
@@ -197,6 +220,30 @@ d:\Second-Hand-main\
   listedByDepartment: String,      // 冗余字段（方便聚合查询）
   listedByMajor: String,           // 冗余字段
   createdAt: Date
+}
+```
+
+### Wanted 模型
+```javascript
+{
+  name: String,        // 必填，求购商品名称
+  budget: Decimal128,   // 必填，心理价位 >0 ≤9999.9
+  description: String,  // 选填，对商品的要求描述
+  postedBy: {           // 发布者信息
+    id, name, department, major, phone
+  },
+  createdAt: Date       // 默认当前时间
+}
+```
+
+### Report 模型
+```javascript
+{
+  productId: ObjectId,  // 必填，被举报的商品ID
+  reporterId: String,   // 必填，举报人ID
+  reason: String,       // 枚举：虚假信息/违禁商品/重复发布/其他
+  detail: String,       // 选填，详细说明
+  createdAt: Date       // 默认当前时间
 }
 ```
 
@@ -335,6 +382,11 @@ docker compose up -d --build frontend
 24. ✅ **宿舍楼定位** - 选填宿舍楼字段，方便同宿舍楼当面交易
 25. ✅ **排序"离我最近"** - 同学院→同专业→同宿舍楼→同学院其他→其他学院
 26. ✅ **修改学院/专业同步** - 编辑个人资料时自动更新所有在售商品信息
+27. ✅ **首页统计横幅** - 展示注册人数和在售商品数，学院快捷入口
+28. ✅ **求购功能** - 发布求购（名称/心理价位/描述），首页展示最新4条
+29. ✅ **举报功能** - 举报商品（4种原因），非卖家登录用户可见
+30. ✅ **发布页双页签** - [我要卖]/[我要买] 切换，求购表单独立
+31. ✅ **购物车空引导** - 空购物车提示"去看看同学院同学在卖什么 →"
 
 ## 待优化/已知问题
 

@@ -1,0 +1,56 @@
+const express = require("express");
+const router = express.Router();
+const authMiddleware = require("../middleware/authMiddleware");
+const Wanted = require("../models/Wanted");
+
+// 发布求购
+router.post("/", authMiddleware, async (req, res) => {
+  try {
+    if (!req.body.name || !req.body.budget) {
+      return res.status(400).json({ message: "商品名称和预算为必填" });
+    }
+    if (req.body.budget <= 0 || req.body.budget > 9999.9) {
+      return res.status(400).json({ message: "预算需在 0 ~ 9999.9 之间" });
+    }
+
+    const wanted = new Wanted({
+      name: req.body.name,
+      budget: req.body.budget,
+      description: req.body.description || "",
+      postedBy: {
+        id:         req.user._id.toString(),
+        name:       req.user.fullName,
+        department: req.user.department || "",
+        major:      req.user.major || "",
+        phone:      req.user.phoneNo || "",
+      },
+    });
+    await wanted.save();
+    res.status(201).json({ message: "求购发布成功", wanted });
+  } catch (error) {
+    if (error.name === "ValidationError") {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: "服务器内部错误" });
+  }
+});
+
+// 获取求购列表
+router.get("/", async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const wanteds = await Wanted.find()
+      .sort({ createdAt: -1 })
+      .limit(limit);
+    const result = wanteds.map((w) => {
+      const obj = w.toObject();
+      obj.budget = Number(obj.budget) || 0;
+      return obj;
+    });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: "服务器内部错误" });
+  }
+});
+
+module.exports = router;

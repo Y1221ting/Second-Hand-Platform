@@ -30,6 +30,16 @@ All notable changes to this project will be documented in this file.
 - **Filters 重写** — 学校搜索框改为学院+专业联动下拉；分类改为中文；排序新增"离我最近"
 - **Home/index.js 改造** — 筛选状态从 college 改为 department/major；集成 majorMap 联动逻辑
 
+#### 第三阶段 — 首页布局 + 求购 + 举报 + 购物车引导
+- **新增 Report 模型和路由** — 支持举报商品（虚假信息/违禁商品/重复发布/其他），需登录
+- **ProductCard 举报按钮** — 非卖家登录用户可见 `FaFlag` 举报按钮，点击弹出举报面板
+- **新增 HomeBanner 组件** — 首页顶部统计横幅，展示注册人数和在售商品数 + 学院快捷入口
+- **新增 Wanted 模型和路由** — 求购功能，字段：name/budget/description/postedBy；GET 接口按最新排序
+- **AddProduct 页签切换** — 新增 [我要卖]/[我要买] 双页签，求购表单含商品名称/心理价位/描述
+- **新增 WantedList 组件** — 首页展示最新求购（绿色边框卡片），无数据不渲染
+- **UserProfile 购物车引导** — 空购物车提示"去看看同学院同学在卖什么 →"
+- **删除 colleges.js** — 38校常量文件无引用，已清理
+
 ## [1.18.0] - 2026-05-27
 
 ### Performance

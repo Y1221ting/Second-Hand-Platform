@@ -44,6 +44,53 @@ const AddProduct = () => {
   const [categoryLoading, setCategoryLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [priceError, setPriceError] = useState("");
+  const [tab, setTab] = useState("sell"); // "sell" | "buy"
+
+  // 求购表单
+  const [wantedForm, setWantedForm] = useState({
+    name: "",
+    budget: "",
+    description: "",
+  });
+
+  const handleWantedChange = (e) => {
+    const { name, value } = e.target;
+    setWantedForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleWantedSubmit = async (e) => {
+    e.preventDefault();
+    if (!wantedForm.name || !wantedForm.budget) {
+      alert("商品名称和预算为必填");
+      return;
+    }
+    if (Number(wantedForm.budget) <= 0 || Number(wantedForm.budget) > 9999.9) {
+      alert("预算需在 0 ~ 9999.9 之间");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/wanted", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(wantedForm),
+      });
+      if (res.ok) {
+        alert("求购发布成功！");
+        navigate("/home");
+      } else {
+        const data = await res.json();
+        alert(data.message || "发布失败");
+      }
+    } catch {
+      alert("网络错误");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   // Handle form field changes
   const handleChange = (e) => {
@@ -273,9 +320,85 @@ const AddProduct = () => {
     <div className="min-h-screen">
       <Navbar />
       <div className="w-4/5 mx-auto py-4">
-        <h1 className="text-3xl font-semibold text-gray-900 mb-4">
-          发布新商品
-        </h1>
+        <div className="flex items-center gap-4 mb-4">
+          <h1 className="text-3xl font-semibold text-gray-900">发布</h1>
+          <div className="flex rounded-lg overflow-hidden border border-gray-300">
+            <button
+              type="button"
+              onClick={() => setTab("sell")}
+              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                tab === "sell" ? "bg-yellow-500 text-gray-900" : "bg-white text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              我要卖
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("buy")}
+              className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                tab === "buy" ? "bg-green-500 text-white" : "bg-white text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              我要买
+            </button>
+          </div>
+        </div>
+
+        {tab === "buy" ? (
+          /* 求购表单 */
+          <form onSubmit={handleWantedSubmit}>
+            <div className="mb-4">
+              <label className="block text-gray-600">商品名称</label>
+              <input
+                type="text"
+                name="name"
+                value={wantedForm.name}
+                onChange={handleWantedChange}
+                placeholder="你想买什么？"
+                className="w-full border rounded-lg py-2 px-3"
+                required
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-600">心理价位（元）</label>
+              <input
+                type="number"
+                name="budget"
+                value={wantedForm.budget}
+                onChange={handleWantedChange}
+                placeholder="你能接受的最高价格"
+                className="w-full border rounded-lg py-2 px-3"
+                required
+                min="0"
+                max="9999.9"
+                step="0.1"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-gray-600">描述（选填）</label>
+              <textarea
+                name="description"
+                value={wantedForm.description}
+                onChange={handleWantedChange}
+                placeholder="对商品有什么要求？新旧程度、品牌偏好等..."
+                className="w-full border rounded-lg py-2 px-3"
+                rows="3"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={submitting}
+              className={`w-full py-2 px-4 rounded-lg transition duration-300 ${
+                submitting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-green-500 text-white hover:bg-green-600"
+              }`}
+            >
+              {submitting ? "发布中..." : "发布求购"}
+            </button>
+          </form>
+        ) : (
+          /* 出售表单（原有） */
         <form onSubmit={handleSubmit}>
           {/* Product Name */}
           <div className="mb-4">
@@ -515,6 +638,7 @@ const AddProduct = () => {
             </button>
           </div>
         </form>
+        )}
       </div>
       <Footer />
     </div>

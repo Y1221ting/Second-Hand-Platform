@@ -1,5 +1,5 @@
 import React, { useState, memo } from "react";
-import { FaShoppingCart, FaBolt } from "react-icons/fa";
+import { FaShoppingCart, FaBolt, FaFlag } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -8,7 +8,40 @@ const ProductCard = memo(({ product, isRecommended }) => {
   const navigate = useNavigate();
   const [clickedButtonId, setClickedButtonId] = useState(null);
   const [addMsg, setAddMsg] = useState({});
+  const [reportMsg, setReportMsg] = useState("");
+  const [showReportPanel, setShowReportPanel] = useState(false);
+  const [reportReason, setReportReason] = useState("信息不实");
+  const [reportDetail, setReportDetail] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const isOwner = user && user.id === product.uploadedBy?.id;
+
+  const handleReport = async () => {
+    if (!user) return;
+    setReportSubmitting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/reports", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productId: product._id, reason: reportReason, detail: reportDetail }),
+      });
+      if (res.ok) {
+        setReportMsg("已举报");
+        setShowReportPanel(false);
+        setTimeout(() => setReportMsg(""), 2000);
+      } else {
+        const data = await res.json();
+        alert(data.message || "举报失败");
+      }
+    } catch {
+      alert("网络错误");
+    } finally {
+      setReportSubmitting(false);
+    }
+  };
 
   const handleAddToCart = async () => {
     if (!user) {
@@ -145,6 +178,58 @@ const ProductCard = memo(({ product, isRecommended }) => {
           </div>
         )}
       </div>
+
+      {/* 举报 — 非本人商品、已登录时显示 */}
+      {user && !isOwner && (
+        <div className="mt-1">
+          {!showReportPanel ? (
+            <button
+              onClick={() => setShowReportPanel(true)}
+              className="w-full text-[10px] text-gray-500 hover:text-red-400 transition-colors flex items-center justify-center gap-1"
+            >
+              <FaFlag className="text-[8px]" />
+              {reportMsg || "举报"}
+            </button>
+          ) : (
+            <div className="bg-gray-800 rounded p-2 text-xs space-y-2">
+              <p className="text-gray-300 text-[11px]">举报原因</p>
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="w-full bg-gray-700 text-white rounded py-1 px-2 text-[11px] border border-gray-600"
+              >
+                <option value="信息不实">信息不实</option>
+                <option value="违禁品">违禁品</option>
+                <option value="重复发布">重复发布</option>
+                <option value="人身攻击/骚扰">人身攻击/骚扰</option>
+                <option value="其他">其他</option>
+              </select>
+              <textarea
+                value={reportDetail}
+                onChange={(e) => setReportDetail(e.target.value)}
+                placeholder="补充说明（选填）"
+                className="w-full bg-gray-700 text-white rounded py-1 px-2 text-[11px] border border-gray-600 resize-none"
+                rows="2"
+              />
+              <div className="flex gap-1.5">
+                <button
+                  onClick={handleReport}
+                  disabled={reportSubmitting}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded py-1 text-[11px] disabled:opacity-50"
+                >
+                  {reportSubmitting ? "提交中..." : "确认举报"}
+                </button>
+                <button
+                  onClick={() => setShowReportPanel(false)}
+                  className="flex-1 bg-gray-600 hover:bg-gray-500 text-white rounded py-1 text-[11px]"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 });

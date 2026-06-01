@@ -415,7 +415,7 @@ const UserProfile = () => {
         )}
         {activeTab === "cart" && !cartLoading && cartItems.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">购物车是空的</p>
+            <p className="text-gray-500 mb-4">你的购物车还是空的。去看看同学院同学在卖什么 →</p>
             <Link
               to="/home"
               className="inline-block bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-6 py-2 rounded-lg font-semibold transition-colors"
