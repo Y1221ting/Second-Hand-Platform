@@ -91,13 +91,16 @@ const userSchema = new mongoose.Schema({
     enum: ["active", "banned"],
     default: "active",
   },
-  activeSessions: [
-    {
-      sessionId: { type: String },
-      device: { type: String },
-      loginAt: { type: Date },
-    },
-  ],
+  activeSessions: {
+    type: [
+      {
+        sessionId: { type: String },
+        device: { type: String },
+        loginAt: { type: Date },
+      },
+    ],
+    default: [],
+  },
 }, { timestamps: true });
 
 const User = mongoose.model("User", userSchema);
