@@ -256,10 +256,20 @@ const ProductDetails = ({ productId }) => {
               联系电话：{" "}
               {!user
                 ? "登录后查看联系方式"
-                : productDetails.purchasedBy?.id === userId
+                : (productDetails.purchasedBy?.id === userId || userId === productDetails.uploadedBy?.id)
                   ? productDetails.uploadedBy.phone
                   : productDetails.uploadedBy.phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2") + " [购买后查看完整号码]"
               }
+            </p>
+          )}
+          {productDetails.uploadedBy?.wechat && (productDetails.purchasedBy?.id === userId || userId === productDetails.uploadedBy?.id) && (
+            <p className="text-gray-500 mt-1">
+              微信：{productDetails.uploadedBy.wechat}
+            </p>
+          )}
+          {productDetails.uploadedBy?.qq && (productDetails.purchasedBy?.id === userId || userId === productDetails.uploadedBy?.id) && (
+            <p className="text-gray-500 mt-1">
+              QQ：{productDetails.uploadedBy.qq}
             </p>
           )}
 

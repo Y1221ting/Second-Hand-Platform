@@ -149,6 +149,28 @@ const UserDetails = ({
               editMode={editMode}
             />
           </div>
+
+          {/* 微信 — 选填，购买后展示给买家 */}
+          <div className="mb-4">
+            <UserField
+              label="微信"
+              name="wechat"
+              value={editMode ? (formData.wechat || "") : (userData.wechat || "")}
+              onChange={handleChange}
+              editMode={editMode}
+            />
+          </div>
+
+          {/* QQ — 选填 */}
+          <div className="mb-4">
+            <UserField
+              label="QQ"
+              name="qq"
+              value={editMode ? (formData.qq || "") : (userData.qq || "")}
+              onChange={handleChange}
+              editMode={editMode}
+            />
+          </div>
         </div>
       </form>
       {displayEdit && (

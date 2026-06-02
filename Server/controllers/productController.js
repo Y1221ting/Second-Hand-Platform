@@ -25,6 +25,8 @@ exports.createProduct = async (req, res) => {
       major:      req.user.major || "",
       dormitory:  req.user.dormitory || "",
       phone:      req.user.phoneNo || "",
+      wechat:     req.user.wechat || "",
+      qq:         req.user.qq || "",
     };
     req.body.listedByDepartment = req.user.department || "";
     req.body.listedByMajor = req.user.major || "";
@@ -57,14 +59,8 @@ exports.getAllProducts = async (req, res) => {
     let query = {};
 
     if (search) {
-      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      query.$or = [
-        { name: { $regex: escaped, $options: "i" } },
-        { "uploadedBy.department": { $regex: escaped, $options: "i" } },
-        { "uploadedBy.major": { $regex: escaped, $options: "i" } },
-        { "uploadedBy.name": { $regex: escaped, $options: "i" } },
-        { description: { $regex: escaped, $options: "i" } },
-      ];
+      // $text 搜索：利用 { name: "text", description: "text" } 索引，比 $regex 快 10-100 倍
+      query.$text = { $search: search };
     }
 
     if (category) {
@@ -85,23 +81,28 @@ exports.getAllProducts = async (req, res) => {
     query.status = { $nin: ["sold_out", "inactive"] };
 
     let sortObj = {};
-    if (sort === "latest") sortObj = { createdAt: -1 };
+    if (search) {
+      // 搜索时按文本相关性排序（带 score 字段）
+      sortObj = { score: { $meta: "textScore" } };
+    } else if (sort === "latest") sortObj = { createdAt: -1 };
     else if (sort === "lowestPrice") sortObj = { price: 1 };
     else if (sort === "highestPrice") sortObj = { price: -1 };
     else if (sort === "closest" && userDepartment) {
-      // 离我最近：同系院 → 同校其他 → 其他，在每个组内再按时间倒序
       sortObj = {
         "uploadedBy.department": userDepartment === "$natural" ? -1 : 1,
         createdAt: -1
       };
+    } else {
+      sortObj = { createdAt: -1 };
     }
 
     const total = await Product.countDocuments(query);
-    const products = await Product.find(query)
+    const fields = "name category description price images specifications status quantity purchasedBy createdAt uploadedBy";
+    const products = await Product.find(query, search ? { score: { $meta: "textScore" } } : {})
       .sort(sortObj)
       .skip((page - 1) * limit)
       .limit(limit)
-      .select("name category description price images specifications status quantity purchasedBy createdAt uploadedBy");
+      .select(fields);
 
     // 优化：列表页只返回第一张图片，减少数据传输量
     const optimizedProducts = products.map(product => {

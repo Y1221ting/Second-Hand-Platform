@@ -143,7 +143,7 @@ exports.updateUser = async (req, res) => {
     }
 
     // 字段白名单：防止通过修改 role/status 等字段提权
-    const allowedFields = ["fullName", "phoneNo", "department", "major", "dormitory", "address"];
+    const allowedFields = ["fullName", "phoneNo", "department", "major", "dormitory", "address", "wechat", "qq"];
     const safeUpdate = {};
     allowedFields.forEach(field => {
       if (body[field] !== undefined) {
