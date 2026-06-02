@@ -24,7 +24,7 @@ export const NotificationProvider = ({ children }) => {
       });
       if (res.ok) {
         const data = await res.json();
-        setUnreadCount(data.unreadCount || 0);
+        setUnreadCount(data.count || 0);
       }
     } catch {
       // silent fail

@@ -29,7 +29,10 @@ const UserProfile = () => {
     if (!user) {
       navigate("/login");
     }
-    fetch(`/api/users/${id}`)
+    const token = localStorage.getItem("token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    fetch(`/api/users/${id}`, { headers })
       .then((response) => response.json())
       .then((data) => {
         setUserData(data);
@@ -39,7 +42,7 @@ const UserProfile = () => {
         console.error("Error fetching user data: ", error);
       });
 
-    fetch(`/api/products/user/${id}`)
+    fetch(`/api/products/user/${id}`, { headers })
       .then((response) => response.json())
       .then((products) => {
         setUserProducts(products);
@@ -48,7 +51,7 @@ const UserProfile = () => {
         console.error("Error fetching user products: ", error);
       });
 
-    fetch(`/api/products/purchased/${id}`)
+    fetch(`/api/products/purchased/${id}`, { headers })
       .then((response) => response.json())
       .then((products) => {
         setPurchasedProducts(products);

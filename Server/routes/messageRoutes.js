@@ -8,12 +8,16 @@ router.get("/", authMiddleware, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = 20;
 
+    const filter = { userId: req.user._id };
+    if (req.query.isRead === "false") filter.isRead = false;
+    else if (req.query.isRead === "true") filter.isRead = true;
+
     const [messages, total] = await Promise.all([
-      Message.find({ userId: req.user._id })
+      Message.find(filter)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
-      Message.countDocuments({ userId: req.user._id }),
+      Message.countDocuments(filter),
     ]);
 
     res.json({ messages, total, page, totalPages: Math.ceil(total / limit) });

@@ -49,6 +49,25 @@ const Notifications = () => {
     }
   };
 
+  const fetchUnreadCount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/messages/unread-count", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.count || 0);
+      }
+    } catch {
+      // silent
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+  }, []);
+
   const markAsRead = async (messageId) => {
     try {
       const token = localStorage.getItem("token");
@@ -57,11 +76,15 @@ const Notifications = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m._id === messageId ? { ...m, isRead: true } : m
-          )
-        );
+        if (filter === "unread") {
+          setMessages((prev) => prev.filter((m) => m._id !== messageId));
+        } else {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m._id === messageId ? { ...m, isRead: true } : m
+            )
+          );
+        }
         setUnreadCount((prev) => Math.max(0, prev - 1));
       }
     } catch (err) {

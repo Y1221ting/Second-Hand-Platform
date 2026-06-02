@@ -57,7 +57,9 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
       setLoading(true);
       setFetchError("");
       try {
-        const response = await fetch(`/api/users/${id}`);
+        const response = await fetch(`/api/users/${id}`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
         if (response.ok) {
           const userData = await response.json();
           setFormData({
