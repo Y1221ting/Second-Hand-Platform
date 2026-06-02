@@ -11,36 +11,9 @@ const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
-const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 
 connectDB();
-
-// 一次性迁移：将 2026-06-02 之前创建的（或无 createdAt 的老用户）从 inactive 改 active
-mongoose.connection.once("open", async () => {
-  try {
-    const cutoff = new Date("2026-06-03T00:00:00Z"); // 覆盖 6月2日全天（含调试期间创建的所有账户）
-    const result = await mongoose.connection.db
-      .collection("users")
-      .updateMany(
-        {
-          status: "inactive",
-          $or: [
-            { createdAt: { $lt: cutoff } },
-            { createdAt: { $exists: false } },
-          ],
-        },
-        { $set: { status: "active" } }
-      );
-    if (result.modifiedCount > 0) {
-      console.log(`[MIGRATE] ${result.modifiedCount} 个老用户已从 inactive 迁移为 active`);
-    } else {
-      console.log("[MIGRATE] 无需迁移");
-    }
-  } catch (err) {
-    console.error("[MIGRATE] 迁移失败:", err.message);
-  }
-});
 
 const app = express();
 
