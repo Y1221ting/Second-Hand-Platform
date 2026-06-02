@@ -183,6 +183,10 @@ exports.getProductById = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
     const productObj = sanitizeProduct(product, req.user);
+    // 过滤旧商品的 base64 图片（过大导致编辑页面崩溃），URL 图片不受影响
+    if (Array.isArray(productObj.images)) {
+      productObj.images = productObj.images.filter(img => !img.startsWith("data:"));
+    }
     res.status(200).json(productObj);
   } catch (error) {
     console.error(error);
