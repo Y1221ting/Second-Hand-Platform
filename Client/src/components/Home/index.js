@@ -7,6 +7,7 @@ import Loading from "../Utility/Loading";
 import HomeBanner from "./HomeBanner";
 import Recommendations from "./Recommendations";
 import WantedList from "./WantedList";
+import Announcement from "./Announcement";
 import { useAuth } from "../../context/authContext";
 
 const ProductsList = () => {
@@ -147,6 +148,9 @@ const ProductsList = () => {
 
   return (
     <main className="lg:w-4/5 mx-4 md:mx-auto py-4">
+      {/* 公告弹窗 */}
+      <Announcement />
+
       {/* 顶部统计 Banner */}
       <HomeBanner departments={departments} />
 

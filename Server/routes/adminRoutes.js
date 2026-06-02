@@ -327,7 +327,7 @@ router.post("/warnings", async (req, res) => {
     });
     await msg.save();
 
-    res.status(201).json({ message: "消息已发送", message: msg });
+    res.status(201).json({ message: "消息已发送", warning: msg });
   } catch (error) {
     console.error("发送警告失败:", error);
     if (error.name === "CastError") {
