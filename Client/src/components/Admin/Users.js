@@ -155,6 +155,7 @@ const Users = () => {
         >
           <option value="">全部状态</option>
           <option value="active">正常</option>
+          <option value="inactive">待审核</option>
           <option value="banned">已封禁</option>
         </select>
       </div>
@@ -191,9 +192,11 @@ const Users = () => {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      u.status === "banned" ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
+                      u.status === "banned" ? "bg-red-100 text-red-800" :
+                      u.status === "inactive" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-green-100 text-green-800"
                     }`}>
-                      {u.status === "banned" ? "已封禁" : "正常"}
+                      {u.status === "banned" ? "已封禁" : u.status === "inactive" ? "待审核" : "正常"}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-500">
@@ -228,15 +231,17 @@ const Users = () => {
                             <button
                               onClick={() => {
                                 setConfirmId(u._id);
-                                setConfirmAction(u.status === "banned" ? "active" : "banned");
+                                setConfirmAction(u.status === "banned" ? "active" : u.status === "inactive" ? "active" : "banned");
                               }}
                               className={`px-2 py-1 rounded text-xs transition-colors ${
                                 u.status === "banned"
                                   ? "bg-green-500 text-white hover:bg-green-600"
+                                  : u.status === "inactive"
+                                  ? "bg-blue-500 text-white hover:bg-blue-600"
                                   : "bg-red-500 text-white hover:bg-red-600"
                               }`}
                             >
-                              {u.status === "banned" ? "解封" : "封禁"}
+                              {u.status === "banned" ? "解封" : u.status === "inactive" ? "激活" : "封禁"}
                             </button>
                             <button
                               onClick={() => {

@@ -18,7 +18,14 @@ const userSchema = new mongoose.Schema({
   password: {
     type: String,
     required: [true, "Password is required"],
-    minlength: 6,
+    minlength: [8, "密码至少 8 位"],
+    validate: {
+      validator: function (v) {
+        // 必须包含字母 + 数字
+        return /[a-zA-Z]/.test(v) && /\d/.test(v);
+      },
+      message: "密码必须包含字母和数字",
+    },
   },
   fullName: {
     type: String,
@@ -89,6 +96,18 @@ const userSchema = new mongoose.Schema({
       default: Date.now,
     },
   }],
+  loginAttempts: {
+    type: Number,
+    default: 0,
+  },
+  lockUntil: {
+    type: Date,
+    default: null,
+  },
+  tokenVersion: {
+    type: Number,
+    default: 0,
+  },
   role: {
     type: String,
     enum: ["user", "admin"],
@@ -96,10 +115,13 @@ const userSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["active", "banned"],
-    default: "active",
+    enum: ["active", "banned", "inactive"],
+    default: "inactive",
   },
 }, { timestamps: true });
+
+userSchema.index({ status: 1 });
+userSchema.index({ role: 1 });
 
 const User = mongoose.model("User", userSchema);
 

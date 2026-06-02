@@ -98,6 +98,27 @@ const UserProfile = () => {
     setEditMode(true);
   };
 
+  const handleDeleteAccount = async () => {
+    if (!window.confirm("确定要注销账号吗？此操作不可撤销，您的所有商品和购物车数据将被永久删除。")) return;
+    if (!window.confirm("再次确认：注销后所有数据将被删除，无法恢复。确定继续？")) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/users/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        alert("账号已注销");
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/home");
+      } else {
+        const d = await res.json();
+        alert(d.message || "注销失败");
+      }
+    } catch { alert("网络错误"); }
+  };
+
   const handleSaveClick = () => {
     // 手机号格式校验
     const phoneRegex = /^1[3-9]\d{9}$/;
@@ -227,6 +248,17 @@ const UserProfile = () => {
               handleEditClick={handleEditClick}
               handleSaveClick={handleSaveClick}
             />
+            {user && user.id === id && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <button
+                  onClick={handleDeleteAccount}
+                  className="text-sm text-red-500 hover:text-red-700 underline transition-colors"
+                >
+                  注销账号
+                </button>
+                <p className="text-xs text-gray-400 mt-1">注销后所有数据将被永久删除，无法恢复</p>
+              </div>
+            )}
           </div>
         ) : (
           /* 展示模式：用户信息卡片 */

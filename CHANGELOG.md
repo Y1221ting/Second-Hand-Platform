@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.0] — 2026-06-02
+
+### P0 安全/稳定性修复
+
+- **全局错误处理**: Express error middleware + `process.on('unhandledRejection')` + `process.on('uncaughtException')`，防止未捕获异常导致进程静默崩溃或泄漏堆栈信息
+- **Node 堆内存显式限制**: docker-compose.yml backend 新增 `NODE_OPTIONS=--max-old-space-size=200`，配合 Docker 256MB 硬限防止 OOM Killer 杀进程
+- **helmet 安全响应头**: 安装 helmet@8，启用 `X-Content-Type-Options`、`X-Frame-Options`、`X-DNS-Prefetch-Control` 等（CSP/COEP 暂关避免误伤 React）
+
+### P1 防护加固
+
+- **全局 API 限流**: `/api` 所有路由 100次/分钟轻度限流（express-rate-limit），login/register 保持原有严格限流不变
+- **User 模型新增索引**: `{ status: 1 }` 和 `{ role: 1 }`，加速管理员后台筛选查询
+- **静态文件缓存**: `/uploads` 图片增加 `maxAge=7d` + `etag` + `lastModified`，减少重复图片请求
+- **卸载 bcrypt**: 只留 bcryptjs（纯 JS），移除 bcrypt C++ 编译依赖（清理 42 个包），Docker image 更小
+
+### 运维完善
+
+- **新增 `.dockerignore`**: Server/ 目录下排除 node_modules/.env/uploads/日志，build context 从 ~100MB 降到 ~5MB
+- **新增 `DEVELOPER_MANUAL.md`**: 完整开发者手册（环境要求、Docker 部署、MongoDB 配置约束、代码安全准则、性能优化、API 速查、运维 SOP、FAQ）
+
+### 文档同步
+
+- **CHANGELOG.md**: 本文档，新增 v2.5.0
+- **PROJECT_SUMMARY.md**: 同步更新至当前代码状态（移除已砍功能描述，补充新增安全/运维配置）
+- **memory/**: 项目记忆同步更新优化历史清单
+
+---
+
 ## [2.4.0] — 2026-06-01
 
 ### 全量安全审计 + 修复（14 漏洞 + 12 索引）

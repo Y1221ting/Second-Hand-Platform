@@ -22,13 +22,14 @@ router.get("/stats", async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [userCount, productCount, todayUsers, todayProducts, pendingReports] =
+    const [userCount, productCount, todayUsers, todayProducts, pendingReports, pendingUsers] =
       await Promise.all([
         User.countDocuments(),
         Product.countDocuments({ status: { $nin: ["sold_out", "inactive"] } }),
         User.countDocuments({ createdAt: { $gte: today } }),
         Product.countDocuments({ createdAt: { $gte: today } }),
         Report.countDocuments({ status: "pending" }),
+        User.countDocuments({ status: "inactive" }),
       ]);
 
     res.json({
@@ -37,6 +38,7 @@ router.get("/stats", async (req, res) => {
       todayUsers,
       todayProducts,
       pendingReports,
+      pendingUsers,
     });
   } catch (error) {
     console.error("stats error:", error);
@@ -249,8 +251,8 @@ router.get("/users", async (req, res) => {
 // 封禁/解封用户
 router.put("/users/:id", async (req, res) => {
   try {
-    const { status } = req.body; // "active" | "banned"
-    if (!["active", "banned"].includes(status)) {
+    const { status } = req.body; // "active" | "banned" | "inactive"
+    if (!["active", "banned", "inactive"].includes(status)) {
       return res.status(400).json({ message: "状态值无效" });
     }
 
@@ -265,7 +267,7 @@ router.put("/users/:id", async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { status },
+      { status, $inc: { tokenVersion: 1 } }, // 封禁/解封时吊销所有旧 token
       { new: true, runValidators: true }
     );
 
@@ -276,13 +278,15 @@ router.put("/users/:id", async (req, res) => {
     // 自动创建通知
     await Message.create({
       userId: targetUser._id,
-      title: status === "banned" ? "您的账号已被封禁" : "您的账号已解封",
+      title: status === "banned" ? "您的账号已被封禁" : status === "active" ? "您的账号已通过审核" : "您的账号状态已变更",
       content: status === "banned"
         ? "如有疑问，请联系管理员。"
-        : "感谢您的理解，请继续遵守平台规则。",
+        : status === "active"
+        ? "您现在可以发布商品了，感谢您的耐心等待。"
+        : "如有疑问，请联系管理员。",
     });
 
-    res.json({ message: status === "banned" ? "已封禁" : "已解封", user: data });
+    res.json({ message: status === "banned" ? "已封禁" : status === "active" ? "已激活" : "已设为待审核", user: data });
   } catch (error) {
     console.error("封禁用户失败:", error);
     res.status(500).json({ message: "操作失败" });

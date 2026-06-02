@@ -55,6 +55,7 @@ const Login = () => {
         college: data.user.college,
         department: data.user.department,
         role: data.user.role || "user",
+        status: data.user.status || "active",
       }, data.token);
       navigate("/home");
     } else {

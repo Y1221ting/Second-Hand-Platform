@@ -18,6 +18,8 @@ const AddProduct = lazy(() => import("./components/AddProduct"));
 const EditProduct = lazy(() => import("./components/EditProduct"));
 const Cart = lazy(() => import("./components/Cart"));
 const Warnings = lazy(() => import("./components/Warnings"));
+const Privacy = lazy(() => import("./components/Privacy"));
+const FAQ = lazy(() => import("./components/FAQ"));
 
 // 管理后台
 const AdminLayout = lazy(() => import("./components/Admin/AdminLayout"));
@@ -74,6 +76,8 @@ const App = () => {
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/home" element={<Home />} />
                 <Route path="/product/:id" element={<ProductPage />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/faq" element={<FAQ />} />
 
                 {/* 需要登录的路由 */}
                 <Route

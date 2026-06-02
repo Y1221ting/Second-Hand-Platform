@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaUsers, FaBox, FaUserPlus, FaBoxOpen, FaFlag } from "react-icons/fa";
+import { FaUsers, FaBox, FaUserPlus, FaBoxOpen, FaFlag, FaUserClock } from "react-icons/fa";
 import Loading from "../Utility/Loading";
 
 const Dashboard = () => {
@@ -35,6 +35,7 @@ const Dashboard = () => {
     { label: "在售商品", value: stats?.productCount ?? "-", icon: FaBox, color: "bg-green-500" },
     { label: "今日新增用户", value: stats?.todayUsers ?? "-", icon: FaUserPlus, color: "bg-purple-500" },
     { label: "今日新增商品", value: stats?.todayProducts ?? "-", icon: FaBoxOpen, color: "bg-orange-500" },
+    { label: "待审核用户", value: stats?.pendingUsers ?? "-", icon: FaUserClock, color: "bg-yellow-500" },
     { label: "待处理举报", value: stats?.pendingReports ?? "-", icon: FaFlag, color: "bg-red-500" },
   ];
 

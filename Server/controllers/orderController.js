@@ -71,8 +71,10 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(400).json({ message: "无效的状态值" });
     }
 
+    // 状态机约束：pending → completed/cancelled，不允许从其他状态跳转
+    const allowedFrom = status === "completed" ? ["pending"] : ["pending"];
     const order = await Order.findOneAndUpdate(
-      { _id: req.params.id, seller: req.user._id },
+      { _id: req.params.id, seller: req.user._id, status: { $in: allowedFrom } },
       { $set: { status } },
       { new: true }
     );

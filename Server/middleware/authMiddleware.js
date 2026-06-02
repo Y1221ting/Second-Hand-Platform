@@ -25,6 +25,11 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({ message: "用户不存在", code: "USER_NOT_FOUND" });
     }
 
+    // tokenVersion 校验：用户修改密码/被封禁后旧 token 自动失效
+    if ((decoded.tv || 0) !== (user.tokenVersion || 0)) {
+      return res.status(401).json({ message: "密码已修改，请重新登录", code: "TOKEN_VERSION_MISMATCH" });
+    }
+
     if (user.status === "banned") {
       return res.status(403).json({ message: "账号已被封禁", code: "USER_BANNED" });
     }

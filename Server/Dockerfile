@@ -5,9 +5,14 @@ WORKDIR /app
 
 COPY package*.json ./
 
-RUN npm install
+RUN npm install --production
 
-COPY . .
+COPY config/ ./config/
+COPY controllers/ ./controllers/
+COPY middleware/ ./middleware/
+COPY models/ ./models/
+COPY routes/ ./routes/
+COPY server.js ./
 
 EXPOSE 8000
 

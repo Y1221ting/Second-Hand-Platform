@@ -223,7 +223,7 @@ exports.checkoutCart = async (req, res) => {
         const product = await Product.findOneAndUpdate(
           {
             _id: item.productId,
-            quantity: { $gt: 0 },
+            quantity: { $gte: item.quantity },
             status: { $nin: ["sold_out", "inactive"] },
             "uploadedBy.id": { $ne: req.user._id.toString() },
           },
@@ -291,8 +291,9 @@ exports.checkoutCart = async (req, res) => {
       }
     }
 
-    // 清空购物车
-    user.cart = [];
+    // 仅移除成功结算的商品，失败项保留在购物车供用户重试
+    const successIds = new Set(results.success.map(s => s.productId.toString()));
+    user.cart = user.cart.filter(item => !successIds.has(item.productId.toString()));
     await user.save();
 
     res.status(200).json({

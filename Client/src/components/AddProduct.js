@@ -4,7 +4,7 @@ import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import { useAuth } from "../context/authContext";
 import { useNavigate } from "react-router-dom";
-import { FaMagic, FaInfoCircle, FaPlus } from "react-icons/fa";
+import { FaInfoCircle, FaPlus } from "react-icons/fa";
 
 // 按分类的常用规格建议
 const SPEC_SUGGESTIONS = {
@@ -40,8 +40,6 @@ const AddProduct = () => {
     key: "",
     value: "",
   });
-  const [aiLoading, setAiLoading] = useState(false);
-  const [categoryLoading, setCategoryLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [priceError, setPriceError] = useState("");
   const [tab, setTab] = useState("sell"); // "sell" | "buy"
@@ -131,81 +129,6 @@ const AddProduct = () => {
       ...formData,
       specifications: updatedSpecifications,
     });
-  };
-
-  const handleGenerateDescription = async () => {
-    if (!formData.name) {
-      alert("请先输入商品名称");
-      return;
-    }
-    setAiLoading(true);
-    try {
-      const response = await fetch(
-        `/api/ai/generate-description`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            productName: formData.name,
-            category: formData.category,
-          }),
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setFormData({
-          ...formData,
-          description: data.description,
-        });
-      } else {
-        const error = await response.json();
-        alert(error.message || "生成失败，请稍后重试");
-      }
-    } catch (error) {
-      console.error("AI生成描述失败:", error);
-      alert("生成失败，请检查网络连接");
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const handleRecommendCategory = async () => {
-    if (!formData.name) {
-      alert("请先输入商品名称");
-      return;
-    }
-    setCategoryLoading(true);
-    try {
-      const response = await fetch(
-        `/api/ai/recommend-category`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            productName: formData.name,
-          }),
-        }
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setFormData({
-          ...formData,
-          category: data.category,
-        });
-      } else {
-        const error = await response.json();
-        alert(error.message || "推荐失败，请稍后重试");
-      }
-    } catch (error) {
-      console.error("AI推荐分类失败:", error);
-      alert("推荐失败，请检查网络连接");
-    } finally {
-      setCategoryLoading(false);
-    }
   };
 
   // Handle form submission
@@ -400,6 +323,32 @@ const AddProduct = () => {
         ) : (
           /* 出售表单（原有） */
         <form onSubmit={handleSubmit}>
+          {/* 快速模板 */}
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-500 mb-2">快速发布 — 点击模板自动填入分类和描述：</p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: "二手教材", category: "教材教辅", desc: "九成新，只用了一学期" },
+                { label: "手机/平板", category: "电子数码", desc: "正常使用痕迹，功能完好" },
+                { label: "耳机/音箱", category: "电子数码", desc: "正常使用痕迹，功能完好" },
+                { label: "键盘/鼠标", category: "电子数码", desc: "正常使用痕迹，功能完好" },
+                { label: "台灯/风扇", category: "宿舍神器", desc: "闲置很久了，便宜出" },
+                { label: "衣服/鞋子", category: "服饰美妆", desc: "九成新，只穿了几次" },
+                { label: "体育用品", category: "体育用品", desc: "正常使用痕迹，功能完好" },
+                { label: "收纳/置物架", category: "宿舍神器", desc: "闲置很久了，便宜出" },
+              ].map(({ label, category, desc }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, category, description: desc })}
+                  className="text-xs px-3 py-1.5 rounded-full border border-yellow-300 bg-white text-gray-700 hover:bg-yellow-50 hover:border-yellow-500 transition-colors"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Product Name */}
           <div className="mb-4">
             <label htmlFor="name" className="block text-gray-600">
@@ -418,24 +367,9 @@ const AddProduct = () => {
 
           {/* Product Category Dropdown */}
           <div className="mb-4">
-            <div className="flex justify-between items-center mb-2">
-              <label htmlFor="category" className="block text-gray-600">
-                分类
-              </label>
-              <button
-                type="button"
-                onClick={handleRecommendCategory}
-                disabled={categoryLoading}
-                className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition duration-300 ${
-                  categoryLoading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-purple-500 hover:bg-purple-600 text-white"
-                }`}
-              >
-                <FaMagic />
-                {categoryLoading ? "推荐中..." : "AI推荐分类"}
-              </button>
-            </div>
+            <label htmlFor="category" className="block text-gray-600 mb-2">
+              分类
+            </label>
             <select
               id="category"
               name="category"
@@ -458,23 +392,21 @@ const AddProduct = () => {
 
           {/* Product Description */}
           <div className="mb-4">
-            <div className="flex justify-between items-center mb-2">
-              <label htmlFor="description" className="block text-gray-600">
-                描述
-              </label>
-              <button
-                type="button"
-                onClick={handleGenerateDescription}
-                disabled={aiLoading}
-                className={`flex items-center gap-2 px-3 py-1 rounded text-sm transition duration-300 ${
-                  aiLoading
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-purple-500 hover:bg-purple-600 text-white"
-                }`}
-              >
-                <FaMagic />
-                {aiLoading ? "生成中..." : "AI生成描述"}
-              </button>
+            <label htmlFor="description" className="block text-gray-600 mb-2">
+              描述
+            </label>
+            {/* 快捷描述模板 */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              {["九成新，只用了一学期", "正常使用痕迹，功能完好", "全新未拆封", "闲置很久了，便宜出", "毕业清仓，给钱就卖"].map((tpl) => (
+                <button
+                  key={tpl}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, description: tpl })}
+                  className="text-xs px-3 py-1 rounded-full border border-gray-300 text-gray-600 hover:border-yellow-500 hover:text-yellow-600 hover:bg-yellow-50 transition-colors"
+                >
+                  {tpl}
+                </button>
+              ))}
             </div>
             <textarea
               id="description"

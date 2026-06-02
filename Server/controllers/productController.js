@@ -1,8 +1,26 @@
 const Product = require("../models/Product");
+const bannedKeywords = require("../config/bannedKeywords");
+
+function checkBanned(text) {
+  if (!text) return null;
+  const lower = text.toLowerCase();
+  return bannedKeywords.find(kw => lower.includes(kw.toLowerCase()));
+}
 
 // Create a product
 exports.createProduct = async (req, res) => {
   try {
+    // 0. 未激活用户不能发布商品
+    if (req.user.status === "inactive") {
+      return res.status(403).json({ message: "您的账号正在等待管理员审核，审核通过后即可发布商品" });
+    }
+
+    // 0.5 违禁词检查
+    const hit = checkBanned(`${req.body.name || ""} ${req.body.description || ""}`);
+    if (hit) {
+      return res.status(400).json({ message: `商品信息包含违禁词，请修改后重新发布` });
+    }
+
     // 1. Validate required fields
     if (!req.body.name || !req.body.description || !req.body.price || !req.body.images) {
       return res.status(400).json({ message: "Missing required fields: name, description, price, images" });
@@ -59,8 +77,13 @@ exports.getAllProducts = async (req, res) => {
     let query = {};
 
     if (search) {
-      // $text 搜索：利用 { name: "text", description: "text" } 索引，比 $regex 快 10-100 倍
-      query.$text = { $search: search };
+      // 混合搜索：$text (索引快) + $regex on name (兜底部分匹配)
+      // "机械键盘" → $text 命中；"机械" → $regex 兜底也能找到"机械键盘"
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { $text: { $search: search } },
+        { name: { $regex: escaped, $options: "i" } },
+      ];
     }
 
     if (category) {
@@ -151,6 +174,12 @@ exports.updateProductById = async (req, res) => {
     // Check if the user is the owner of the product
     if (product.uploadedBy.id !== req.user._id.toString()) {
       return res.status(403).json({ message: "Forbidden: You can only update your own products" });
+    }
+
+    // 违禁词检查
+    const hit = checkBanned(`${req.body.name || ""} ${req.body.description || ""}`);
+    if (hit) {
+      return res.status(400).json({ message: `商品信息包含违禁词，请修改后重新发布` });
     }
 
     // 字段白名单：防止通过 req.body 修改 status/purchasedBy/uploadedBy 等敏感字段

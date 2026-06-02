@@ -1,25 +1,52 @@
 version: '3.8'
 
 services:
+  # ============================================================
+  # MongoDB — 内存硬限 384MB，Cache 仅 192MB，绝不超用
+  # ============================================================
   mongodb:
     image: mongo:7.0
     container_name: second-hand-mongodb
     restart: always
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"          # 仅本机回环，拒绝公网
     volumes:
       - mongodb_data:/data/db
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-    command: --wiredTigerCacheSizeGB 0.5
+    # 多参数组合：Cache 192MB + 禁用表扫描超时 + 慢查询日志
+    command: >
+      --wiredTigerCacheSizeGB 0.15
+      --wiredTigerConcurrentReadTransactions 32
+      --wiredTigerConcurrentWriteTransactions 8
+      --slowms 200
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    # CPU: 最多用 1 个核；内存: 软保 256MB + 硬限 384MB
     deploy:
       resources:
+        reservations:
+          cpus: "0.5"
+          memory: 256M
         limits:
-          memory: 768M
+          cpus: "1.0"
+          memory: 384M
     networks:
       - second-hand-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ============================================================
+  # Backend (Express) — Node heap 200MB，容器 256MB
+  # ============================================================
   backend:
     build:
       context: ./Server
@@ -32,16 +59,40 @@ services:
       - MONGODB_URI=${MONGODB_URI_FULL}
       - PORT=8000
       - CLIENT_URL=http://8.162.24.145:5000
-      - QWEN_API_KEY=${QWEN_API_KEY}
       - JWT_SECRET=${JWT_SECRET}
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=200
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8000/api/health',(r)=>{process.exit(r.statusCode===200?0:1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # CPU: 最多 1 个核；内存: 软保 128MB + 硬限 256MB
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.5"
+          memory: 128M
+        limits:
+          cpus: "1.0"
+          memory: 256M
     networks:
       - second-hand-network
     volumes:
-      - ./Server:/app
-      - /app/node_modules
+      - ./Server/uploads:/app/uploads
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ============================================================
+  # Frontend (Nginx) — 1 Worker，容器 64MB
+  # ============================================================
   frontend:
     build:
       context: ./Client
@@ -53,9 +104,29 @@ services:
     ports:
       - "5000:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.25"
+          memory: 32M
+        limits:
+          cpus: "0.5"
+          memory: 64M
     networks:
       - second-hand-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   mongodb_data:

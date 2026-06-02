@@ -10,10 +10,10 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 6 characters" });
     }
 
-    // Check if the email already exists
+    // Check if the email already exists（防枚举：不告知具体原因）
     const existingUser = await User.findOne({ email: req.body.email });
     if (existingUser) {
-      return res.status(400).json({ message: "Email already exists" });
+      return res.status(400).json({ message: "注册失败，请检查填写信息" });
     }
 
     // Create a new user（单校版：college 写死为南昌师范学院）
@@ -54,31 +54,56 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ message: "邮箱和密码不能为空" });
     }
 
-    // Check if the email exists
     const existingUser = await User.findOne({ email: req.body.email });
     if (!existingUser) {
-      return res.status(400).json({ message: "Invalid email or password" });
+      // 防用户枚举：统一返回模糊错误
+      return res.status(400).json({ message: "邮箱或密码错误" });
     }
 
-    // Check if the password is correct
-    const isPasswordValid = await verifyPassword(
-      req.body.password,
-      existingUser.password
-    );
-    if (!isPasswordValid) {
-      return res.status(400).json({ message: "Invalid email or password" });
+    // 账户锁定检查
+    if (existingUser.lockUntil && existingUser.lockUntil > new Date()) {
+      const remaining = Math.ceil((existingUser.lockUntil - new Date()) / 60000);
+      return res.status(429).json({ message: `账户已锁定，请 ${remaining} 分钟后重试` });
     }
+
     // 封禁检查
     if (existingUser.status === "banned") {
       return res.status(403).json({ message: "该账号已被封禁" });
     }
+
+    // Check if the password is correct
+    const isPasswordValid = await verifyPassword(req.body.password, existingUser.password);
+    if (!isPasswordValid) {
+      // 记录失败次数，5 次后锁定 15 分钟
+      existingUser.loginAttempts = (existingUser.loginAttempts || 0) + 1;
+      if (existingUser.loginAttempts >= 5) {
+        existingUser.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+      }
+      await existingUser.save();
+      const attempts = existingUser.loginAttempts;
+      if (attempts >= 5) {
+        return res.status(429).json({ message: "密码错误次数过多，账户已锁定 15 分钟" });
+      }
+      return res.status(400).json({ message: `邮箱或密码错误（还剩 ${5 - attempts} 次机会）` });
+    }
+
+    // 登录成功 → 重置锁定计数
+    if (existingUser.loginAttempts !== 0 || existingUser.lockUntil) {
+      existingUser.loginAttempts = 0;
+      existingUser.lockUntil = null;
+      await existingUser.save();
+    }
+
     // 签发 JWT token（7 天有效期）
-    const token = createToken(existingUser._id.toString());
+    const token = createToken(existingUser._id.toString(), existingUser.tokenVersion || 0);
 
     // 返回前移除 password 字段
     const userData = existingUser.toObject();
     delete userData.password;
-    res.status(200).json({ token, user: userData });
+
+    // 未激活用户也能登录，但前端根据 status 限制发布功能
+    const pendingApproval = existingUser.status === "inactive";
+    res.status(200).json({ token, user: userData, pendingApproval });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });

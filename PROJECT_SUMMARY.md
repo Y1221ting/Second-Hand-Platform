@@ -1,555 +1,345 @@
 # Second-Hand 南昌师范学院校园二手平台 - 项目完整文档
 
-> 从38校通用平台改造为南昌师范学院单校专属版本，核心变化：学院/专业替代学校维度
+> 最后更新：2026-06-02 | 当前版本：v2.5.0
 
 ## 技术栈
 - **前端**: React 18 + Tailwind CSS + React Router v6
 - **后端**: Node.js + Express 4
 - **数据库**: MongoDB 7.0 (Mongoose)
-- **认证**: JWT (jsonwebtoken + bcrypt)
-- **部署**: Docker Compose (3个容器)
-- **AI**: 通义千问 Qwen API (dashscope)
+- **认证**: JWT (jsonwebtoken + bcryptjs 12轮)
+- **安全**: helmet + express-rate-limit + CORS白名单 + 违禁词过滤
+- **部署**: Docker Compose (3容器: mongodb + backend + frontend)
 
 ## 服务器信息
-- **域名**: `freevian.top`
-- **前端地址**: `http://freevian.top:5000`
-- **后端地址**: `http://freevian.top:8000`
-- **MongoDB**: 容器内 `second-hand-mongodb:27017`
-- **GitHub**: `https://github.com/Y1221ting/Second-Hand-Platform.git`
+- **服务器**: 2核CPU / 2GB内存
+- **前端地址**: `http://8.162.24.145:5000`
+- **后端地址**: `http://8.162.24.145:8000`
+- **MongoDB**: 容器内 `second-hand-mongodb:27017` (仅本机回环, 不暴露公网)
 
 ---
 
 ## 项目目录结构
 
 ```
-d:\Second-Hand-main\
-├── docker-compose.yml          # Docker编排（3个服务）
-├── .gitignore                  # 忽略 .env, node_modules, build
+Second-Hand-main/
+├── docker-compose.yml          # Docker编排 (3服务, 资源硬限)
+├── .env                        # 密钥配置 (.gitignore)
+├── .gitignore
+├── CHANGELOG.md
+├── PROJECT_SUMMARY.md
+├── DEVELOPER_MANUAL.md         # 开发者手册
+├── development.md              # 架构决策 + 运营方向
+├── backup.sh                   # MongoDB 备份脚本
 ├── Client/                     # 前端 React
-│   ├── Dockerfile              # 使用 nginx:alpine，直接 COPY build/
-│   ├── nginx.conf              # 代理 /api/ → backend:8000
-│   ├── .gitignore              # 忽略 /node_modules, /build, .env
-│   ├── package.json
-│   ├── public/
+│   ├── Dockerfile              # nginx:alpine, COPY build/
+│   ├── nginx.conf              # 静态缓存 + /api/ /uploads/ 代理
 │   └── src/
 │       ├── App.js
-│       ├── index.js
-│       ├── index.css           # Tailwind CSS
-│       ├── context/
-│       │   ├── authContext.js           # 用户认证上下文
-│       │   └── NotificationContext.js   # 通知状态管理（30s轮询）
+│       ├── context/authContext.js
 │       └── components/
-│           ├── Home/
-│           │   ├── index.js             # 商品列表页
-│           │   ├── HomeBanner.js        # 首页统计横幅
-│           │   ├── WantedList.js        # 求购列表
-│           │   ├── Filters.js           # 筛选组件
-│           │   ├── ProductList.js       # 商品卡片列表
-│           │   ├── Recommendations.js   # 猜你喜欢推荐
-│           │   └── Pagination.js        # 分页
-│           ├── Product_Details/
-│           │   ├── ProductDetails.js    # 商品详情
-│           │   ├── Recommendations.js   # 猜你喜欢推荐
-│           │   ├── Dialog.js            # 购买确认弹窗
-│           │   └── FormField.js         # 表单字段组件
-│           ├── Profile/
-│           │   ├── UserDetails.js       # 用户信息展示
-│           │   ├── ProductList.js       # 用户商品列表
-│           │   ├── UserField.js         # 用户字段编辑
-│           │   ├── AppealForm.js        # 申诉提交弹窗
-│           │   ├── AppealList.js        # 申诉状态列表
-│           │   └── ConfirmDialog.js     # 删除确认弹窗
-│           ├── Admin/
-│           │   ├── AdminLayout.js       # 管理后台侧边栏布局
-│           │   ├── Dashboard.js         # 数据概览统计
-│           │   ├── Reports.js           # 举报管理
-│           │   ├── Products.js          # 商品管理
-│           │   ├── Users.js             # 用户管理
-│           │   ├── Appeals.js           # 申诉管理
-│           │   └── Warnings.js          # 警告记录
-│           ├── Utility/
-│           │   ├── Navbar.js
-│           │   ├── Footer.js
-│           │   ├── Loading.js
-│           │   ├── DrawerMenu.js
-│           │   └── ProductCard.js
-│           ├── AddProduct.js            # 发布商品
-│           ├── EditProduct.js           # 编辑商品
-│           ├── Edit_Product/
-│           │   └── ProductForm.js
-│           ├── Home.js
-│           ├── Landing.js
+│           ├── Home/           # index, HomeBanner, WantedList, Filters, ProductList, Recommendations, Pagination
+│           ├── Product_Details/ # ProductDetails, Dialog, FormField
+│           ├── Profile/        # UserDetails, ProductList, UserField, ConfirmDialog
+│           ├── Admin/          # AdminLayout, Dashboard, Reports, Products, Users
+│           ├── Utility/        # Navbar, Footer, Loading, DrawerMenu, ProductCard
+│           ├── AddProduct.js
+│           ├── EditProduct.js
+│           ├── Edit_Product/ProductForm.js
+│           ├── Cart.js
+│           ├── UserProfile.js
 │           ├── Login.js
 │           ├── Register.js
-│           ├── ProductPage.js
-│           ├── Cart.js
-│           ├── UserProfile.js           # 个人主页
-│           ├── Warnings.js              # 用户通知列表
-│           ├── NotificationModal.js     # 全局强制弹窗
-│           └── ProtectedRoute.js        # 路由守卫 + 封禁拦截
-│       └── utils/
-│           └── sessionGuard.js           # 全局 fetch 拦截（SESSION_EXPIRED 自动清登录态）
+│           ├── FAQ.js          # 10问手风琴
+│           ├── Privacy.js      # 隐私政策
+│           ├── Orders.js
+│           ├── ProtectedRoute.js
+│           └── ErrorBoundary.js
 └── Server/                     # 后端 Express
     ├── Dockerfile              # node:18-alpine
-    ├── package.json
-    ├── server.js               # 入口文件
+    ├── .dockerignore           # 排除 node_modules/.env/uploads
+    ├── server.js               # 入口 (dotenv → helmet → compression → cors → rate-limit → routes)
     ├── config/
-    │   ├── db.js               # MongoDB连接
-    │   ├── auth.js             # JWT + bcrypt工具
-    │   ├── rateLimiter.js      # 登录/注册限流（降级容错）
-    │   └── majorMap.js         # 学院-专业映射（南昌师范学院）
+    │   ├── auth.js             # JWT签发/验证 + bcryptjs 12轮
+    │   ├── db.js               # MongoDB连接池 (maxPoolSize=10)
+    │   ├── bannedKeywords.js   # 50+ 违禁词列表
+    │   └── majorMap.js         # 13学院→专业映射
     ├── middleware/
-    │   └── authMiddleware.js   # JWT认证中间件
+    │   └── authMiddleware.js   # JWT + tokenVersion 校验
     ├── models/
-    │   ├── User.js             # 用户模型
-    │   ├── Product.js          # 商品模型
-    │   ├── Wanted.js           # 求购模型
-    │   ├── Report.js           # 举报模型
-    │   ├── Appeal.js           # 申诉模型
-    │   └── Warning.js          # 通知/警告模型（type/severity/metadata）
+    │   ├── User.js             # 用户 (loginAttempts, lockUntil, tokenVersion)
+    │   ├── Product.js          # 商品 (6个复合索引, 文本索引)
+    │   ├── Order.js            # 订单 (状态机: pending→confirmed→completed/cancelled)
+    │   ├── Wanted.js           # 求购
+    │   ├── Report.js           # 举报
+    │   └── Message.js          # 系统通知 (精简, 只有title+content+isRead)
     ├── controllers/
-    │   ├── userController.js   # 用户CRUD
-    │   ├── productController.js# 商品CRUD + 购买 + 推荐
-    │   ├── aiController.js     # AI接口
-    │   └── cartController.js   # 购物车CRUD
-    ├── routes/
+    │   ├── userController.js   # 注册/登录/资料编辑/注销 (含违禁词检查)
+    │   ├── productController.js # 商品CRUD + 购买 + 两层推荐 + 违禁词过滤
+    │   ├── orderController.js   # 订单CRUD + 状态流转
+    │   ├── cartController.js   # 购物车6操作 + 批量结算
+    │   └── uploadController.js # 多图上传 (multer)
+    ├── routes/                 # 9个路由模块
     │   ├── userRoutes.js       # /api/users
-    │   ├── productRoutes.js    # /api/products（含推荐 /recommendations）
-    │   ├── aiRoutes.js         # /api/ai
+    │   ├── productRoutes.js    # /api/products
+    │   ├── orderRoutes.js      # /api/orders
     │   ├── cartRoutes.js       # /api/cart
-    │   ├── uploadRoutes.js     # /api/upload
     │   ├── wantedRoutes.js     # /api/wanted
     │   ├── reportRoutes.js     # /api/reports
-    │   ├── adminRoutes.js      # /api/admin（管理后台）
-    │   ├── warningRoutes.js    # /api/warnings（用户通知）
-    │   └── appealRoutes.js     # /api/appeals（用户申诉）
-    └── services/
-        └── aiService.js        # 通义千问API调用
+    │   ├── adminRoutes.js      # /api/admin
+    │   ├── uploadRoutes.js     # /api/upload
+    │   └── messageRoutes.js    # /api/messages (精简版通知)
+    ├── scripts/
+    │   └── seed.js             # 24条种子商品 (9分类, 13学院, 幂等)
+    └── uploads/                # 商品图片存储
 ```
 
 ---
 
 ## 后端 API 接口
 
-### 系统 `/`
+### 系统
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| GET | `/api/majorMap` | ❌ | 获取学院-专业映射（南昌师范学院13学院） |
+| GET | `/api/health` | ❌ | 健康检查 |
+| GET | `/api/stats` | ❌ | 首页统计 (userCount + productCount) |
+| GET | `/api/majorMap` | ❌ | 学院-专业映射 |
 
 ### 用户 `/api/users`
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| POST | `/api/users/register` | ❌ | 注册（college写死，接收department/major/dormitory） |
-| POST | `/api/users/login` | ❌ | 登录 |
-| GET | `/api/users/` | ✅ | 获取所有用户（分页+脱敏） |
-| GET | `/api/users/:userId` | ✅ | 获取用户详情 |
-| PUT | `/api/users/:userId` | ✅ | 更新用户 |
-| DELETE | `/api/users/:userId` | ✅ | 删除用户（本人校验） |
+| POST | `/api/users/register` | ❌ | 注册 (限流5次/小时) |
+| POST | `/api/users/login` | ❌ | 登录 (限流20次/15分钟) |
+| POST | `/api/users/logout` | ✅ | 登出 |
+| GET | `/api/users/` | ✅ | 用户列表 (分页+脱敏) |
+| GET | `/api/users/:userId` | ✅ | 用户详情 |
+| PUT | `/api/users/:userId` | ✅ | 编辑资料 (本人校验) |
+| DELETE | `/api/users/:userId` | ✅ | 注销账号 (本人校验) |
 
 ### 商品 `/api/products`
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| GET | `/api/products/` | ❌ | 获取所有商品（分页/搜索/筛选/排序） |
-| GET | `/api/products/recommendations` | ❌ | 获取推荐商品（参数：excludeId/category/college/sellerId） |
-| GET | `/api/products/:id` | ❌ | 获取商品详情 |
-| GET | `/api/products/user/:userId` | ❌ | 获取用户发布的商品 |
-| GET | `/api/products/purchased/:userId` | ❌ | 获取用户购买的商品 |
-| POST | `/api/products/` | ✅ | 创建商品 |
-| PUT | `/api/products/:id` | ✅ | 更新商品 |
+| GET | `/api/products/` | ❌ | 商品列表 (分页/搜索/筛选/排序) |
+| GET | `/api/products/recommendations` | ❌ | 推荐 (同学院 + 最新) |
+| GET | `/api/products/:id` | ❌ | 商品详情 |
+| GET | `/api/products/user/:userId` | ❌ | 用户发布的商品 |
+| GET | `/api/products/purchased/:userId` | ❌ | 用户购买的商品 |
+| POST | `/api/products/` | ✅ | 发布商品 (违禁词过滤) |
+| PUT | `/api/products/:id` | ✅ | 编辑商品 (所有权+白名单+违禁词过滤) |
 | DELETE | `/api/products/:id` | ✅ | 删除商品 |
-| POST | `/api/products/:id/purchase` | ✅ | 购买商品 |
-| PUT | `/api/products/:id/update-status` | ✅ | 更新商品状态 |
-| POST | `/api/products/:id/images` | ✅ | 添加图片 |
-| DELETE | `/api/products/:id/images/:index` | ✅ | 删除图片 |
-| POST | `/api/products/:id/specifications` | ✅ | 添加规格 |
-| PUT | `/api/products/:id/specifications/:specId` | ✅ | 更新规格 |
-| DELETE | `/api/products/:id/specifications/:specId` | ✅ | 删除规格 |
+| POST | `/api/products/:id/purchase` | ✅ | 购买 (原子减库存) |
 
-### AI `/api/ai`
+### 订单 `/api/orders`
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| POST | `/api/ai/generate-description` | ✅ | AI生成商品描述 |
-| POST | `/api/ai/recommend-category` | ✅ | AI推荐分类 |
+| GET | `/api/orders/buy` | ✅ | 我买的 |
+| GET | `/api/orders/sell` | ✅ | 我卖的 |
+| PUT | `/api/orders/:id` | ✅ | 更新状态 (confirmed/completed/cancelled) |
 
 ### 购物车 `/api/cart`
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| GET | `/api/cart/` | ✅ | 获取购物车（populate 商品详情） |
-| POST | `/api/cart/:productId` | ✅ | 添加商品到购物车（可选 quantity，默认1） |
-| PUT | `/api/cart/:productId` | ✅ | 修改购物车商品数量 |
-| DELETE | `/api/cart/:productId` | ✅ | 从购物车移除商品 |
+| GET | `/api/cart/` | ✅ | 获取购物车 |
+| POST | `/api/cart/:productId` | ✅ | 加入购物车 |
+| PUT | `/api/cart/:productId` | ✅ | 修改数量 |
+| DELETE | `/api/cart/:productId` | ✅ | 移除商品 |
 | DELETE | `/api/cart/` | ✅ | 清空购物车 |
-| POST | `/api/cart/checkout/all` | ✅ | 批量结算购物车 |
+| POST | `/api/cart/checkout/all` | ✅ | 批量结算 |
 
-### 上传 `/api/upload`
+### 其他
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| POST | `/api/upload/` | ✅ | 上传图片（最多9张，单张上限20MB） |
-
-### 求购 `/api/wanted`
-| 方法 | 路径 | 认证 | 说明 |
-|------|------|------|------|
-| GET | `/api/wanted/` | ❌ | 获取求购列表（limit参数，默认10，按最新排序） |
-| POST | `/api/wanted/` | ✅ | 发布求购（name/budget必填） |
-
-### 举报 `/api/reports`
-| 方法 | 路径 | 认证 | 说明 |
-|------|------|------|------|
-| POST | `/api/reports/` | ✅ | 举报商品（productId必填，reason四选一） |
-
-### 申诉 `/api/appeals`
-| 方法 | 路径 | 认证 | 说明 |
-|------|------|------|------|
-| POST | `/api/appeals/` | ✅ | 提交申诉（productId必填，reason必填） |
-| GET | `/api/appeals/user/:userId` | ✅ | 获取用户的申诉列表 |
-
-### 警告/通知 `/api/warnings`
-| 方法 | 路径 | 认证 | 说明 |
-|------|------|------|------|
-| GET | `/api/warnings/` | ✅ | 获取用户通知列表（支持 isRead 筛选） |
-| GET | `/api/warnings/critical` | ✅ | 获取未读 critical 通知（供弹窗用） |
-| PUT | `/api/warnings/:id/read` | ✅ | 标记通知为已读 |
+| POST | `/api/upload/` | ✅ | 上传图片 (多图, 单张10MB) |
+| GET | `/api/wanted/` | ❌ | 求购列表 |
+| POST | `/api/wanted/` | ✅ | 发布求购 |
+| POST | `/api/reports/` | ✅ | 举报商品 |
+| GET | `/api/messages/` | ✅ | 系统通知列表 |
+| PUT | `/api/messages/:id/read` | ✅ | 标记已读 |
 
 ### 管理后台 `/api/admin`
 | 方法 | 路径 | 认证 | 说明 |
 |------|------|------|------|
-| GET | `/api/admin/stats` | ✅🔑 | 数据概览（用户/商品/今日新增/待处理） |
-| GET | `/api/admin/reports` | ✅🔑 | 举报列表（分页+状态筛选） |
-| PUT | `/api/admin/reports/:id` | ✅🔑 | 处理举报（通过=下架 / 驳回） |
-| GET | `/api/admin/products` | ✅🔑 | 全部商品（分页+搜索+状态筛选） |
-| PUT | `/api/admin/products/:id` | ✅🔑 | 下架/恢复商品 |
-| GET | `/api/admin/users` | ✅🔑 | 用户列表（分页+搜索+角色/状态筛选） |
-| PUT | `/api/admin/users/:id` | ✅🔑 | 封禁/解封用户（含互保检查） |
-| GET | `/api/admin/appeals` | ✅🔑 | 申诉列表（分页+状态筛选） |
-| PUT | `/api/admin/appeals/:id` | ✅🔑 | 处理申诉（通过=恢复 / 驳回=更新原因） |
-| GET | `/api/admin/warnings` | ✅🔑 | 已发送警告列表（分页+已读/未读筛选） |
-| POST | `/api/admin/warnings` | ✅🔑 | 给用户发送警告（含互保检查） |
+| GET | `/api/admin/stats` | ✅🔑 | 数据概览 |
+| GET | `/api/admin/reports` | ✅🔑 | 举报列表 |
+| PUT | `/api/admin/reports/:id` | ✅🔑 | 处理举报 |
+| GET | `/api/admin/products` | ✅🔑 | 商品管理 |
+| PUT | `/api/admin/products/:id` | ✅🔑 | 下架/恢复 |
+| GET | `/api/admin/users` | ✅🔑 | 用户管理 |
+| PUT | `/api/admin/users/:id` | ✅🔑 | 封禁/解封 |
 
-> ✅ = 需 JWT 认证  🔑 = 需管理员角色
-
-### 统计 `/api`
-| 方法 | 路径 | 认证 | 说明 |
-|------|------|------|------|
-| GET | `/api/stats` | ❌ | 首页统计数据（注册人数 + 在售商品数） |
+> ✅ = JWT认证  🔑 = 管理员角色  |  全局限流: 100次/分钟
 
 ---
 
-## 数据模型
+## 数据模型 (6个)
 
-### User 模型
+### User
 ```javascript
 {
-  email: String,        // 必填，唯一，邮箱格式验证
-  password: String,     // 必填，最少6位，bcrypt加密
-  fullName: String,     // 必填
-  college: String,      // 系统写死"南昌师范学院"
-  department: String,   // 必填，学院（13选1）
-  major: String,        // 必填，专业（联动department）
-  dormitory: String,    // 选填，宿舍楼（如"1栋302"）
-  phoneNo: String,      // 必填，11位数字
-  address: String,      // 必填（合并地址信息）
-  cart: [{              // 购物车
-    productId: ObjectId, // 商品ID
-    quantity: Number,    // 数量
-    addedAt: Date        // 添加时间
-  }],
-  role: String,         // "user" | "admin"，默认 "user"
-  status: String,       // "active" | "banned"，默认 "active"
-  activeSessions: [{    // 活跃登录会话（防多设备同时登录）
-    sessionId: String,  // crypto.randomUUID()
-    device: String,     // User-Agent 前100字符
-    loginAt: Date
-  }]
+  email, password (bcryptjs 12轮), fullName,
+  college: "南昌师范学院",              // 写死
+  department (13学院枚举), major, dormitory,
+  phoneNo (11位), wechat, qq, address,
+  cart: [{ productId, quantity, addedAt }],
+  loginAttempts (5次失败锁15分钟), lockUntil,
+  tokenVersion (修改密码/封禁时自增, 旧token立即失效),
+  role: "user" | "admin",
+  status: "active" | "banned" | "inactive",
 }
-// timestamps: true — 自动记录 createdAt 和 updatedAt
+// 索引: email(unique), status, role
 ```
 
-### Product 模型
+### Product
 ```javascript
 {
-  name: String,                    // 必填
-  uploadedBy: { id, name, college, department, major, dormitory, phone },
-  category: String,                // 枚举9种中文（教材教辅/电子数码/生活用品/体育用品/服饰美妆/文具办公/宿舍神器/乐器爱好/其他）
-  description: String,             // 必填
-  price: Decimal128,               // 必填，>0，≤9999.9
-  images: [String],                // 图片路径数组 /uploads/xxx.jpg
-  specifications: [{ key, value }], // 规格参数
-  status: String,                  // "unsold" | "sold" | "sold_out"
-  quantity: Number,                // 库存，默认1
+  name, description, price: Number,       // 不再是 Decimal128
+  category (9种中文枚举), images: [String],
+  specifications: [{ key, value }],
+  status: "unsold" | "sold" | "sold_out" | "inactive",
+  quantity, delistReason,
+  uploadedBy: { id, name, college, department, major, dormitory, phone, wechat, qq },
   purchasedBy: { id, name, college, department, major, dormitory, phone },
-  listedByDepartment: String,      // 冗余字段（方便聚合查询）
-  listedByMajor: String,           // 冗余字段
-  createdAt: Date
+  listedByDepartment, listedByMajor,
 }
+// 索引: name+description(text), createdAt, status+category+createdAt,
+//       status+department+createdAt, uploadedBy.id+status, purchasedBy.id
 ```
 
-### Wanted 模型
+### Order
 ```javascript
 {
-  name: String,        // 必填，求购商品名称
-  budget: Decimal128,   // 必填，心理价位 >0 ≤9999.9
-  description: String,  // 选填，对商品的要求描述
-  postedBy: {           // 发布者信息
-    id, name, department, major, phone
-  },
-  createdAt: Date       // 默认当前时间
+  buyer, seller, product (ref),
+  productSnapshot: { name, price, image },
+  quantity, totalAmount,
+  status: "pending" | "completed" | "cancelled",
+  buyerInfo: { name, phone, dormitory, department },
+  sellerInfo: { name, phone, dormitory, department },
 }
+// 状态机: pending → completed/cancelled (终态不可逆)
+// 索引: buyer+createdAt, seller+createdAt, product
 ```
 
-### Report 模型
+### Wanted
 ```javascript
 {
-  productId: ObjectId,  // 必填，被举报的商品ID
-  reporterId: String,   // 必填，举报人ID
-  reason: String,       // 枚举：虚假信息/违禁商品/重复发布/其他
-  detail: String,       // 选填，详细说明
-  status: String,       // pending | handled | dismissed
-  handledBy: String,    // 处理人ID
-  handleNote: String,   // 处理备注
-  createdAt: Date       // 默认当前时间
+  name, budget: Number, description,
+  postedBy: { id, name, department, major, phone },
 }
 ```
 
-### Appeal 模型
+### Report
 ```javascript
 {
-  productId: ObjectId,  // 必填，被下架商品ID
-  sellerId: String,     // 必填，申诉人ID
-  reason: String,       // 必填，申诉理由
-  status: String,       // pending | approved | rejected
-  handledBy: String,    // 处理人ID
-  handleNote: String,   // 处理备注
-  createdAt: Date       // 默认当前时间
+  productId, reporterId,
+  reason: "信息不实" | "违禁品" | "重复发布" | "人身攻击" | "其他",
+  detail, status: "pending" | "handled" | "dismissed",
+  handledBy, handleNote,
 }
 ```
 
-### Warning 模型
+### Message (精简通知)
 ```javascript
 {
-  userId: ObjectId,     // 必填，接收用户ID
-  title: String,        // 必填，标题
-  content: String,      // 必填，内容
-  type: String,         // warning | product_delisted | account_banned | appeal_result
-  severity: String,     // info | critical（critical=强制弹窗）
-  metadata: Mixed,      // { productId, reason, appealStatus }
-  createdBy: String,    // 创建者ID（管理员）
-  isRead: Boolean,      // 默认 false
-  readAt: Date,         // 阅读时间
-  createdAt: Date       // 默认当前时间
+  userId, title, content, isRead, createdAt,
 }
-```
-
-### 商品分类（9种中文）
-```
-教材教辅   → 课本、考研资料、考证资料
-电子数码   → 手机、电脑、耳机、平板
-生活用品   → 台灯、风扇、收纳、衣架
-体育用品   → 球拍、瑜伽垫、哑铃
-服饰美妆   → 衣服、鞋、化妆品
-文具办公   → 笔、笔记本、画材
-宿舍神器   → 床帘、床上桌、懒人支架
-乐器爱好   → 吉他、尤克里里
-其他       → 未分类
-```
-
-### 学院列表（南昌师范学院13学院）
-```
-数学与信息科学学院、教育学院、文学院、外国语学院、
-物理与电子信息学院、化学与食品科学学院、音乐舞蹈学院、
-美术学院、体育学院、马克思主义学院、旅游与经济管理学院、
-生命科学学院、其他学院
+// 索引: userId+isRead+createdAt
 ```
 
 ---
 
-## 代码规范
+## 安全防护体系
 
-### 前端规范
-1. **API请求**: 使用相对路径 `/api/...`（nginx代理转发）
-2. **认证**: JWT token 存 `localStorage("token")`，请求头 `Authorization: Bearer ${token}`
-3. **用户信息**: 存 `localStorage("user")`，通过 `useAuth()` 获取
-4. **样式**: Tailwind CSS，颜色主色调 `yellow-500`
-5. **图标**: `react-icons` (FaMagic, FaEdit, FaShoppingCart, FaTimes等)
-6. **路由**: React Router v6，`useNavigate`, `useParams`, `Link`
-7. **状态管理**: React Context (authContext)
-8. **构建**: `npm run build` → 生成 `build/` 文件夹
+### 认证链
+```
+注册 → bcrypt 12轮 → 存DB
+登录 → 校验密码 → 签发JWT (userId + tv(tokenVersion), 7天)
+每请求 → authMiddleware → jwt.verify → 查DB验证tokenVersion
+敏感操作 → 修改密码/封禁 → tokenVersion+1 → 所有旧token失效
+```
 
-### 后端规范
-1. **错误处理**: try-catch，返回 `{ message: "..." }` 或 `{ error: "..." }`
-2. **认证中间件**: `authMiddleware` 解析JWT，`req.user` 挂载用户对象
-3. **密码**: bcryptjs 8轮加密（服务器2GB限制），JWT密钥从环境变量 `JWT_SECRET` 读取
-4. **图片**: 文件存储（multer → `Server/uploads/`），数据库只存路径，请求体限制10mb
-5. **价格**: MongoDB Decimal128 类型，后端 `Number(productObj.price) || 0` 转数字
+### 防护措施
+| 层级 | 措施 |
+|------|------|
+| 传输 | helmet安全头, CORS白名单, 全局100次/分钟限流 |
+| 认证 | JWT + tokenVersion吊销, 5次失败锁15分钟 |
+| 授权 | 本人校验(updateUser/deleteUser), 字段白名单(updateProduct) |
+| 数据 | 密码永不回传, 统一模糊错误(防枚举), 违禁词50+过滤 |
+| 资源 | body-parser 10MB, MongoDB仅127.0.0.1, Node heap 200MB |
 
 ---
 
 ## Docker 部署
 
-### docker-compose.yml 关键配置
-```yaml
-# 3个服务：mongodb, backend, frontend
-# 网络：second-hand-network (bridge)
-# 数据卷：mongodb_data（持久化MongoDB数据）
-
-# 密钥通过 .env 文件注入（.gitignore，不提交到 Git）
-# .env 文件包含：MONGO_INITDB_ROOT_PASSWORD, QWEN_API_KEY, JWT_SECRET, MONGODB_URI_FULL
-# Docker Compose 自动读取同目录下的 .env 文件做变量替换
-
-# 后端环境变量
-MONGODB_URI=${MONGODB_URI_FULL}
-PORT=8000
-CLIENT_URL=http://freevian.top:5000
-QWEN_API_KEY=${QWEN_API_KEY}
-JWT_SECRET=${JWT_SECRET}
-```
+### 容器资源分配
+| 容器 | CPU 硬限 | 内存硬限 | 说明 |
+|------|---------|---------|------|
+| MongoDB | 1.0核 | 384MB | wiredTigerCacheSizeGB 0.15 (~150MB) |
+| Backend | 1.0核 | 256MB | Node --max-old-space-size=200 |
+| Frontend | 0.5核 | 64MB | Nginx 1 worker |
 
 ### 部署命令
 ```bash
-# 本地构建前端
-cd Client && npm run build && cd ..
-
-# 推送代码
-git add .
-git commit -m "描述"
-git push
-
 # 服务器部署
-ssh root@8.162.24.145
-cd /www/wwwroot/Second-Hand-main
+cd /path/to/Second-Hand-main
 git pull
 docker compose up -d --build
 
-# 单独部署某个服务
-docker compose up -d --build backend
-docker compose up -d --build frontend
+# 初始化种子数据 (首页不空)
+docker exec second-hand-backend node scripts/seed.js
+
+# 验证
+curl http://localhost:8000/api/health
 ```
 
-### ⚠️ 注意事项
-- 服务器内存2GB，**不要在服务器上构建前端**（会卡死）
-- 前端Dockerfile已改为直接使用本地构建的 `build/` 文件夹
-- 前端通过 nginx 代理 `/api/` 和 `/uploads/` 到后端，无需CORS
-- MongoDB数据通过Docker卷持久化，重启不会丢失
-- 上传的图片存在 `Server/uploads/`（已被 bind mount 持久化，重启不丢失）
-- nginx 配置同时代理了 `/uploads/` 到后端，前端可直接用 `/uploads/xxx.jpg` 访问图片
-- bcrypt 替换为 bcryptjs + 盐轮数 8 以适配 2GB 内存限制
+### 关键文件
+| 文件 | 用途 |
+|------|------|
+| `docker-compose.yml` | 3容器编排, 资源硬限, 健康检查, 日志轮转 |
+| `Server/Dockerfile` | node:18-alpine, npm install --production |
+| `Server/.dockerignore` | 排除 node_modules/.env/uploads/日志 |
+| `Client/Dockerfile` | nginx:alpine, COPY build/ |
+| `Client/nginx.conf` | 静态缓存(JS 1年/图片30天) + API代理 + 安全头 |
+| `.env` | 密钥 (JWT_SECRET, MONGO密码), .gitignore保护 |
 
 ---
 
-### 前端性能优化（v1.18.0）
-- **代码分割** — `React.lazy` + `Suspense` 路由级懒加载 UserProfile/AddProduct/EditProduct/Cart；Login/Register 保持同步加载（高频入口）
-- **ErrorBoundary 兜底** — chunk 加载失败时显示"页面加载失败"界面 + 刷新按钮
-- **Nginx Gzip** — 启用 gzip，超过 1KB 的 JS/CSS/JSON 自动压缩
-- **Nginx 强缓存** — JS/CSS（带 content hash）缓存 1 年 + `immutable`；图片缓存 30 天
-- **原生懒加载** — `<img loading="lazy">` 替代自定义 IntersectionObserver，首屏图片不再被 JS 推迟下载
-- **CLS 修复** — 商品图片设 `width`/`height` + `aspectRatio` 容器，消除图片加载后的布局偏移
-- **无障碍修复** — 按钮对比度（黄底白字→黄底深灰字 2.3:1→5.5:1）、表单标签关联、aria-label、`<main>` landmark
+## 已砍功能 (不做重复建议)
+
+| 功能 | 原因 |
+|------|------|
+| AI生成描述/分类 | 通义千问API费用, 学生不需要AI写描述 |
+| 站内私信 IM | 学生用微信/QQ沟通, IM轮询浪费资源 |
+| 评价/信用体系 | 同校天然信任, 评价需Order模型+反刷机制 |
+| 申诉系统 | 校园平台管理员直接操作, 不需要流程 |
+| 多设备session互踢 | 校园场景不需要, 曾导致3次500错误 |
+| Decimal128价格 | 金融级精度不需要, Number够用 |
+| 六层推荐引擎 | 简化为两层(同学院+最新) |
 
 ---
 
-## 当前已完成的功能
+## 当前已完成功能
 
-1. ✅ **用户注册/登录** - JWT认证
-2. ✅ **商品发布** - 含图片（改用文件存储，不再存 base64）、规格参数
-3. ✅ **商品列表** - 搜索、筛选（分类/学校/价格）、排序
-4. ✅ **商品详情** - 图片、描述、规格、购买按钮
-5. ✅ **购买功能** - 减库存、记录购买者、标记售罄
-6. ✅ **个人资料** - 编辑信息、查看发布/购买记录
-7. ✅ **AI生成描述** - 通义千问API
-8. ✅ **AI推荐分类** - 通义千问API
-9. ✅ **界面中文** - 全界面已汉化
-10. ✅ **商品分类** - 扩展为10种
-11. ✅ **购物车系统** - 添加/移除/修改数量/清空/批量结算
-12. ✅ **商品推荐** - 五级漏斗（同类目→同学院→同专业→同卖家→同学院偏好+兜底）
-13. ✅ **学院/专业联动** - 注册、个人资料、筛选均支持学院→专业联动下拉
-14. ✅ **搜索优化** - 搜索范围扩到5字段（name + department + major + uploader + description）；800ms防抖
-15. ✅ **价格上限 9999.9** - 前后端双重校验，角为单位，超出内联提示
-16. ✅ **单校专属** - college 写死"南昌师范学院"，学院/专业替代学校维度
-17. ✅ **移动端搜索** - Navbar 右侧搜索图标按钮，点击展开输入框
-18. ✅ **商品卡片 SPA 跳转** - `<a>` 改为 `<Link>`，无整页刷新
-19. ✅ **删除用户级联标记** - 删除用户时自动标记其商品为 inactive
-20. ✅ **密钥管理安全** - 全部密钥移入 .env（.gitignore），docker-compose 用 ${变量} 引用
-21. ✅ **API 不返回密码哈希** - 登录/列表/详情接口均已移除 password 字段
-22. ✅ **auth.js 返回值扁平化** - `createSession` 直接返回 token 字符串，响应变为 `{ token: "xxx" }`
-23. ✅ **电话脱敏** - 购买前显示 138****1234，购买后显示完整号码
-24. ✅ **宿舍楼定位** - 选填宿舍楼字段，方便同宿舍楼当面交易
-25. ✅ **排序"离我最近"** - 同学院→同专业→同宿舍楼→同学院其他→其他学院
-26. ✅ **修改学院/专业同步** - 编辑个人资料时自动更新所有在售商品信息
-27. ✅ **首页统计横幅** - 展示注册人数和在售商品数，学院快捷入口
-28. ✅ **求购功能** - 发布求购（名称/心理价位/描述），首页展示最新4条
-29. ✅ **举报功能** - 举报商品（4种原因），非卖家登录用户可见
-30. ✅ **发布页双页签** - [我要卖]/[我要买] 切换，求购表单独立
-31. ✅ **购物车空引导** - 空购物车提示"去看看同学院同学在卖什么 →"
-32. ✅ **管理员后台** - 数据概览/举报管理/商品管理/用户管理/申诉管理/警告管理
-33. ✅ **申诉系统** - 用户可对被下架商品提交申诉，管理员审批通过/驳回
-34. ✅ **通知系统** - 管理员操作后自动创建通知，critical 通知强制弹窗，info 通知铃铛角标
-35. ✅ **管理员互保** - 禁止封禁/警告其他管理员（后端 403 + 前端隐藏按钮）
-36. ✅ **封禁拦截** - 被封禁用户下次请求自动登出 + 重定向登录页
-37. ✅ **评价/信用体系** - 买卖双方互评（1-5星），用户主页评分统计卡片，商品详情页卖家信用展示
-38. ✅ **站内私信 IM** - 会话列表 + 聊天窗口（气泡UI + 5s轮询 + 已读/未读），商品详情页"联系卖家"
-39. ✅ **商品图集轮播** - 多图主图+缩略图导航+左右箭头+灯箱全屏预览
-40. ✅ **多设备登录互踢** - 同一账号只允许 1 个活跃设备（服务端 activeSessions）+ 同浏览器跨标签页互斥（storage 事件 + 旧账号自动登出）
-41. ✅ **IP 限流** - 登录 15 分钟限 20 次，注册 1 小时限 5 次（express-rate-limit 降级容错）
-42. ✅ **手机号唯一性** - 新注册手机号不可重复（MongoDB partial unique index，老用户不受影响）
-43. ✅ **全量安全审计** - 修复 14 个漏洞（越权/注入/信息泄露）+ 12 个数据库索引
+1. ✅ 用户注册/登录 — JWT + bcryptjs 12轮 + tokenVersion吊销 + 账户锁定
+2. ✅ 商品发布/浏览/搜索 — 分页+筛选+排序+$text搜索
+3. ✅ 购物车系统 — 添加/修改/移除/清空/批量结算
+4. ✅ 订单系统 — 创建/状态流转/买卖双方视角
+5. ✅ 求购功能 — 发布/列表
+6. ✅ 举报功能 — 4种原因, 管理员处理
+7. ✅ 管理员后台 — 数据概览/商品管理/用户管理/举报管理
+8. ✅ 系统通知 — 精简Message模型, 列表+标记已读
+9. ✅ 学院/专业联动 — 注册/筛选器/商品发布均联动
+10. ✅ 商品推荐 — 两层 (同学院优先 + 最新补足)
+11. ✅ 图片上传 — multer文件存储, 多图
+12. ✅ 安全加固 — helmet安全头, 全局限流, 全局错误处理, CORS白名单, 违禁词过滤
+13. ✅ 冷启动 — 24条种子数据, 隐私政策页, FAQ页
+14. ✅ 开发者手册 — DEVELOPER_MANUAL.md (环境/Docker/MongoDB/安全/运维/FAQ)
+15. ✅ Docker优化 — Node heap 200MB, MongoDB cache 150MB, .dockerignore
 
-## 待优化/已知问题
+## 已知不足
 
-1. **购买记录 `purchasedBy` 单对象限制** - Product 模型的 `purchasedBy` 是单个嵌入子文档，多次购买会覆盖旧记录（当前场景下可接受）
-2. **商品推荐** - 阶段一为规则引擎，后续可升级为协同过滤或基于用户行为的学习模型
-3. **图片底层存储** - 当前本地文件存储（`Server/uploads/`），后续可迁移到对象存储（OSS）
-4. **交易状态机** - 缺失 Order 模型，购买→发货→收货→评价流程待建立（P0 路线图尾项）
-5. **搜索增强** - 搜索联想/分类筛选/浏览历史 待做（P1 路线图）
-
----
-
-## 安全与稳定性审计
-
-### ✅ 已修复汇总（第一批 v1.x）
-
-| 问题 | 危险等级 | 说明 |
-|------|---------|------|
-| **DELETE /api/users/:userId 无认证** | 🔴致命 | 已加 authMiddleware + 本人校验 |
-| **PUT /api/users/:userId 越权** | 🔴致命 | 已加 userId 比对 |
-| **JWT 密钥两处硬编码** | 🟡中 | 统一从 config/auth.js 引入 + 环境变量 |
-| **Product 索引未生效** | 🟡中 | 已调整顺序并新增 createdAt 排序索引 |
-| **购买弹窗数据丢失** | 🟡中 | 已补上 body 发送 |
-| **购买竞态条件** | 🔴致命 | 已改为 findOneAndUpdate + $inc 原子操作 |
-| **base64 图片撑爆 16MB** | 🔴致命 | 已改为文件存储 |
-| **updateProductById 缺少校验** | 🟢低 | 已补 runValidators: true |
-| **loginUser 返回密码哈希** | 🟡中 | toObject() 后 delete password |
-| **getAllUsers/getUserById 无密码保护** | 🟡中 | 已加 .select("-password") 及返回前删除 |
-| **docker-compose 密钥硬编码** | 🟡中 | 移入 .env（.gitignore），${变量} 引用 |
-| **body-parser 50MB DoS 风险** | 🟡中 | 降为 10MB |
-| **删除用户→商品变孤儿** | 🟡中 | 级联标记为 inactive |
-| **auth.js 返回值嵌套** | 🟡中 | createSession 直接返回字符串，响应扁平化 |
-
-### ✅ 已修复汇总（第二批 v2.4.0）
-
-| 问题 | 危险等级 | 说明 |
-|------|---------|------|
-| **JWT 密钥回退硬编码** | 🔴致命 | 移除 `"your-secret-key"` 回退，未设环境变量拒绝启动 |
-| **5 个图片/规格端点无所有权校验** | 🔴致命 | updateProductStatus + 图片增删 + 规格增删改 全部加 ownership check |
-| **GET /api/users 全量泄露** | 🔴致命 | 加 authMiddleware + 分页 + 脱敏 activeSessions/cart |
-| **GET /api/users/:id 泄露 session** | 🟡中 | 加 authMiddleware + 去 activeSessions |
-| **AI 路由无认证** | 🟡中 | 加 authMiddleware，防外部刷 API 费用 |
-| **adminRoutes $regex 注入** | 🔴致命 | 搜索参数正则转义，防 NoSQL 注入 |
-| **updateProductById 字段可篡改** | 🔴致命 | 改为字段白名单，status/uploadedBy 不可通过此接口修改 |
-| **updateUser 响应泄露密码哈希** | 🟡中 | 返回前 delete password |
-| **appealRoutes 内部 ID 泄露** | 🟢低 | 403/500 错误消息去掉内部用户 ID |
-| **wantedRoutes 手机号泄露** | 🟡中 | 公开列表去掉 postedBy.phone |
-| **用户列表无分页** | 🟡中 | 全量拉取 → 分页查询 |
-| **无 IP 限流** | 🟡中 | 登录 15min/20次 + 注册 1h/5次 + 降级容错 |
-
-### ⚠️ 需注意
-
-| 风险 | 等级 | 解释 |
-|------|------|------|
-| **Docker volume 覆盖 node_modules** | 🟡中 | `./Server:/app` 会覆盖容器内 node_modules |
-| **MongoDB 密码含特殊字符** | 🟡中 | 密码中 `@` 在 URI 中需编码为 `%40` |
-| **无数据库连接池监控** | 🟢低 | 后端崩溃时连接不会自动释放 |
-
-### 未来建议
-
-1. **迁移图片到对象存储（OSS/COS）** — 当图片量级增长时
-2. **移除 Docker bind mount** — 生产环境用 COPY 而非 volumes
-3. **商品推荐升级** — 从规则引擎升级为协同过滤
+1. **token存localStorage**: XSS风险, 需HTTPS后迁httpOnly Cookie
+2. **图片未压缩**: 前端无压缩/缩略图, 大图影响加载
+3. **MongoDB中文搜索**: $text对中文分词差, 可能需要换策略
+4. **无HTTPS**: HTTP明文传输, 需Let's Encrypt
+5. **无监控**: CPU/内存/磁盘/错误率无告警
+6. **单点故障**: 一台服务器无备援
+7. **种子数据无图**: seed.js有24条商品但images为空数组

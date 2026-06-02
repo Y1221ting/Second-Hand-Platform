@@ -8,16 +8,16 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "change-me-in-producti
 const SECRET = process.env.JWT_SECRET;
 
 async function hashPassword(password) {
-  return await bcrypt.hash(password, 8);
+  return await bcrypt.hash(password, 12); // OWASP 推荐 ≥12 轮
 }
 
 async function verifyPassword(password, hashedPassword) {
   return await bcrypt.compare(password, hashedPassword);
 }
 
-// 签发 JWT token（7 天有效期，免去频繁登录）
-function createToken(userId) {
-  return jwt.sign({ userId }, SECRET, { expiresIn: "7d" });
+// 签发 JWT token（7 天有效期，含 tokenVersion 用于吊销）
+function createToken(userId, tokenVersion) {
+  return jwt.sign({ userId, tv: tokenVersion || 0 }, SECRET, { expiresIn: "7d" });
 }
 
 module.exports = {

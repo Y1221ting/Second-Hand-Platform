@@ -90,7 +90,7 @@ const Register = () => {
     const data = await response.json();
 
     if (response.ok) {
-      alert("注册成功！请登录");
+      alert("注册成功！您的账号正在等待管理员审核，审核通过后即可发布商品。\n\n您现在可以先登录浏览商品。");
       navigate("/login");
     } else {
       alert(data.message || "注册失败，请稍后重试");

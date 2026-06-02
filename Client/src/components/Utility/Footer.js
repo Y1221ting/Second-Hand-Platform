@@ -53,8 +53,16 @@ const Footer = () => {
             <div className="md:w-1/4 my-2 md:my-0">
               <h3 className="text-lg font-semibold">帮助中心</h3>
               <ul className="text-gray-300">
-                <li>使用指南</li>
-                <li>常见问题</li>
+                <li>
+                  <Link to="/faq" className="hover:text-yellow-500 transition duration-300">
+                    使用指南
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/faq" className="hover:text-yellow-500 transition duration-300">
+                    常见问题
+                  </Link>
+                </li>
                 <li>交易规则</li>
                 <li>联系客服</li>
               </ul>
@@ -63,8 +71,16 @@ const Footer = () => {
               <h3 className="text-lg font-semibold">关于我们</h3>
               <ul className="text-gray-300">
                 <li>平台介绍</li>
-                <li>用户协议</li>
-                <li>隐私政策</li>
+                <li>
+                  <Link to="/privacy" className="hover:text-yellow-500 transition duration-300">
+                    隐私政策
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/privacy" className="hover:text-yellow-500 transition duration-300">
+                    用户协议
+                  </Link>
+                </li>
                 <li>意见反馈</li>
               </ul>
             </div>
