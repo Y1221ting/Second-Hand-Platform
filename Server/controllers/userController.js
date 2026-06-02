@@ -29,7 +29,7 @@ exports.registerUser = async (req, res) => {
       dormitory: req.body.dormitory || ""
     });
     newUser.password = await hashPassword(req.body.password);
-    await newUser.save();
+    await newUser.save({ validateModifiedOnly: true });
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
@@ -79,7 +79,7 @@ exports.loginUser = async (req, res) => {
       if (existingUser.loginAttempts >= 5) {
         existingUser.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
       }
-      await existingUser.save();
+      await existingUser.save({ validateModifiedOnly: true });
       const attempts = existingUser.loginAttempts;
       if (attempts >= 5) {
         return res.status(429).json({ message: "密码错误次数过多，账户已锁定 15 分钟" });
@@ -91,7 +91,7 @@ exports.loginUser = async (req, res) => {
     if (existingUser.loginAttempts !== 0 || existingUser.lockUntil) {
       existingUser.loginAttempts = 0;
       existingUser.lockUntil = null;
-      await existingUser.save();
+      await existingUser.save({ validateModifiedOnly: true });
     }
 
     // 签发 JWT token（7 天有效期）

@@ -13,7 +13,7 @@ exports.getCart = async (req, res) => {
     const validItems = user.cart.filter((item) => item.productId != null);
     if (validItems.length !== user.cart.length) {
       user.cart = validItems;
-      await user.save();
+      await user.save({ validateModifiedOnly: true });
     }
 
     // 标记每个购物车项中的商品是否可购买
@@ -98,7 +98,7 @@ exports.addToCart = async (req, res) => {
       });
     }
 
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
     res.status(200).json({ message: "已加入购物车", cart: user.cart });
   } catch (error) {
     console.error("加入购物车失败:", error);
@@ -125,7 +125,7 @@ exports.removeFromCart = async (req, res) => {
       return res.status(404).json({ message: "购物车中未找到该商品" });
     }
 
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     // 重新 populate 后返回
     await user.populate("cart.productId");
@@ -175,7 +175,7 @@ exports.updateQuantity = async (req, res) => {
     }
 
     item.quantity = quantity;
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     // 重新 populate 后返回
     await user.populate("cart.productId");
@@ -198,7 +198,7 @@ exports.clearCart = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     user.cart = [];
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     res.status(200).json({ message: "购物车已清空" });
   } catch (error) {
@@ -294,7 +294,7 @@ exports.checkoutCart = async (req, res) => {
     // 仅移除成功结算的商品，失败项保留在购物车供用户重试
     const successIds = new Set(results.success.map(s => s.productId.toString()));
     user.cart = user.cart.filter(item => !successIds.has(item.productId.toString()));
-    await user.save();
+    await user.save({ validateModifiedOnly: true });
 
     res.status(200).json({
       message: `结算完成：成功 ${results.success.length} 件，失败 ${results.failed.length} 件`,
