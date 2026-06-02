@@ -1,703 +1,897 @@
-# 南昌师范学院校园二手平台 — 开发者手册
+# 校园二手交易平台 — 新手开发手册
 
-> 最后更新：2026-06-02 | 当前版本：Phase 6
+> 最后更新：2026-06-02 | 当前版本：v2.5.0（审计修复版）
 
 ---
 
 ## 目录
 
-1. [环境要求](#1-环境要求)
-2. [项目架构](#2-项目架构)
-3. [Docker 部署规范](#3-docker-部署规范)
-4. [MongoDB 配置约束](#4-mongodb-配置约束)
-5. [代码安全准则](#5-代码安全准则)
-6. [性能优化要点](#6-性能优化要点)
-7. [API 速查](#7-api-速查)
-8. [上线与运维](#8-上线与运维)
-9. [常见问题规避](#9-常见问题规避)
-10. [附录：应急操作](#10-附录应急操作)
+1. [项目速览](#1-项目速览)
+2. [环境搭建](#2-环境搭建)
+3. [项目架构深入](#3-项目架构深入)
+4. [开发工作流](#4-开发工作流)
+5. [后端开发指南](#5-后端开发指南)
+6. [前端开发指南](#6-前端开发指南)
+7. [安全开发铁律](#7-安全开发铁律)
+8. [API 速查](#8-api-速查)
+9. [Docker 部署](#9-docker-部署)
+10. [常见问题与排查](#10-常见问题与排查)
+11. [附录：关键文件索引](#11-附录关键文件索引)
 
 ---
 
-## 1. 环境要求
+## 1. 项目速览
 
-### 服务器最低配置
+**Second-Hand** 是面向大学生的校园二手交易平台，MERN 全栈（MongoDB + Express + React + Node.js）。
 
-| 资源 | 要求 | 实际分配 |
-|------|------|---------|
-| CPU | 2 核 | 容器总计 ≤ 1.5 核 |
-| 内存 | 2 GB | 容器总计 ≤ 704 MB |
-| 磁盘 | 40 GB | 系统 + Docker + MongoDB + 图片 |
-| 带宽 | 校园网 1-5 Mbps | 日均 10-50 笔交易够用 |
+| 信息 | 详情 |
+|------|------|
+| 线上地址 | http://freevian.top:5000 |
+| GitHub | https://github.com/Y1221ting/Second-Hand-Platform.git |
+| 服务器 | 阿里云 ECS，2核2GB |
+| 部署方式 | Docker Compose（3 容器：MongoDB + Backend + Frontend） |
+| 当前分支 | `refactor/v3-simplify` |
 
-### 容器资源分配
+### 核心功能一览
 
-| 容器 | CPU 硬限 | 内存硬限 | 说明 |
-|------|---------|---------|------|
-| MongoDB | 1.0 核 | 384 MB | Cache 仅 150MB |
-| Backend | 1.0 核 | 256 MB | Node heap 200MB |
-| Frontend | 0.5 核 | 64 MB | Nginx 1 worker |
-| **合计** | **2.5 核** | **704 MB** | 预留 ~1.3GB 给系统 |
+| 模块 | 功能 |
+|------|------|
+| 用户系统 | 注册/登录/登出、JWT 认证、密码修改、资料编辑、账号注销 |
+| 商品系统 | 发布/编辑/删除、搜索/筛选/排序、推荐、规格参数、多图上传 |
+| 交易系统 | 直接购买（原子减库存）、购物车批量结算 |
+| 订单系统 | 购买记录、售出记录、订单状态管理 |
+| 内容治理 | 举报处理、违禁词过滤（50+关键词）、管理员后台 |
+| 消息通知 | 系统通知、未读角标、管理员警告 |
+| 求购广场 | 发布求购、浏览求购列表 |
+| 安全防护 | NoSQL 注入防护、PII 脱敏、CSP 安全头、文件 magic bytes 验证、防爆库 maxlength、tokenVersion 吊销 |
 
-### 软件依赖
+---
+
+## 2. 环境搭建
+
+### 2.1 本地开发环境
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/Y1221ting/Second-Hand-Platform.git
+cd Second-Hand-Platform
+git checkout refactor/v3-simplify
+
+# 2. 配置环境变量
+cp .env.example .env   # 如果没有 .env.example，手动创建 .env
+# 编辑 .env，至少设置：
+#   JWT_SECRET=<64位随机hex>
+#   MONGO_INITDB_ROOT_PASSWORD=<密码>
+#   MONGODB_URI_FULL=mongodb://admin:<密码>@localhost:27017/second-hand?authSource=admin
+#   CLIENT_URL=http://localhost:3000
+
+# 3. 安装依赖
+cd Server && npm install
+cd ../Client && npm install
+
+# 4. 启动 MongoDB（需要本地安装或 Docker）
+docker run -d --name mongo-dev -p 27017:27017 \
+  -e MONGO_INITDB_ROOT_USERNAME=admin \
+  -e MONGO_INITDB_ROOT_PASSWORD=<密码> \
+  mongo:7
+
+# 5. 启动后端
+cd Server
+node server.js          # 或 npx nodemon server.js
+
+# 6. 启动前端
+cd Client
+npm start               # 开发服务器 localhost:3000
+```
+
+### 2.2 关键软件版本
 
 ```
+Node.js 18+
+MongoDB 7.0
 Docker Engine 20.10+
-Docker Compose v3.8+
-Node.js 18 (本地开发)
-MongoDB 7.0 (Docker 内)
+React 18
+Express 4
+Mongoose 7
 ```
 
 ---
 
-## 2. 项目架构
+## 3. 项目架构深入
 
-### 目录结构
+### 3.1 目录结构
 
 ```
 Second-Hand-main/
-├── Server/                  # Express 后端 (端口 8000)
+├── Server/                        # Express 后端（端口 8000）
 │   ├── config/
-│   │   ├── auth.js          # JWT 签发/验证，密码哈希
-│   │   ├── db.js            # MongoDB 连接池配置
-│   │   ├── bannedKeywords.js # 50+ 违禁词列表
-│   │   └── majorMap.js      # 学院-专业映射
-│   ├── controllers/
-│   │   ├── userController.js
-│   │   ├── productController.js
-│   │   ├── cartController.js
-│   │   ├── orderController.js
-│   │   └── uploadController.js
+│   │   ├── auth.js                # JWT 签发/验证 + bcrypt 密码哈希
+│   │   ├── db.js                  # MongoDB 连接池
+│   │   ├── bannedKeywords.js      # 违禁词列表 + checkBanned() 公共函数
+│   │   ├── rateLimiter.js         # 登录/注册独立限流
+│   │   └── majorMap.js            # 学院→专业映射表
+│   ├── controllers/               # 业务逻辑层
+│   │   ├── userController.js      # 注册/登录/登出/改密/CRUD
+│   │   ├── productController.js   # 商品CRUD/搜索/推荐/购买/状态机
+│   │   ├── cartController.js      # 购物车CRUD/批量结算
+│   │   ├── orderController.js     # 订单创建/查询/状态更新
+│   │   └── uploadController.js    # 图片上传+magic bytes验证
 │   ├── middleware/
-│   │   └── authMiddleware.js # JWT + tokenVersion 校验
-│   ├── models/
-│   │   ├── User.js           # 用户 (含 loginAttempts, lockUntil)
-│   │   ├── Product.js        # 商品 (6个复合索引)
-│   │   ├── Order.js          # 订单 (状态机)
-│   │   ├── Wanted.js         # 求购
-│   │   ├── Report.js         # 举报
-│   │   └── Message.js        # 系统通知
-│   ├── routes/               # 9 个路由模块
+│   │   └── authMiddleware.js      # JWT认证 + tokenVersion校验 + optionalAuth
+│   ├── models/                    # Mongoose Schema（6个模型）
+│   │   ├── User.js                # 用户（含loginAttempts/lockUntil/tokenVersion）
+│   │   ├── Product.js             # 商品（含SellerSchema/6个复合索引）
+│   │   ├── Order.js               # 订单（含productSnapshot快照）
+│   │   ├── Wanted.js              # 求购帖
+│   │   ├── Report.js              # 举报
+│   │   └── Message.js             # 系统通知
+│   ├── routes/                    # 路由层（9个模块）
+│   │   ├── userRoutes.js          # /api/users
+│   │   ├── productRoutes.js       # /api/products
+│   │   ├── cartRoutes.js          # /api/cart
+│   │   ├── orderRoutes.js         # /api/orders
+│   │   ├── wantedRoutes.js        # /api/wanted
+│   │   ├── reportRoutes.js        # /api/reports
+│   │   ├── adminRoutes.js         # /api/admin
+│   │   ├── messageRoutes.js       # /api/messages
+│   │   └── uploadRoutes.js        # /api/upload
 │   ├── scripts/
-│   │   └── seed.js           # 24 条种子商品
-│   ├── uploads/              # 商品图片
+│   │   └── seed.js                # 24条种子商品数据
+│   ├── uploads/                   # 商品图片存储
 │   ├── Dockerfile
-│   ├── .dockerignore
-│   └── server.js             # 入口文件
-├── Client/                   # React 18 前端
-│   ├── src/components/
-│   ├── Dockerfile            # Nginx serve React build
-│   └── nginx.conf            # 静态缓存 + API 代理
-├── docker-compose.yml        # 3 容器编排
-├── .env                      # 密钥配置（不要提交 git）
-└── backup.sh                 # MongoDB 备份脚本
+│   └── server.js                  # 入口文件（中间件栈 + 路由挂载）
+├── Client/                        # React 18 前端
+│   ├── public/
+│   ├── src/
+│   │   ├── App.js                 # 路由定义 + 代码分割
+│   │   ├── context/
+│   │   │   ├── authContext.js     # 认证状态（login/logout/isAdmin）
+│   │   │   └── NotificationContext.js  # 未读消息轮询
+│   │   └── components/
+│   │       ├── Home.js            # 首页（搜索+筛选+商品列表）
+│   │       ├── AddProduct.js      # 发布商品（含求购Tab）
+│   │       ├── EditProduct.js     # 编辑商品（上传→URL，非base64）
+│   │       ├── ProductPage.js     # 商品详情
+│   │       ├── Cart.js            # 购物车
+│   │       ├── UserProfile.js     # 个人中心
+│   │       ├── Warnings.js        # 消息通知
+│   │       ├── Login.js / Register.js
+│   │       ├── ProtectedRoute.js  # 路由守卫
+│   │       ├── Admin/             # 管理后台（Dashboard/Reports/Products/Users）
+│   │       ├── Home/              # 首页子组件
+│   │       ├── Product_Details/   # 商品详情子组件
+│   │       ├── Profile/          # 个人中心子组件
+│   │       ├── Edit_Product/     # 编辑商品子组件
+│   │       └── Utility/          # 通用组件（Navbar/Footer/ProductCard等）
+│   ├── Dockerfile
+│   ├── nginx.conf                 # Nginx静态缓存 + API代理
+│   └── tailwind.config.js
+├── docker-compose.yml             # 3容器编排（mongodb + backend + frontend）
+├── .env                           # 密钥配置（不提交git）
+├── .gitignore
+├── STUDY.md                       # 学习指南（比赛演示用）
+├── CHANGELOG.md                   # 版本变更日志
+└── backup.sh                      # MongoDB备份脚本
 ```
 
-### 中间件栈（按加载顺序）
+### 3.2 中间件加载顺序（Server/server.js）
 
 ```
-1. trust proxy         → 正确获取客户端 IP
-2. compression()       → gzip 响应压缩
-3. helmet()            → 安全响应头
-4. bodyParser (10MB)   → JSON + URL 编码
-5. CORS (白名单)       → 函数校验 origin
-6. rate-limit (全局)   → 100 次/分钟 /api
-7. 路由模块 × 9        → 业务逻辑
-8. 静态文件 (uploads)  → 7 天缓存
-9. Express error handler
-10. unhandledRejection / uncaughtException
+请求 → trust proxy → compression(gzip) → helmet(CSP) → bodyParser(10MB)
+     → CORS(白名单) → rate-limit(100次/分) → 路由模块 × 9
+     → 静态文件(uploads) → 全局错误处理
 ```
 
-### 数据模型关系
+### 3.3 数据模型关系
 
 ```
-User ──1:N──→ Product (上传)
-User ──1:N──→ Order (买/卖)
-User ──1:N──→ Wanted (求购)
-User ──1:N──→ Report (举报)
-User ──1:N──→ Message (通知)
-Product ──1:1──→ Order (每个订单关联一个商品)
+User ─1:N─→ Product (上传)       User.uploadedBy.id → Product
+User ─1:N─→ Order (买/卖)        User._id → Order.buyer / Order.seller
+User ─1:N─→ Wanted (求购)        User._id → Wanted.postedBy.id
+User ─1:N─→ Report (举报)        User._id → Report.reporterId
+User ─1:N─→ Message (通知)       User._id → Message.userId
+Product ─1:1─→ Order(快照)       Product._id → Order.product
+购物车嵌入 User.cart[]           不用独立 Collection
 ```
 
 ---
 
-## 3. Docker 部署规范
+## 4. 开发工作流
 
-### 首次部署
+### 4.1 标准开发流程
 
 ```bash
-# 1. 确认 .env 存在且配置正确
-cat .env
-# 必须字段：MONGO_INITDB_ROOT_PASSWORD, JWT_SECRET, MONGODB_URI_FULL
+# 1. 写代码（本地开发）
+#    - 后端改 Server/ 下的文件
+#    - 前端改 Client/src/ 下的文件
 
-# 2. 构建并启动
+# 2. 后端语法检查
+cd Server
+node --check server.js
+node --check controllers/productController.js
+# ... 对所有修改过的 .js 执行
+
+# 3. 前端构建验证
+cd Client
+npm run build        # 必须零 error 通过
+
+# 4. 本地功能测试
+#    - 启动后端 + 前端，走通完整业务流程
+#    - 测试正常路径 + 异常路径（错误输入/越权/并发）
+
+# 5. 提交代码
+git add <具体文件>    # 不要用 git add . 或 git add -A
+git commit -m "类型: 描述"
+git push origin refactor/v3-simplify
+
+# 6. 服务器部署
+#    - ssh 登录服务器
+#    - git pull
+#    - docker compose build backend frontend
+#    - docker compose up -d --no-deps backend frontend
+```
+
+### 4.2 Commit 规范
+
+```
+fix:     修复 bug
+feat:    新增功能
+refactor: 重构（不改功能）
+chore:   构建/配置/依赖变更
+docs:    文档更新
+```
+
+### 4.3 严禁操作
+
+- **严禁 `git add -A` 或 `git add .`** — 可能误提交 .env、node_modules、uploads 图片
+- **严禁 `git push --force`** — 会覆盖远程历史
+- **严禁 `npm install` 新包不经过评审** — 每个新依赖都增加安全面和资源消耗
+- **严禁将 .env 内容发给任何人** — 包括截图、日志、代码片段
+- **严禁在代码中硬编码密钥/密码/令牌**
+
+---
+
+## 5. 后端开发指南
+
+### 5.1 新增一个 API 端点的标准步骤
+
+以"新增用户收藏功能"为例：
+
+**Step 1 — Model（如需新字段）**
+```javascript
+// Server/models/User.js — 在 userSchema 中添加
+favorites: [{
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+  addedAt: { type: Date, default: Date.now }
+}]
+```
+
+**Step 2 — Controller（业务逻辑）**
+```javascript
+// Server/controllers/userController.js
+exports.addFavorite = async (req, res) => {
+  try {
+    const { productId } = req.body;
+    // ⚠️ 类型校验
+    if (typeof productId !== "string" || !productId) {
+      return res.status(400).json({ message: "商品ID无效" });
+    }
+    // ⚠️ 使用 $addToSet 防重复（原子操作）
+    await User.findByIdAndUpdate(req.user._id, {
+      $addToSet: { favorites: { productId, addedAt: new Date() } }
+    });
+    res.json({ message: "已收藏" });
+  } catch (error) {
+    console.error("收藏失败:", error);
+    res.status(500).json({ message: "服务器内部错误" });
+  }
+};
+```
+
+**Step 3 — Route（挂载路由）**
+```javascript
+// Server/routes/userRoutes.js
+router.post("/favorites", authMiddleware, userController.addFavorite);
+```
+
+### 5.2 后端编码规范
+
+**1. 所有 query 参数必须做类型校验（防 NoSQL 注入）**
+```javascript
+// ✅ 正确
+const search = typeof req.query.search === "string" ? req.query.search : "";
+const page = parseInt(req.query.page) || 1;
+
+// ❌ 错误 — query string 可以被解析为对象 {$gt: ""}
+const search = req.query.search || "";
+```
+
+**2. 所有分页 limit 必须设上限**
+```javascript
+// ✅ 正确
+const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+
+// ❌ 错误 — 攻击者可以传 limit=9999999 打爆数据库
+const limit = parseInt(req.query.limit) || 20;
+```
+
+**3. 所有用户输入字段必须白名单过滤**
+```javascript
+// ✅ 正确 — 只允许特定字段通过 req.body
+const allowedFields = ["name", "description", "price", "category"];
+const safeUpdate = {};
+allowedFields.forEach(f => { if (req.body[f] !== undefined) safeUpdate[f] = req.body[f]; });
+
+// ❌ 错误 — 攻击者可以覆盖 status/role/uploadedBy
+const product = await Product.findByIdAndUpdate(id, req.body);
+```
+
+**4. ValidationError 返回通用消息（不泄露内部细节）**
+```javascript
+// ✅ 正确
+if (error.name === "ValidationError") {
+  return res.status(400).json({ message: "输入数据格式不正确" });
+}
+
+// ❌ 错误 — 泄露 Schema 字段名和校验规则
+if (error.name === "ValidationError") {
+  return res.status(400).json({ message: error.message });
+}
+```
+
+**5. 写操作必须校验所有权**
+```javascript
+// ✅ 正确
+if (product.uploadedBy.id !== req.user._id.toString()) {
+  return res.status(403).json({ message: "无权操作" });
+}
+```
+
+**6. 所有 String Schema 字段加 maxlength（防 DB 膨胀 DoS）**
+```javascript
+// ✅ 正确
+name: { type: String, required: true, maxlength: [200, "名称过长"] }
+
+// ❌ 错误 — 攻击者可以灌入 MB 级别的文本
+name: { type: String, required: true }
+```
+
+### 5.3 关键设计模式
+
+**状态机模式（Product）**
+```javascript
+// Server/controllers/productController.js
+const VALID_TRANSITIONS = {
+  unsold:   ["sold_out", "inactive"],   // 在售 → 售罄/下架
+  sold_out: ["unsold"],                  // 售罄 → 重新上架
+  inactive: ["unsold"],                  // 下架 → 重新上架
+  sold:     [],                          // 暂未使用
+};
+// 使用：if (!VALID_TRANSITIONS[currentStatus].includes(newStatus)) return 400;
+```
+
+**状态机模式（Order）**
+```
+pending → completed（卖家确认完成）
+pending → cancelled（买家/卖家取消）
+completed / cancelled → 终态，不可再变
+```
+
+**原子购买（防超卖）**
+```javascript
+// 使用 findOneAndUpdate + 条件查询，非"查→判断→改"两步操作
+const product = await Product.findOneAndUpdate(
+  { _id: id, quantity: { $gt: 0 }, status: { $nin: ["sold_out", "inactive"] } },
+  { $inc: { quantity: -1 }, $set: { purchasedBy: {...} } },
+  { new: true }
+);
+```
+
+**PII 脱敏（三层策略）**
+```javascript
+// Server/controllers/productController.js — sanitizeProduct()
+// - 未认证用户：隐藏 phone/wechat/qq/dormitory
+// - 认证非交易方：隐藏 phone/wechat/qq，保留 dormitory
+// - 卖家或买家本人：保留全部
+```
+
+**tokenVersion 吊销机制**
+```javascript
+// 登出/改密/封禁时 tokenVersion + 1
+// authMiddleware 校验时比对 decoded.tv vs user.tokenVersion
+// 不匹配 → 401，所有旧 token 立即失效
+```
+
+### 5.4 违禁词过滤接入
+
+```javascript
+// Server/config/bannedKeywords.js
+const { checkBanned } = require("../config/bannedKeywords");
+
+// 在任何需要检查用户文本的地方调用
+const hit = checkBanned(userInput);
+if (hit) {
+  return res.status(400).json({ message: "内容包含违规词，请修改后重新提交" });
+}
+```
+
+**已接入位置：**
+- 商品发布/编辑（name + description）
+- 商品规格添加/编辑（key + value）
+- 用户注册/资料编辑（fullName + wechat + qq）
+- 求购发布（name + description）
+
+---
+
+## 6. 前端开发指南
+
+### 6.1 新增一个页面的标准步骤
+
+```bash
+# 1. 创建组件文件
+touch Client/src/components/NewPage.js
+
+# 2. 在 App.js 添加路由
+# 3. 如果是需要登录的页面，用 ProtectedRoute 包裹
+# 4. 如果页面较大，用 React.lazy 懒加载
+```
+
+### 6.2 前端编码规范
+
+**1. 图片上传必须走 /api/upload，禁止 base64**
+```javascript
+// ✅ 正确 — AddProduct.js / EditProduct.js 的标准做法
+const fd = new FormData();
+files.forEach(f => fd.append("images", f));
+const res = await fetch("/api/upload", {
+  method: "POST",
+  headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+  body: fd,
+});
+const { urls } = await res.json();
+// 然后用 urls（服务器路径）创建/更新商品
+
+// ❌ 错误 — base64 会把数 MB 的字符串存入 MongoDB
+const reader = new FileReader();
+reader.readAsDataURL(file);
+reader.onload = () => {
+  setFormData({ ...formData, images: [...formData.images, reader.result] });
+};
+```
+
+**2. API 调用模板**
+```javascript
+const token = localStorage.getItem("token");
+try {
+  const res = await fetch("/api/products", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(formData),
+  });
+  if (res.ok) {
+    // 成功
+  } else {
+    const data = await res.json();
+    // 处理业务错误（data.message）
+    if (res.status === 401) {
+      // token 过期 → 跳转登录
+      navigate("/login");
+    }
+  }
+} catch (err) {
+  // 处理网络错误
+  alert("网络错误，请稍后重试");
+}
+```
+
+**3. PII 可见性控制（前端端）**
+```jsx
+{/* 宿舍楼：仅买家和卖家可见 */}
+{productDetails.uploadedBy?.dormitory && (
+  <p>
+    宿舍楼：{" "}
+    {!user
+      ? "登录后查看"
+      : (isBuyer || isSeller)
+        ? productDetails.uploadedBy.dormitory
+        : "购买后查看"}
+  </p>
+)}
+
+{/* 手机号：买家和卖家完整可见，其他人脱敏 */}
+{productDetails.uploadedBy?.phone && (
+  <p>
+    联系电话：{" "}
+    {!user
+      ? "登录后查看联系方式"
+      : (isBuyer || isSeller)
+        ? productDetails.uploadedBy.phone
+        : phone.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2") + " [购买后查看完整号码]"}
+  </p>
+)}
+```
+
+**4. 表单校验统一用内联提示，不用 alert()**
+```jsx
+// ✅ 正确
+const [priceError, setPriceError] = useState("");
+// ...
+<input onChange={(e) => {
+  if (Number(e.target.value) > 9999.9) setPriceError("价格不能超过 ¥9999.9");
+  else setPriceError("");
+}} />
+{priceError && <p className="text-red-500 text-sm">{priceError}</p>}
+
+// ❌ 错误
+if (price > 9999.9) { alert("价格太高"); return; }
+```
+
+### 6.3 路由守卫（ProtectedRoute）
+
+```javascript
+// Client/src/components/ProtectedRoute.js
+// 三种保护等级：
+// 1. 普通登录保护：<ProtectedRoute><Component /></ProtectedRoute>
+// 2. 管理员保护：<ProtectedRoute requireAdmin><AdminComponent /></ProtectedRoute>
+// 3. 封禁用户会被自动登出并重定向
+```
+
+### 6.4 认证状态管理
+
+```javascript
+// Client/src/context/authContext.js
+// login(user, token) — 存入 localStorage
+// logout() — 清除 localStorage + 内存状态
+// useAuth() — 获取 { user, isAuthenticated, isAdmin, login, logout }
+
+// 使用示例：
+import { useAuth } from "../context/authContext";
+const { user, isAuthenticated, logout } = useAuth();
+```
+
+---
+
+## 7. 安全开发铁律
+
+### 7.1 必须遵守（违反 = 阻断上线）
+
+| # | 规则 | 错误示例 | 正确做法 |
+|---|------|---------|---------|
+| 1 | query 参数必须 typeof 校验 | `req.query.search` 直接使用 | `typeof req.query.search === "string" ? req.query.search : ""` |
+| 2 | req.body 必须字段白名单 | `Product.findByIdAndUpdate(id, req.body)` | 定义 `allowedFields[]`，逐字段复制 |
+| 3 | 分页 limit 必须上限 | `parseInt(req.query.limit)` | `Math.min(parseInt(req.query.limit) \|\| 20, 100)` |
+| 4 | 图片必须 upload-first | `reader.readAsDataURL(file)` | `FormData → POST /api/upload → 用返回的 URL` |
+| 5 | String Schema 加 maxlength | `name: String` | `name: { type: String, maxlength: 200 }` |
+| 6 | 写操作校验所有权 | 不检查直接改 | `if (ownerId !== req.user._id) return 403` |
+| 7 | 错误消息不泄露内部细节 | `{ message: error.message }` | `{ message: "输入数据格式不正确" }` |
+| 8 | 密码绝不回传 | `res.json(user)` | `delete user.password; res.json(user)` |
+| 9 | .env 绝不提交 git | — | 已在 .gitignore 中 |
+| 10 | JWT_SECRET 使用强随机值 | `change-me-in-production` | `crypto.randomBytes(64).toString("hex")` |
+
+### 7.2 理解为什么
+
+**NoSQL 注入原理：**
+```javascript
+// 攻击者发送：GET /api/products?search[$gt]=
+// Express 的 qs 解析器会把 query string 解析为对象：{ search: { $gt: "" } }
+// 如果直接放进 MongoDB 查询：Product.find({ name: { $regex: { $gt: "" } } })
+// → 这不会匹配任何文档，但 typeof 检查可以防御
+// 更危险的是 $where 注入（本项目未使用 $where，所以实际风险低）
+```
+
+**tokenVersion 设计原理：**
+```
+时间线：
+T0: 用户登录，JWT 含 { userId: "abc", tv: 3 }
+T1: 用户改密码 → DB 中 tokenVersion 变为 4
+T2: 攻击者用旧 JWT (tv:3) 请求 → authMiddleware 比对 tv 不匹配 → 401
+→ 不需要服务端维护 token 黑名单，JWT 本身无状态
+```
+
+### 7.3 新增代码安全自查清单
+
+每次写完一个新功能，对照检查：
+
+```
+[ ] 所有 req.query 参数都有 typeof 校验？
+[ ] 所有 req.body 字段都经过白名单过滤？
+[ ] 所有分页接口的 limit 都有限上限？
+[ ] 所有 String Schema 字段都加了 maxlength？
+[ ] 所有写操作都校验了所有权？
+[ ] 所有 try-catch 的 ValidationError 都用了通用消息？
+[ ] 用户输入的文本调用了 checkBanned()？
+[ ] 返回的 JSON 中没有 password 字段？
+[ ] 没有 console.log 打印敏感信息（密钥、密码）？
+[ ] 新增字段在 sanitizeProduct() 的白名单中考虑过？
+```
+
+---
+
+## 8. API 速查
+
+### 8.1 路由总览
+
+| 前缀 | 文件 | 主要端点 | 认证要求 |
+|------|------|---------|---------|
+| `/api/users` | userRoutes.js | register, login, logout, profile, update, delete, changePassword | 混合 |
+| `/api/products` | productRoutes.js | CRUD, search, recommendations, purchase, status | 混合（读公开，写需登录） |
+| `/api/cart` | cartRoutes.js | get, add, updateQty, remove, clear, checkout | 全部需登录 |
+| `/api/orders` | orderRoutes.js | buyOrders, sellOrders, updateStatus | 全部需登录 |
+| `/api/wanted` | wantedRoutes.js | create, list | 创建需登录，列表公开 |
+| `/api/reports` | reportRoutes.js | create | 需登录 |
+| `/api/admin` | adminRoutes.js | stats, manage reports/products/users/warnings | 需登录 + admin 角色 |
+| `/api/upload` | uploadRoutes.js | 多图上传 (max 9张, 单张20MB) | 需登录 |
+| `/api/messages` | messageRoutes.js | list, markRead, unreadCount | 需登录 |
+| `/api/health` | server.js | 健康检查 | 公开 |
+| `/api/stats` | server.js | 首页统计 | 公开（60s 缓存） |
+| `/api/majorMap` | server.js | 学院-专业映射 | 公开（1h 缓存） |
+
+### 8.2 关键端点详情
+
+**POST /api/users/login**
+```json
+// Request
+{ "email": "user@example.com", "password": "mypassword123" }
+
+// Response 200
+{ "token": "eyJ...", "user": { "_id": "...", "fullName": "...", "role": "user", ... }, "pendingApproval": false }
+
+// Response 400（密码错误 ≥5次 → 429 锁定）
+{ "message": "邮箱或密码错误" }
+
+// Response 429（账户锁定）
+{ "message": "账户已锁定，请稍后重试" }
+```
+
+**POST /api/products**
+```json
+// Request（需先 POST /api/upload 获取图片 URL）
+{
+  "name": "二手教材",
+  "category": "教材教辅",
+  "description": "九成新，只用了一学期",
+  "price": 15.5,
+  "images": ["/uploads/1234567890-123456.jpg"],
+  "specifications": [{ "key": "作者", "value": "张三" }],
+  "quantity": 1
+}
+
+// Response 201 — 返回完整 Product 文档
+```
+
+**POST /api/products/:id/purchase**（原子购买）
+```
+原子操作：findOneAndUpdate + quantity > 0 + $inc quantity -1
+返回 200 + orderId（购买成功）
+返回 400（库存不足/已下架/不能买自己的）
+```
+
+**PUT /api/users/:id/password**（修改密码）
+```json
+// Request
+{ "oldPassword": "old123", "newPassword": "new456" }
+
+// Response 200 — 返回新 JWT token，旧 token 全部失效
+{ "message": "密码修改成功，请使用新密码重新登录", "token": "eyJ..." }
+```
+
+### 8.3 HTTP 状态码约定
+
+| 状态码 | 含义 | 示例场景 |
+|--------|------|---------|
+| 200 | 成功 | 查询/更新成功 |
+| 201 | 创建成功 | 注册/发布商品 |
+| 400 | 请求错误 | 参数缺失/格式错误/违禁词命中 |
+| 401 | 未认证 | token 缺失/过期/版本不匹配 |
+| 403 | 无权限 | 越权操作/非管理员 |
+| 404 | 不存在 | 商品/用户不存在 |
+| 429 | 限流 | 登录锁定/频率过高 |
+| 500 | 服务器错误 | 数据库异常/未知错误 |
+
+---
+
+## 9. Docker 部署
+
+### 9.1 架构
+
+```
+外网 → Frontend(Nginx:5000) → /api/* → Backend(Node:8000) → MongoDB(27017)
+                              → /* → React build 静态文件
+```
+
+### 9.2 容器资源限制
+
+| 容器 | CPU | 内存 | 说明 |
+|------|-----|------|------|
+| MongoDB | 1.0 核 | 384 MB | WiredTiger cache 150MB |
+| Backend | 1.0 核 | 256 MB | Node heap 200MB |
+| Frontend | 0.5 核 | 64 MB | Nginx 1 worker |
+
+### 9.3 首次部署
+
+```bash
+# 1. 确认 .env 配置正确
+cat .env  # JWT_SECRET, MONGO_INITDB_ROOT_PASSWORD, MONGODB_URI_FULL
+
+# 2. 构建启动
 docker compose up -d --build
 
 # 3. 等待健康检查通过
-docker compose ps
-# 三个容器状态均为 healthy
+docker compose ps  # 全部状态为 healthy
 
-# 4. 初始化种子数据（首页不空）
+# 4. 初始化种子数据
 docker exec second-hand-backend node scripts/seed.js
 
 # 5. 验证
-curl http://localhost:8000/api/health
-curl http://localhost:5000/
+curl http://localhost:8000/api/health  # → {"status":"ok"}
+curl http://localhost:5000/            # → HTML 首页
 ```
 
-### 日常运维命令
+### 9.4 更新部署
 
 ```bash
-# 查看容器状态
-docker compose ps
+git pull origin refactor/v3-simplify
+docker compose build backend frontend
+docker compose up -d --no-deps backend frontend
+docker compose ps   # 确认正常
+```
 
-# 查看后端日志（最近 50 行）
+### 9.5 常用运维命令
+
+```bash
+# 查看日志
 docker compose logs --tail 50 backend
 
-# 查看 MongoDB 日志
-docker compose logs --tail 50 mongodb
-
-# 重启单个服务
+# 重启服务
 docker compose restart backend
 
-# 全部重启
-docker compose down && docker compose up -d
+# 进入 MongoDB
+docker exec -it second-hand-mongodb mongosh -u admin -p <密码> --authenticationDatabase admin second-hand
 
-# 进入 MongoDB shell
-docker exec -it second-hand-mongodb mongosh \
-  -u admin -p "${MONGO_INITDB_ROOT_PASSWORD}" \
-  --authenticationDatabase admin second-hand
-
-# 重新构建（代码更新后）
-docker compose up -d --build backend
-```
-
-### 日志管理
-
-日志驱动为 `json-file`，自动轮转：
-- 单文件最大 10 MB
-- 最多保留 3 个文件
-- 总日志占用 ≤ 90 MB（3容器 × 30MB）
-
-```bash
-# 查看日志占用
-docker compose logs --tail 1 2>&1 | head -1
-du -sh /var/lib/docker/containers/*/
-```
-
-### .dockerignore 规则
-
-`Server/.dockerignore` 排除以下内容不进入 build context：
-```
-node_modules
-.env
-.env.*
-uploads
-*.log
-.git
-```
-
----
-
-## 4. MongoDB 配置约束
-
-### 连接参数
-
-```javascript
-// Server/config/db.js
-mongoose.connect(uri, {
-  maxPoolSize: 10,              // 最大 10 连接
-  minPoolSize: 2,               // 最小保持 2
-  serverSelectionTimeoutMS: 5000,
-});
-```
-
-### 容器约束（不可突破）
-
-```yaml
-# docker-compose.yml mongodb 段
-command: >
-  --wiredTigerCacheSizeGB 0.15  # 缓存仅 150MB
-  --wiredTigerConcurrentReadTransactions 32
-  --wiredTigerConcurrentWriteTransactions 8
-  --slowms 200                   # 慢查询阈值 200ms
-
-ports:
-  - "127.0.0.1:27017:27017"     # 仅本机回环，拒绝公网
-```
-
-### 索引清单
-
-**Product 模型（6 个索引）**
-
-| 索引 | 覆盖场景 |
-|------|---------|
-| `{ name: "text", description: "text" }` | 全文搜索 |
-| `{ createdAt: -1 }` | 最新商品列表 |
-| `{ status: 1, category: 1, createdAt: -1 }` | 分类筛选+最新 |
-| `{ status: 1, "uploadedBy.department": 1, createdAt: -1 }` | 学院推荐 |
-| `{ "uploadedBy.id": 1, status: 1 }` | 用户商品列表 |
-| `{ "purchasedBy.id": 1 }` | 已购商品 |
-
-**User 模型（3 个索引）**
-
-| 索引 | 类型 | 覆盖场景 |
-|------|------|---------|
-| `{ email: 1 }` | unique | 登录查找 |
-| `{ status: 1 }` | 普通 | 管理员筛选 |
-| `{ role: 1 }` | 普通 | 管理员筛选 |
-
-**Order 模型（3 个索引）**
-
-| 索引 | 覆盖场景 |
-|------|---------|
-| `{ buyer: 1, createdAt: -1 }` | 我买的 |
-| `{ seller: 1, createdAt: -1 }` | 我卖的 |
-| `{ product: 1 }` | 某商品的订单 |
-
-### 查询准则
-
-1. **永远用 `.select()` 限制字段**：商品列表不需要返回 `specifications`、`description` 全文
-2. **`$text` 搜索优于 `$regex`**：利用文本索引而非全表扫描
-3. **分页参数**：`limit` 上限 100，`skip` = `(page - 1) * limit`
-4. **避免 in-memory sort**：所有 sort 字段必须有对应索引
-5. **查询条件顺序**：相等条件 → 范围条件 → 排序字段（匹配索引字段顺序）
-
----
-
-## 5. 代码安全准则
-
-### 认证体系
-
-```
-注册 → bcrypt 12轮哈希 → 存入 DB
-登录 → 校验密码 → 签发 JWT (含 userId + tv(tokenVersion))
-每次请求 → authMiddleware → jwt.verify → 查 DB 验证 tokenVersion
-敏感操作 → 修改密码/封禁 → tokenVersion + 1 → 旧 token 全部失效
-```
-
-### 账户保护
-
-| 机制 | 参数 | 说明 |
-|------|------|------|
-| 密码强度 | 8位以上 + 字母 + 数字 | Mongoose validator |
-| 登录锁定 | 5次失败 → 锁15分钟 | loginAttempts + lockUntil |
-| 模糊错误 | 统一 "邮箱或密码错误" | 防用户枚举 |
-| token 吊销 | tokenVersion 自增 | 改密码/封禁立即生效 |
-
-### API 安全规则
-
-1. **`/api/users`** — 注册限流 5次/小时，登录限流 20次/15分钟
-2. **`/api`（全局）** — 100次/分钟轻度限流
-3. **CORS** — 函数白名单校验 origin，拒绝非白名单域名
-4. **body-parser** — JSON/URL 编码上限 10MB
-5. **密码绝不回传**：所有 API 返回前 `delete userData.password`
-6. **防越权**：updateUser/deleteUser 校验 `req.user._id === targetUserId`
-
-### 违禁词过滤
-
-50+ 违禁关键词在 `createProduct` 和 `updateProductById` 时检查商品 `name + description`，分类包括：
-
-- 违禁品（香烟、酒类、药品、管制刀具）
-- 翻墙/VPN 工具
-- 学术造假（代考、代写、代课）
-- 仿冒品（高仿、A货、原单）
-- 金融风险（比特币、校园贷、传销）
-
-命中任何关键词 → 返回 400 + 指出违规词。
-
-### 敏感信息保护
-
-```
-✅ 已做：
-- JWT_SECRET 64字节随机 hex
-- .env 已在 .gitignore
-- MongoDB 仅监听 127.0.0.1
-- 生产环境错误不泄漏堆栈
-- helmet 安全头（X-Content-Type-Options, X-Frame-Options 等）
-
-❌ 需要警惕：
-- 不要在任何地方 log JWT_SECRET 或密码
-- .env 文件不要通过任何方式分享
-- 修改 .env 后执行 docker compose down && up -d
-```
-
----
-
-## 6. 性能优化要点
-
-### 后端优化（已完成）
-
-```
-✅ compression() gzip 压缩
-✅ MongoDB 连接池 max 10
-✅ 响应数据 .select() 字段限制
-✅ 推荐引擎两层（同学院 + 最新）
-✅ uploads 静态文件 7 天缓存
-✅ 日志轮转 10MB × 3
-✅ 慢查询日志 > 200ms
-```
-
-### 前端优化（已完成）
-
-```
-✅ React.lazy + Suspense 代码分割
-✅ Nginx gzip 压缩（level 5）
-✅ JS/CSS 强缓存 1 年（文件名带 hash）
-✅ 图片缓存 30 天
-✅ Nginx 1 worker（匹配单核）
-```
-
-### 需要关注的性能指标
-
-```
-响应时间：API < 200ms，首页 < 2s
-数据库连接数：当前使用 / maxPoolSize(10)
-慢查询：检查 docker compose logs mongodb | grep "slow query"
-MongoDB 缓存命中：wiredTiger cache usage
-Node 堆使用：docker stats second-hand-backend
-```
-
-### 性能调优禁区
-
-- **不要新增 MongoDB 聚合管道**（$lookup / $unwind → 太重）
-- **不要引入 Redis**（多一个容器多 50MB 开销）
-- **不要做 JOIN**（MongoDB embedded document 已够用）
-- **不要用 WebSocket**（轮询对校园场景够用，5秒间隔不影响 2核）
-
----
-
-## 7. API 速查
-
-### 9 个路由模块，~30 个端点
-
-| 路由前缀 | 文件 | 主要端点 |
-|---------|------|---------|
-| `/api/users` | userRoutes | register, login, profile, update, delete |
-| `/api/products` | productRoutes | CRUD, search, recommendations, purchase |
-| `/api/cart` | cartRoutes | get, add, updateQty, remove, clear, checkout |
-| `/api/orders` | orderRoutes | buyOrders, sellOrders, updateStatus |
-| `/api/wanted` | wantedRoutes | CRUD 求购 |
-| `/api/reports` | reportRoutes | create, list (admin) |
-| `/api/admin` | adminRoutes | stats, manage products/users/reports |
-| `/api/upload` | uploadRoutes | 多图上传 (multer) |
-| `/api/messages` | messageRoutes | 通知列表, 标记已读 |
-| `/api/health` | server.js | 健康检查 |
-| `/api/stats` | server.js | 首页统计 (userCount + productCount) |
-| `/api/majorMap` | server.js | 学院-专业映射 |
-
-### Order 状态机
-
-```
-pending ──→ confirmed ──→ completed
-  │            │
-  └── cancelled ←────────┘
-```
-
-状态转换规则：
-- `pending` → `confirmed`：卖家操作
-- `pending` → `cancelled`：买家或卖家操作
-- `confirmed` → `completed`：买/卖家操作
-- `confirmed` → `cancelled`：买/卖家操作（恢复库存）
-- `completed` / `cancelled` → 终态，不可再变
-
----
-
-## 8. 上线与运维
-
-### 上线前检查清单
-
-```
-[ ] .env 所有密钥已配置（JWT_SECRET ≠ 默认值）
-[ ] docker compose up -d --build 无报错
-[ ] docker compose ps 全部 healthy
-[ ] curl /api/health 返回 200
-[ ] 前端页面可访问 (http://IP:5000)
-[ ] 注册/登录/发布/购买/订单 全链路走通
-[ ] 种子数据已初始化（24条商品）
-[ ] 隐私政策页可访问 (/privacy)
-[ ] FAQ 页可访问 (/faq)
-[ ] 违禁词过滤生效（发布测试）
-[ ] 管理员后台可用
-```
-
-### 数据备份
-
-```bash
-# backup.sh — crontab 每天凌晨 3 点
-0 3 * * * /path/to/backup.sh >> /var/log/backup.log 2>&1
-
-# backup.sh 内容
-docker exec second-hand-mongodb mongodump \
-  --username admin --password "${PWD}" \
-  --authenticationDatabase admin \
-  --archive=/tmp/backup.archive
+# 备份数据库
+docker exec second-hand-mongodb mongodump --username admin --password <密码> --authenticationDatabase admin --archive=/tmp/backup.archive
 docker cp second-hand-mongodb:/tmp/backup.archive ./backup_$(date +%Y%m%d).archive
-# 保留最近 7 天
-find ./ -name "backup_*.archive" -mtime +7 -delete
-```
 
-### 恢复备份
-
-```bash
-docker cp backup_20260601.archive second-hand-mongodb:/tmp/
-docker exec second-hand-mongodb mongorestore \
-  --username admin --password "${PWD}" \
-  --authenticationDatabase admin \
-  --archive=/tmp/backup_20260601.archive --drop
-```
-
-### 监控（轻量方案）
-
-```bash
-# 每 5 分钟检查一次容器存活
-*/5 * * * * docker compose ps | grep -q "unhealthy" && docker compose restart
-
-# 检查磁盘
-df -h / | awk 'NR==2 {print $5}'  # 使用率超过 80% 需清理
-
-# 检查内存（容器视角）
-docker stats --no-stream --format "table {{.Name}}\t{{.MemUsage}}"
-```
-
-### 升级部署流程
-
-```bash
-# 1. 拉代码
-git pull origin main
-
-# 2. 构建新镜像
-docker compose build backend frontend
-
-# 3. 滚动更新（零停机）
-docker compose up -d --no-deps backend frontend
-
-# 4. 验证
-docker compose ps
-curl http://localhost:8000/api/health
-
-# 5. 如果出问题，回滚
-git checkout <previous-commit>
-docker compose up -d --build
+# 查看资源使用
+docker stats --no-stream
 ```
 
 ---
 
-## 9. 常见问题规避
+## 10. 常见问题与排查
 
-### 部署问题
+### 10.1 开发阶段
 
-**Q: 容器启动后 MongoDB 连接不上？**
+**Q: 后端改了代码没生效？**
 ```
-症状：backend 日志显示 "MongoDB connection error"
-原因：MongoDB 还没完成初始化
-解决：backend 已配 depends_on + condition: service_healthy，
-      等待 15 秒 start_period 即可。如果持续失败，
-      检查 .env 中 MONGODB_URI_FULL 的密码是否与 MONGO_INITDB_ROOT_PASSWORD 一致。
+如果用的是 node server.js（非 nodemon），需要手动重启。
+建议开发时用 npx nodemon server.js 自动重启。
 ```
 
-**Q: 端口 8000 或 27017 被占用？**
+**Q: 前端 build 报错？**
 ```bash
-# 查占用进程
-lsof -i :8000
-# 或被旧容器占用
-docker ps -a | grep second-hand
-docker rm -f second-hand-backend
+cd Client
+npm run build
+# 看报错信息逐条修复。常见原因：
+# - import 路径不对
+# - 引用的组件/变量不存在
+# - JSX 语法错误
 ```
 
-**Q: 构建前端时内存不足？**
+**Q: MongoDB 连不上？**
 ```
-症状：react-scripts build OOM killed
-原因：2GB 机器上跑 build 时内存不够
-解决：
-1. 在本地开发机器上 build，只把 build/ 目录上传到服务器
-2. 或在服务器上临时加 swap：fallocate -l 2G /swapfile && mkswap /swapfile && swapon /swapfile
+1. 确认 MongoDB 是否在运行：docker ps | grep mongo
+2. 确认连接字符串正确：检查 .env 中 MONGODB_URI_FULL
+3. 确认密码中 @ 编码为 %40
 ```
 
-### 安全问题
+### 10.2 安全相关
 
-**Q: JWT_SECRET 用了默认值？**
+**Q: JWT_SECRET 忘记是什么了？**
 ```
-auth.js 启动时检测：如果 JWT_SECRET === "change-me-in-production"，进程拒绝启动。
-生成新密钥：node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
-将输出写入 .env 的 JWT_SECRET。
-```
-
-**Q: 用户被锁定了怎么解锁？**
-```bash
-docker exec -it second-hand-mongodb mongosh -u admin -p password \
-  --authenticationDatabase admin second-hand \
-  --eval 'db.users.updateOne({email:"xxx@xxx.com"},{$set:{loginAttempts:0,lockUntil:null}})'
+重新生成：node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+将输出写入 .env，然后重建容器。
+注意：更换 JWT_SECRET 后所有用户需要重新登录。
 ```
 
-**Q: 有人发布了违禁品怎么办？**
+**Q: 用户被封了怎么解封？**
 ```
-- 管理员后台 → 商品管理 → 下架（status → sold_out）
-- 或直接 MongoDB：db.products.updateOne({_id:ObjectId("...")},{$set:{status:"sold_out"}})
-- 违禁词列表追加新词：Server/config/bannedKeywords.js
+管理员后台 → 用户管理 → 设为"active"
+或者直接操作数据库：
+db.users.updateOne({email:"xxx@xxx.com"}, {$set:{status:"active"}, $inc:{tokenVersion:1}})
 ```
 
-### 性能问题
-
-**Q: 首页加载慢（> 2 秒）？**
+**Q: 发现新的违禁词需要加？**
 ```
-排查顺序：
-1. MongoDB 慢查询日志：docker compose logs mongodb | grep slow
+编辑 Server/config/bannedKeywords.js，在 bannedKeywords 数组里追加。
+重新构建部署后端即可生效，不需要改前端。
+```
+
+### 10.3 性能相关
+
+**Q: 首页加载慢（>2s）？**
+```
+1. 检查 MongoDB 慢查询：docker compose logs mongodb | grep slow
 2. 检查是否缺索引：db.products.getIndexes()
-3. 检查 Node 堆是否接近 200MB 上限
-4. 检查图片是否过大（> 1MB 单张）
+3. 检查图片是否过大
 ```
 
-**Q: MongoDB 内存超过 384MB 硬限？**
-```
-后果：OOM Killer 杀掉 mongod 进程
-原因：wiredTiger cache 150MB + 连接开销 + 索引 > 384MB
-检测：docker stats second-hand-mongodb
-解决：减少 cacheSizeGB（当前 0.15 = ~150MB）
-```
-
-**Q: Docker 日志占满磁盘？**
+**Q: 服务器内存不够了？**
 ```bash
-# 查看日志大小
-du -sh /var/lib/docker/containers/*/
-# 强制清理旧日志
-docker compose down
-truncate -s 0 /var/lib/docker/containers/*/*-json.log
-docker compose up -d
+# 查看各容器内存
+docker stats --no-stream
+
+# MongoDB 内存超了 → 降低 cacheSizeGB（docker-compose.yml 中 --wiredTigerCacheSizeGB）
+# Node 内存超了 → 减少 maxPoolSize（Server/config/db.js）
 ```
 
-### 数据问题
-
-**Q: 购物车结算时部分商品失败？**
-```
-checkoutCart 逐项处理：成功的结算出库，失败的保留在购物车。
-返回值包含 success[] 和 failed[] 列表，前端应展示失败原因。
-常见失败原因：库存不足、商品已下架、购买自己的商品。
-```
+### 10.4 数据相关
 
 **Q: 图片上传了但显示不出来？**
 ```
-1. 确认 uploads/ 目录权限可读写
-2. 确认 docker-compose.yml 中 volumes 挂载：./Server/uploads:/app/uploads
-3. 确认图片 URL 路径：/uploads/filename.ext
-4. 确认 nginx.conf 中 /uploads/ 代理到 backend:8000
+1. 确认 uploads/ 目录权限
+2. 确认 docker-compose.yml volumes 挂载：./Server/uploads:/app/uploads
+3. 确认图片 URL 格式：/uploads/xxx.jpg
 ```
 
-**Q: 用户注销后数据还在？**
-```
-注销逻辑：删除 User 文档。商品、订单等关联数据保留但 uploadedBy 信息会失去关联。
-订单的 buyerInfo/sellerInfo 在创建时已快照（冗余存储），即使原用户删除也不影响订单记录。
-```
-
-### 冷启动问题
-
-**Q: 首页空荡荡没商品？**
+**Q: 首页没商品（冷启动）？**
 ```bash
-# 重新执行种子数据
-docker exec second-hand-backend node scripts/seed.js
-# 种子数据 24 条，images 为空数组（需准备占位图或真实照片）
-```
-
-**Q: 种子数据怎么配图？**
-```
-1. 准备 24 张占位图放入 Server/uploads/seed/
-2. 修改 seed.js 中 images: ["/uploads/seed/xxx.jpg"]
-3. 每张图建议 < 200KB（前端未做压缩）
+docker exec second-hand-backend node scripts/seed.js  # 24条种子数据
 ```
 
 ---
 
-## 10. 附录：应急操作
+## 11. 附录：关键文件索引
 
-### 容器崩溃自动恢复
+### 按功能查文件
 
-```yaml
-# docker-compose.yml 已配置
-restart: always  # 崩溃自动重启
+| 我要做什么 | 改哪个文件 |
+|-----------|-----------|
+| 加/改 API 端点 | `Server/routes/` + `Server/controllers/` |
+| 改数据库结构 | `Server/models/` |
+| 改认证逻辑 | `Server/middleware/authMiddleware.js` + `Server/config/auth.js` |
+| 加违禁词 | `Server/config/bannedKeywords.js` |
+| 改前端页面 | `Client/src/components/` |
+| 改路由 | `Client/src/App.js` |
+| 改样式 | Tailwind className 直接写在组件里 |
+| 改部署配置 | `docker-compose.yml` |
+| 改环境变量 | `.env`（不提交） |
+| 改安全策略 | `Server/server.js`（CSP/CORS/限流） |
+| 改 Nginx 配置 | `Client/nginx.conf` |
+| 改密码规则 | `Server/models/User.js` + `Server/controllers/userController.js` |
+
+### 参考文档
+
+| 文档 | 位置 | 用途 |
+|------|------|------|
+| 学习指南 | `STUDY.md` | 比赛演示，技术点讲解 |
+| 审计报告 | `memory/comprehensive-audit-report.md` | 安全审计发现与修复记录 |
+| 变更日志 | `CHANGELOG.md` | 版本历史 |
+| 项目总结 | `PROJECT_SUMMARY.md` | 项目概述 |
+| 发展方向 | `development.md` | 下阶段规划 |
+
+### 记忆目录
+
 ```
-
-### 手动恢复流程
-
-```bash
-# 1. 检查状态
-docker compose ps -a
-
-# 2. 如果某个容器反复重启（restart loop）
-docker compose logs --tail 100 <service>
-
-# 3. 停掉全部重建
-docker compose down
-docker compose up -d --build
-
-# 4. 如果还不行，清理 Docker 缓存
-docker system prune -af
-docker compose up -d --build
-```
-
-### 紧急封禁某用户
-
-```bash
-docker exec -it second-hand-mongodb mongosh -u admin -p password \
-  --authenticationDatabase admin second-hand \
-  --eval '
-    db.users.updateOne(
-      {email:"xxx@xxx.com"},
-      {$set:{status:"banned"}, $inc:{tokenVersion:1}}
-    )
-  '
-# status "banned" → 下次请求 authMiddleware 返回 403
-# tokenVersion +1 → 所有现存 JWT 立即失效
-```
-
-### 紧急下架某商品
-
-```bash
-docker exec -it second-hand-mongodb mongosh -u admin -p password \
-  --authenticationDatabase admin second-hand \
-  --eval 'db.products.updateOne({_id:ObjectId("...")},{$set:{status:"sold_out",delistReason:"管理员紧急下架"}})'
-```
-
-### 数据库紧急修复
-
-```bash
-# 检查并修复
-docker exec -it second-hand-mongodb mongosh -u admin -p password \
-  --authenticationDatabase admin second-hand \
-  --eval 'db.repairDatabase()'
-# 警告：repairDatabase 需要可用磁盘空间 ≥ 当前数据大小
-```
-
-### 全量备份 + 迁移到新服务器
-
-```bash
-# 旧服务器
-docker exec second-hand-mongodb mongodump --username admin --password pwd \
-  --authenticationDatabase admin --archive=/tmp/full.archive
-docker cp second-hand-mongodb:/tmp/full.archive ./
-scp full.archive user@new-server:/path/
-
-# 新服务器
-docker cp /path/full.archive second-hand-mongodb:/tmp/
-docker exec second-hand-mongodb mongorestore --username admin --password pwd \
-  --authenticationDatabase admin --archive=/tmp/full.archive
+C:\Users\杨婷\.claude\projects\D--Second-Hand-main\memory\
+├── MEMORY.md                       # 记忆索引
+├── project-overview.md             # 项目架构概述
+├── security-fix-plan.md            # 安全修复4 Phase计划
+├── comprehensive-audit-report.md   # 全量审计报告（7致命+12高危+10中等）
+├── user-profile.md                 # 用户偏好
+└── feedback-*.md                   # 用户反馈记录
 ```
 
 ---
 
-## 设计铁律（开发时牢记）
+## 设计铁律
 
-1. **适配 2核2G**：任何方案必须在此约束下运行，加功能前确认资源增量
-2. **不做大厂功能拷贝**：校园场景优先微信/QQ 沟通、当面交易
-3. **优先做减法**：砍功能比加功能更有价值
-4. **无外部依赖**：不引入第三方 API、不新增 npm 包（除非必要）、不新增 Docker 容器
-5. **可落地可复制**：每个改动必须是具体代码/命令，不写伪代码
-6. **构建验证必备**：`node --check server.js` + `react-scripts build` 必须通过
-
----
-
-## 快速链接
-
-- 技能文件：`.claude/skills/项目长期优化助手.md`
-- 发展方向：`development.md`
-- 架构 Plan：`.claude/plans/`
-- 记忆目录：`C:\Users\杨婷\.claude\projects\D--Second-Hand-main\memory\`
+1. **适配 2核2G** — 任何方案必须在此约束下运行
+2. **不做大厂功能拷贝** — 校园场景优先微信/QQ 沟通、当面交易
+3. **优先做减法** — 砍功能比加功能更有价值
+4. **无外部依赖** — 不引入第三方 API、不新增 npm 包（除非必要）、不新增 Docker 容器
+5. **安全不可妥协** — 第 7 节 10 条铁律任何一条违反都阻断上线
+6. **构建验证必备** — `node --check` + `npm run build` 必须通过
