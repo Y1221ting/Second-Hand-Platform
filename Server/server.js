@@ -16,15 +16,20 @@ const connectDB = require("./config/db");
 
 connectDB();
 
-// 一次性迁移：将 2026-06-02 之前创建的 inactive 老用户批量激活
-// 之后的新用户保持 inactive，必须等管理员审核
+// 一次性迁移：将 2026-06-02 之前创建的（或无 createdAt 的老用户）从 inactive 改 active
 mongoose.connection.once("open", async () => {
   try {
     const cutoff = new Date("2026-06-02T00:00:00Z");
     const result = await mongoose.connection.db
       .collection("users")
       .updateMany(
-        { status: "inactive", createdAt: { $lt: cutoff } },
+        {
+          status: "inactive",
+          $or: [
+            { createdAt: { $lt: cutoff } },
+            { createdAt: { $exists: false } },
+          ],
+        },
         { $set: { status: "active" } }
       );
     if (result.modifiedCount > 0) {
