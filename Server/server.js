@@ -11,21 +11,26 @@ const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+const mongoose = require("mongoose");
 const connectDB = require("./config/db");
 
 connectDB();
 
-// 一次性迁移：将所有现有用户从 inactive 改为 active（新注册仍默认为 inactive，需管理员审核）
-const mongoose = require("mongoose");
+// 一次性迁移：将 2026-06-02 之前创建的 inactive 老用户批量激活
+// 之后的新用户保持 inactive，必须等管理员审核
 mongoose.connection.once("open", async () => {
   try {
+    const cutoff = new Date("2026-06-02T00:00:00Z");
     const result = await mongoose.connection.db
       .collection("users")
-      .updateMany({ status: "inactive" }, { $set: { status: "active" } });
+      .updateMany(
+        { status: "inactive", createdAt: { $lt: cutoff } },
+        { $set: { status: "active" } }
+      );
     if (result.modifiedCount > 0) {
       console.log(`[MIGRATE] ${result.modifiedCount} 个老用户已从 inactive 迁移为 active`);
     } else {
-      console.log("[MIGRATE] 无需迁移，无遗留 inactive 用户");
+      console.log("[MIGRATE] 无需迁移");
     }
   } catch (err) {
     console.error("[MIGRATE] 迁移失败:", err.message);
