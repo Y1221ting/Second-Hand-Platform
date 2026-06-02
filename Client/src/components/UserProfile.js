@@ -8,6 +8,29 @@ import ConfirmDialog from "./Profile/ConfirmDialog";
 import ProductList from "./Profile/ProductList";
 import Loading from "./Utility/Loading";
 
+const RULES = {
+  fullName: [
+    { test: (v) => !v || !v.trim(), msg: "请输入姓名" },
+  ],
+  phoneNo: [
+    { test: (v) => !v || !v.trim(), msg: "请输入手机号" },
+    { test: (v) => v && !/^1[3-9]\d{9}$/.test(v), msg: "请输入11位手机号" },
+  ],
+  department: [
+    { test: (v) => !v || !v.trim(), msg: "请选择学院" },
+  ],
+  major: [
+    { test: (v) => !v || !v.trim(), msg: "请选择专业" },
+  ],
+};
+
+function mapBackendError(message) {
+  if (!message) return null;
+  if (message.includes("手机号") || message.includes("phone")) return { field: "phoneNo", msg: message };
+  if (message.includes("姓名") || message.includes("fullName")) return { field: "fullName", msg: message };
+  return { field: null, msg: message };
+}
+
 const UserProfile = () => {
   const { user } = useAuth();
   const { id } = useParams();
@@ -23,6 +46,9 @@ const UserProfile = () => {
   const [formData, setFormData] = useState({});
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
+  const [formError, setFormError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -122,36 +148,58 @@ const UserProfile = () => {
     } catch { alert("网络错误"); }
   };
 
-  const handleSaveClick = () => {
-    // 手机号格式校验
-    const phoneRegex = /^1[3-9]\d{9}$/;
-    if (!phoneRegex.test(formData.phoneNo)) {
-      alert("手机号格式不正确，请输入11位中国手机号码");
+  const handleSaveClick = async () => {
+    setFormError("");
+
+    const fields = ["fullName", "phoneNo", "department", "major"];
+    const errors = {};
+    for (const field of fields) {
+      const msg = validateField(field, formData[field]);
+      if (msg) errors[field] = msg;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors);
       return;
     }
 
-    // 地址长度校验（仅当填写了地址时）
-    if (formData.address && formData.address.trim().length < 2) {
-      alert("地址至少需要2个字符");
-      return;
-    }
+    setSubmitting(true);
+    try {
+      const response = await fetch(`/api/users/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(formData),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      const data = await response.json();
 
-    fetch(`/api/users/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(formData),
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    })
-      .then((response) => response.json())
-      .then((data) => {
+      if (response.ok) {
         setUserData(data);
         setEditMode(false);
-      })
-      .catch((error) => {
-        console.error("Error updating user data: ", error);
-      });
+      } else {
+        const mapped = mapBackendError(data.message);
+        if (mapped.field) {
+          setFormErrors((prev) => ({ ...prev, [mapped.field]: mapped.msg }));
+        } else {
+          setFormError(mapped.msg || "保存失败，请稍后重试");
+        }
+      }
+    } catch {
+      setFormError("网络错误，请检查连接后重试");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const validateField = (name, value) => {
+    const rules = RULES[name];
+    if (!rules) return "";
+    for (const rule of rules) {
+      if (rule.test(value)) return rule.msg;
+    }
+    return "";
   };
 
   const handleChange = (e) => {
@@ -160,6 +208,14 @@ const UserProfile = () => {
       ...prevData,
       [name]: value,
     }));
+    if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: "" }));
+    if (formError) setFormError("");
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    const msg = validateField(name, value);
+    setFormErrors((prev) => ({ ...prev, [name]: msg }));
   };
 
   const handleDeleteProduct = (productId) => {
@@ -236,12 +292,17 @@ const UserProfile = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-gray-900">编辑个人资料</h2>
               <button
-                onClick={() => setEditMode(false)}
+                onClick={() => { setEditMode(false); setFormErrors({}); setFormError(""); }}
                 className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
               >
                 取消编辑
               </button>
             </div>
+            {formError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm text-center">
+                {formError}
+              </div>
+            )}
             <UserDetails
               userData={userData}
               displayEdit={user && user.id === id}
@@ -250,6 +311,9 @@ const UserProfile = () => {
               handleChange={handleChange}
               handleEditClick={handleEditClick}
               handleSaveClick={handleSaveClick}
+              formErrors={formErrors}
+              handleBlur={handleBlur}
+              submitting={submitting}
             />
             {user && user.id === id && (
               <div className="mt-6 pt-6 border-t border-gray-200">

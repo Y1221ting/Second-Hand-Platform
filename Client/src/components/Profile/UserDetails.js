@@ -9,6 +9,9 @@ const UserDetails = ({
   handleChange,
   handleEditClick,
   handleSaveClick,
+  formErrors = {},
+  handleBlur,
+  submitting = false,
 }) => {
   const [majorMap, setMajorMap] = useState({});
   const [departments, setDepartments] = useState([]);
@@ -40,13 +43,6 @@ const UserDetails = ({
     }
   };
 
-  // 手机号实时校验
-  const phoneRegex = /^1[3-9]\d{9}$/;
-  const phoneError =
-    editMode && formData.phoneNo && !phoneRegex.test(formData.phoneNo)
-      ? "手机号格式不正确"
-      : "";
-
   return (
     <div className="w-full md:w-3/4 p-4">
       <form>
@@ -58,6 +54,8 @@ const UserDetails = ({
               value={editMode ? formData.fullName : userData.fullName}
               onChange={handleChange}
               editMode={editMode}
+              error={formErrors.fullName}
+              onBlur={handleBlur}
             />
           </div>
           <div className="mb-4">
@@ -66,7 +64,7 @@ const UserDetails = ({
               name="email"
               value={editMode ? formData.email : userData.email}
               onChange={handleChange}
-              editMode={editMode}
+              editMode={false}
             />
           </div>
           <div className="mb-4">
@@ -76,27 +74,32 @@ const UserDetails = ({
               value={editMode ? formData.phoneNo : userData.phoneNo}
               onChange={handleChange}
               editMode={editMode}
+              error={formErrors.phoneNo}
+              onBlur={handleBlur}
             />
-            {phoneError && (
-              <p className="text-red-500 text-xs mt-1">{phoneError}</p>
-            )}
           </div>
 
           {/* 学院 — 编辑模式下拉，展示模式禁用输入框 */}
           <div className="mb-4">
             <label className="font-semibold">学院:</label>{" "}
             {editMode ? (
-              <select
-                name="department"
-                value={formData.department || ""}
-                onChange={handleDepartmentChange}
-                className="w-full py-2 px-4 rounded-lg bg-gray-100 border border-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-yellow-500"
-              >
-                <option value="">请选择学院</option>
-                {departments.map((dept) => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
+              <>
+                <select
+                  name="department"
+                  value={formData.department || ""}
+                  onChange={handleDepartmentChange}
+                  onBlur={handleBlur}
+                  className={`w-full py-2 px-4 rounded-lg bg-gray-100 border ${
+                    formErrors.department ? "border-red-400 bg-red-50" : "border-gray-900"
+                  } focus:border-transparent focus:outline-none focus:ring-2 focus:ring-yellow-500`}
+                >
+                  <option value="">请选择学院</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+                {formErrors.department && <p className="text-red-500 text-xs mt-1">{formErrors.department}</p>}
+              </>
             ) : (
               <input
                 type="text"
@@ -112,22 +115,28 @@ const UserDetails = ({
           <div className="mb-4">
             <label className="font-semibold">专业:</label>{" "}
             {editMode ? (
-              <select
-                name="major"
-                value={formData.major || ""}
-                onChange={handleChange}
-                disabled={!formData.department}
-                className={`w-full py-2 px-4 rounded-lg bg-gray-100 border border-gray-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
-                  !formData.department ? "text-gray-400 cursor-not-allowed" : ""
-                }`}
-              >
-                <option value="">
-                  {!formData.department ? "请先选择学院" : "请选择专业"}
-                </option>
-                {majors.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
+              <>
+                <select
+                  name="major"
+                  value={formData.major || ""}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  disabled={!formData.department}
+                  className={`w-full py-2 px-4 rounded-lg bg-gray-100 border ${
+                    formErrors.major ? "border-red-400 bg-red-50" : "border-gray-900"
+                  } focus:border-transparent focus:outline-none focus:ring-2 focus:ring-yellow-500 ${
+                    !formData.department ? "text-gray-400 cursor-not-allowed" : ""
+                  }`}
+                >
+                  <option value="">
+                    {!formData.department ? "请先选择学院" : "请选择专业"}
+                  </option>
+                  {majors.map((m) => (
+                    <option key={m} value={m}>{m}</option>
+                  ))}
+                </select>
+                {formErrors.major && <p className="text-red-500 text-xs mt-1">{formErrors.major}</p>}
+              </>
             ) : (
               <input
                 type="text"
@@ -179,9 +188,12 @@ const UserDetails = ({
             <button
               type="button"
               onClick={handleSaveClick}
-              className="w-full py-2 px-4 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition duration-300"
+              disabled={submitting}
+              className={`w-full py-2 px-4 rounded-lg transition duration-300 font-semibold ${
+                submitting ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-yellow-500 text-gray-900 hover:bg-yellow-600"
+              }`}
             >
-              保存
+              {submitting ? "保存中..." : "保存"}
             </button>
           ) : (
             <button
