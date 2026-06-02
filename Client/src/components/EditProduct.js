@@ -1,9 +1,47 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Component } from "react";
 import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 import ProductForm from "./Edit_Product/ProductForm";
+
+// 错误边界：捕获渲染崩溃并显示详情，而非白屏
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen">
+          {this.props.fallbackNav || null}
+          <div className="w-4/5 mx-auto py-10">
+            <div className="bg-red-50 border border-red-300 rounded-lg p-6">
+              <h2 className="text-red-600 text-xl font-bold mb-2">页面加载失败</h2>
+              <p className="text-red-500 text-sm mb-4">错误信息（截图发给开发者）：</p>
+              <pre className="bg-white rounded p-3 text-xs text-red-700 overflow-auto max-h-64 whitespace-pre-wrap">
+                {this.state.error.message}
+                {"\n\n"}
+                {this.state.error.stack?.substring(0, 600)}
+              </pre>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+              >
+                重新加载
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const EditProduct = () => {
   const { user, isAuthenticated } = useAuth();
@@ -220,29 +258,31 @@ const EditProduct = () => {
   }
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
-      <div className="w-4/5 mx-auto py-4">
-        <h1 className="text-3xl font-semibold text-gray-900 mb-4">
-          编辑商品
-        </h1>
-        <ProductForm
-          formData={formData}
-          handleChange={handleChange}
-          handleImageChange={handleImageChange}
-          imageFieldError={imageFieldError}
-          handleRemoveImage={handleRemoveImage}
-          handleRemoveNewImage={handleRemoveNewImage}
-          newImages={newImages}
-          specificationField={specificationField}
-          setSpecificationField={setSpecificationField}
-          handleAddSpecification={handleAddSpecification}
-          handleRemoveSpecification={handleRemoveSpecification}
-          handleSubmit={handleSubmit}
-        />
+    <ErrorBoundary fallbackNav={<Navbar />}>
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="w-4/5 mx-auto py-4">
+          <h1 className="text-3xl font-semibold text-gray-900 mb-4">
+            编辑商品
+          </h1>
+          <ProductForm
+            formData={formData}
+            handleChange={handleChange}
+            handleImageChange={handleImageChange}
+            imageFieldError={imageFieldError}
+            handleRemoveImage={handleRemoveImage}
+            handleRemoveNewImage={handleRemoveNewImage}
+            newImages={newImages}
+            specificationField={specificationField}
+            setSpecificationField={setSpecificationField}
+            handleAddSpecification={handleAddSpecification}
+            handleRemoveSpecification={handleRemoveSpecification}
+            handleSubmit={handleSubmit}
+          />
+        </div>
+        <Footer />
       </div>
-      <Footer />
-    </div>
+    </ErrorBoundary>
   );
 };
 
