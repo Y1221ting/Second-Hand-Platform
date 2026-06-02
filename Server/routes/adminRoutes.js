@@ -271,9 +271,15 @@ router.put("/users/:id", async (req, res) => {
       return res.status(403).json({ message: "不能对其他管理员执行此操作" });
     }
 
+    // 解封时同时重置登录锁定，避免"解封了但还被锁 15 分钟"的情况
+    const updatePayload = { status, $inc: { tokenVersion: 1 } };
+    if (status === "active") {
+      updatePayload.$set = { loginAttempts: 0, lockUntil: null };
+    }
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
-      { status, $inc: { tokenVersion: 1 } }, // 封禁/解封时吊销所有旧 token
+      updatePayload,
       { new: true, runValidators: true }
     );
 

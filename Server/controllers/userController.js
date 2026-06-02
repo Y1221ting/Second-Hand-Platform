@@ -52,7 +52,7 @@ exports.registerUser = async (req, res) => {
     newUser.password = await hashPassword(req.body.password);
     await newUser.save({ validateModifiedOnly: true });
 
-    res.status(201).json({ message: "User registered successfully" });
+    res.status(201).json({ message: "注册申请已提交，请等待管理员审核" });
   } catch (error) {
     console.error(error);
     // 手机号重复（MongoDB 唯一索引冲突）
