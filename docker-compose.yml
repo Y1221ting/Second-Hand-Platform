@@ -100,7 +100,7 @@ services:
     container_name: second-hand-frontend
     restart: always
     ports:
-      - "80:80"
+      - "5000:80"
     depends_on:
       backend:
         condition: service_healthy
