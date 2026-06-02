@@ -14,6 +14,24 @@ const uploadRoutes = require("./routes/uploadRoutes");
 const connectDB = require("./config/db");
 
 connectDB();
+
+// 一次性迁移：将所有现有用户从 inactive 改为 active（新注册仍默认为 inactive，需管理员审核）
+const mongoose = require("mongoose");
+mongoose.connection.once("open", async () => {
+  try {
+    const result = await mongoose.connection.db
+      .collection("users")
+      .updateMany({ status: "inactive" }, { $set: { status: "active" } });
+    if (result.modifiedCount > 0) {
+      console.log(`[MIGRATE] ${result.modifiedCount} 个老用户已从 inactive 迁移为 active`);
+    } else {
+      console.log("[MIGRATE] 无需迁移，无遗留 inactive 用户");
+    }
+  } catch (err) {
+    console.error("[MIGRATE] 迁移失败:", err.message);
+  }
+});
+
 const app = express();
 
 // Middleware

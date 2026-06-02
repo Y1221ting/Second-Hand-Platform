@@ -91,6 +91,11 @@ exports.loginUser = async (req, res) => {
       return res.status(403).json({ message: "该账号已被封禁" });
     }
 
+    // 待审核用户不允许登录 — 必须等管理员审核通过（管理员自身不受此限制）
+    if (existingUser.status === "inactive" && existingUser.role !== "admin") {
+      return res.status(403).json({ message: "您的账号正在等待管理员审核，审核通过后即可登录" });
+    }
+
     // Check if the password is correct
     const isPasswordValid = await verifyPassword(req.body.password, existingUser.password);
     if (!isPasswordValid) {
