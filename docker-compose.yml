@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   # ============================================================
-  # MongoDB — 内存硬限 384MB，Cache 仅 192MB，绝不超用
+  # MongoDB — 内存硬限 384MB，Cache 256MB
   # ============================================================
   mongodb:
     image: mongo:7.0
@@ -17,7 +17,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     # MongoDB 7.0 仅支持 cacheSize + slowms（ConcurrentRead/Write Transactions 已移除）
     command: >
-      --wiredTigerCacheSizeGB 0.15
+      --wiredTigerCacheSizeGB 0.25
       --slowms 200
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
