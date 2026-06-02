@@ -215,9 +215,9 @@ exports.checkoutCart = async (req, res) => {
       return res.status(400).json({ message: "购物车为空" });
     }
 
+    const { createOrder } = require("./orderController");
     const results = { success: [], failed: [] };
 
-    // 逐个结算购物车中的商品
     for (const item of user.cart) {
       try {
         const product = await Product.findOneAndUpdate(
@@ -228,7 +228,7 @@ exports.checkoutCart = async (req, res) => {
             "uploadedBy.id": { $ne: req.user._id.toString() },
           },
           {
-            $inc: { quantity: -1 },
+            $inc: { quantity: -item.quantity },
             $set: {
               purchasedBy: {
                 id:         req.user._id.toString(),
@@ -245,13 +245,33 @@ exports.checkoutCart = async (req, res) => {
         );
 
         if (product) {
+          // 创建订单
+          let orderId = null;
+          try {
+            const order = await createOrder({
+              buyer: req.user,
+              seller: product.uploadedBy.id,
+              product,
+              quantity: item.quantity,
+              buyerInfo: {
+                name: req.user.fullName,
+                phone: req.user.phoneNo || "",
+                dormitory: req.user.dormitory || "",
+                department: req.user.department || "",
+              },
+            });
+            orderId = order._id;
+          } catch (orderErr) {
+            console.error("创建订单失败（购买已成功）:", orderErr);
+          }
+
           results.success.push({
             productId: item.productId,
             name: product.name,
             price: product.price,
+            orderId,
           });
 
-          // 库存归零时更新售罄状态
           if (product.quantity === 0) {
             await Product.findByIdAndUpdate(product._id, {
               status: "sold_out",

@@ -478,12 +478,31 @@ exports.purchaseProduct = async (req, res) => {
       return res.status(400).json({ message: "库存不足或商品已下架" });
     }
 
-    // 库存归零 → 售罄；仍有库存 → 保持可购买（非关键路径，可容忍两次写入）
+    // 库存归零 → 售罄；仍有库存 → 保持可购买
     if (product.quantity === 0) {
       await Product.findByIdAndUpdate(product._id, { status: "sold_out" });
     }
 
-    res.status(200).json({ message: "购买成功", product });
+    // 创建订单记录（非关键路径：失败了也不影响已成功的购买）
+    try {
+      const { createOrder } = require("./orderController");
+      const order = await createOrder({
+        buyer: req.user,
+        seller: product.uploadedBy.id,
+        product,
+        quantity: 1,
+        buyerInfo: {
+          name: req.user.fullName,
+          phone: req.user.phoneNo || "",
+          dormitory: req.user.dormitory || "",
+          department: req.user.department || "",
+        },
+      });
+      return res.status(200).json({ message: "购买成功", product, orderId: order._id });
+    } catch (orderErr) {
+      console.error("创建订单失败（购买已成功）:", orderErr);
+      return res.status(200).json({ message: "购买成功", product });
+    }
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "服务器内部错误" });

@@ -16,6 +16,8 @@ const UserProfile = () => {
   const [purchasedProducts, setPurchasedProducts] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [cartLoading, setCartLoading] = useState(false);
+  const [buyOrders, setBuyOrders] = useState([]);
+  const [sellOrders, setSellOrders] = useState([]);
   const [activeTab, setActiveTab] = useState("selling");
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
@@ -74,6 +76,22 @@ const UserProfile = () => {
       })
       .catch(() => setCartItems([]))
       .finally(() => setCartLoading(false));
+
+    // 获取订单（本人查看时）
+    if (user && user.id === id) {
+      fetch("/api/orders?limit=50", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => { if (data) setBuyOrders(data.orders || []); })
+        .catch(() => {});
+      fetch("/api/orders/sold?limit=50", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.ok ? res.json() : null)
+        .then((data) => { if (data) setSellOrders(data.orders || []); })
+        .catch(() => {});
+    }
   }, [user, id]);
 
   const handleEditClick = () => {
@@ -363,26 +381,123 @@ const UserProfile = () => {
           <p className="text-gray-500 text-center py-12">没有被下架的商品</p>
         )}
 
-        {activeTab === "sold" && soldProducts.length > 0 && (
-          <ProductList
-            userProducts={soldProducts}
-            onDeleteProduct={() => {}}
-            showDelete={false}
-          />
-        )}
-        {activeTab === "sold" && soldProducts.length === 0 && (
-          <p className="text-gray-500 text-center py-12">暂无出售记录</p>
+        {activeTab === "sold" && (
+          <div>
+            {sellOrders.length > 0 ? (
+              <div className="space-y-3">
+                {sellOrders.map((order) => {
+                  const statusLabel = { pending: "待完成", completed: "已完成", cancelled: "已取消" };
+                  const statusColor = { pending: "bg-yellow-100 text-yellow-800", completed: "bg-green-100 text-green-800", cancelled: "bg-gray-100 text-gray-600" };
+                  const handleStatus = async (orderId, newStatus) => {
+                    const token = localStorage.getItem("token");
+                    const res = await fetch(`/api/orders/${orderId}/status`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                      body: JSON.stringify({ status: newStatus }),
+                    });
+                    if (res.ok) {
+                      setSellOrders((prev) => prev.map((o) => o._id === orderId ? { ...o, status: newStatus } : o));
+                    }
+                  };
+                  return (
+                    <div key={order._id} className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
+                      <div
+                        className="w-16 h-16 rounded-lg bg-gray-200 bg-cover bg-center flex-shrink-0"
+                        style={{ backgroundImage: order.productSnapshot?.image ? `url(${order.productSnapshot.image})` : "none" }}
+                      />
+                      <div className="flex-grow min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">
+                          {order.productSnapshot?.name || "商品已删除"}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          买家：{order.buyerInfo?.name || "未知"} · ¥{order.totalAmount?.toFixed(2)}
+                        </p>
+                        {order.buyerInfo?.phone && (
+                          <p className="text-xs text-gray-400">电话：{order.buyerInfo.phone}</p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(order.createdAt).toLocaleDateString("zh-CN")}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor[order.status]}`}>
+                          {statusLabel[order.status]}
+                        </span>
+                        {order.status === "pending" && (
+                          <div className="flex gap-1">
+                            <button
+                              onClick={() => handleStatus(order._id, "completed")}
+                              className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600"
+                            >
+                              确认完成
+                            </button>
+                            <button
+                              onClick={() => handleStatus(order._id, "cancelled")}
+                              className="px-2 py-1 bg-gray-400 text-white text-xs rounded hover:bg-gray-500"
+                            >
+                              取消
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : soldProducts.length > 0 ? (
+              <ProductList
+                userProducts={soldProducts}
+                onDeleteProduct={() => {}}
+                showDelete={false}
+              />
+            ) : (
+              <p className="text-gray-500 text-center py-12">暂无出售记录</p>
+            )}
+          </div>
         )}
 
-        {activeTab === "purchased" && purchasedProducts.length > 0 && (
-          <ProductList
-            userProducts={purchasedProducts}
-            onDeleteProduct={() => {}}
-            showDelete={false}
-          />
-        )}
-        {activeTab === "purchased" && purchasedProducts.length === 0 && (
-          <p className="text-gray-500 text-center py-12">暂无购买记录</p>
+        {activeTab === "purchased" && (
+          <div>
+            {/* 订单列表（即使商品被删，订单依然在） */}
+            {buyOrders.length > 0 ? (
+              <div className="space-y-3">
+                {buyOrders.map((order) => {
+                  const statusLabel = { pending: "待完成", completed: "已完成", cancelled: "已取消" };
+                  const statusColor = { pending: "bg-yellow-100 text-yellow-800", completed: "bg-green-100 text-green-800", cancelled: "bg-gray-100 text-gray-600" };
+                  return (
+                    <div key={order._id} className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
+                      <div
+                        className="w-16 h-16 rounded-lg bg-gray-200 bg-cover bg-center flex-shrink-0"
+                        style={{ backgroundImage: order.productSnapshot?.image ? `url(${order.productSnapshot.image})` : "none" }}
+                      />
+                      <div className="flex-grow min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">
+                          {order.productSnapshot?.name || "商品已删除"}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          ¥{order.totalAmount?.toFixed(2)} × {order.quantity}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(order.createdAt).toLocaleDateString("zh-CN")}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor[order.status]}`}>
+                        {statusLabel[order.status]}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : purchasedProducts.length > 0 ? (
+              <ProductList
+                userProducts={purchasedProducts}
+                onDeleteProduct={() => {}}
+                showDelete={false}
+              />
+            ) : (
+              <p className="text-gray-500 text-center py-12">暂无购买记录</p>
+            )}
+          </div>
         )}
 
         {activeTab === "cart" && cartLoading && (
