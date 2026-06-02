@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 
-const ProductList = ({ userProducts, onDeleteProduct, showDelete = true, showEdit = true, showView = true, showDelistReason = false, showAppeal = false, onAppeal }) => {
+const ProductList = ({ userProducts, onDeleteProduct, showDelete = true, showEdit = true, showView = true, showDelistReason = false }) => {
   const isInactive = showDelistReason;
   return (
     <div className="mt-8">
@@ -77,17 +77,6 @@ const ProductList = ({ userProducts, onDeleteProduct, showDelete = true, showEdi
                 >
                   查看
                 </Link>
-              )}
-              {showAppeal && onAppeal && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onAppeal(product);
-                  }}
-                  className="px-3 py-1.5 bg-orange-500 text-white text-sm rounded hover:bg-orange-600 transition-colors"
-                >
-                  申诉
-                </button>
               )}
             </div>
           </div>

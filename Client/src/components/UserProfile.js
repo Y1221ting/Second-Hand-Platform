@@ -6,8 +6,6 @@ import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import ConfirmDialog from "./Profile/ConfirmDialog";
 import ProductList from "./Profile/ProductList";
-import AppealList from "./Profile/AppealList";
-import AppealForm from "./Profile/AppealForm";
 import Loading from "./Utility/Loading";
 
 const UserProfile = () => {
@@ -23,10 +21,6 @@ const UserProfile = () => {
   const [formData, setFormData] = useState({});
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [productIdToDelete, setProductIdToDelete] = useState(null);
-  const [appeals, setAppeals] = useState([]);
-  const [appealProduct, setAppealProduct] = useState(null);
-  const [ratingStats, setRatingStats] = useState(null);
-  const [reviews, setReviews] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -80,28 +74,6 @@ const UserProfile = () => {
       })
       .catch(() => setCartItems([]))
       .finally(() => setCartLoading(false));
-
-    // 获取申诉记录（仅本人查看时）
-    if (user && user.id === id) {
-      fetch("/api/appeals", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setAppeals(data.appeals || []);
-        })
-        .catch(() => setAppeals([]));
-    }
-
-    // 获取评分统计和评价列表
-    fetch(`/api/reviews/user/${id}/stats`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => { if (data) setRatingStats(data); })
-      .catch(() => {});
-    fetch(`/api/reviews/user/${id}?limit=10`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => { if (data) setReviews(data.reviews || []); })
-      .catch(() => {});
   }, [user, id]);
 
   const handleEditClick = () => {
@@ -353,16 +325,6 @@ const UserProfile = () => {
           >
             购买记录 ({purchasedProducts.length})
           </button>
-          <button
-            onClick={() => setActiveTab("reviews")}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
-              activeTab === "reviews"
-                ? "bg-yellow-500 text-white"
-                : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
-            }`}
-          >
-            评价 ({ratingStats?.totalReviews || 0})
-          </button>
         </div>
 
         {/* ===== Tab 内容区 ===== */}
@@ -394,17 +356,11 @@ const UserProfile = () => {
               showEdit={false}
               showView={true}
               showDelistReason
-              showAppeal={user && user.id === id}
-              onAppeal={setAppealProduct}
             />
-            {user && user.id === id && <AppealList appeals={appeals} />}
           </>
         )}
         {activeTab === "inactive" && inactiveProducts.length === 0 && (
-          <>
-            <p className="text-gray-500 text-center py-12">没有被下架的商品</p>
-            {user && user.id === id && <AppealList appeals={appeals} />}
-          </>
+          <p className="text-gray-500 text-center py-12">没有被下架的商品</p>
         )}
 
         {activeTab === "sold" && soldProducts.length > 0 && (
@@ -531,98 +487,6 @@ const UserProfile = () => {
           <ConfirmDialog
             onCancel={handleCancelDelete}
             onConfirm={handleConfirmDelete}
-          />
-        )}
-
-        {/* ===== 评价 Tab ===== */}
-        {activeTab === "reviews" && (
-          <div>
-            {/* 评分统计卡片 */}
-            {ratingStats && ratingStats.totalReviews > 0 ? (
-              <div className="bg-white rounded-xl shadow-sm p-6 mb-4">
-                <div className="flex items-center gap-6">
-                  <div className="text-center">
-                    <p className="text-3xl font-bold text-gray-900">{ratingStats.avgRating}</p>
-                    <div className="flex items-center justify-center text-yellow-500 text-sm">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <span key={star}>{star <= Math.round(ratingStats.avgRating) ? "★" : "☆"}</span>
-                      ))}
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">{ratingStats.totalReviews} 条评价</p>
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-gray-700">好评率</p>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div
-                        className="bg-green-500 h-2.5 rounded-full"
-                        style={{ width: `${ratingStats.positiveRate}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 text-right">{ratingStats.positiveRate}%</p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm p-6 mb-4 text-center">
-                <p className="text-gray-400">暂无评价</p>
-              </div>
-            )}
-
-            {/* 评价列表 */}
-            {reviews.length > 0 ? (
-              <div className="space-y-3">
-                {reviews.map((r) => (
-                  <div key={r._id} className="bg-white rounded-xl shadow-sm p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center text-gray-900 font-bold text-xs">
-                        {r.reviewerId?.fullName?.[0] || "?"}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">
-                          {r.reviewerId?.fullName || "匿名"}
-                          <span className="text-xs text-gray-400 ml-2">
-                            {r.reviewerId?.department || ""}
-                          </span>
-                        </p>
-                        <div className="flex text-yellow-500 text-xs">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <span key={s}>{s <= r.rating ? "★" : "☆"}</span>
-                          ))}
-                          <span className="text-gray-400 ml-2">
-                            {new Date(r.createdAt).toLocaleDateString("zh-CN")}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    {r.content && (
-                      <p className="text-sm text-gray-600 ml-11">{r.content}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              ratingStats && ratingStats.totalReviews > 0 && (
-                <p className="text-gray-400 text-center py-4">暂无评价内容</p>
-              )
-            )}
-          </div>
-        )}
-
-        {/* Appeal form modal */}
-        {appealProduct && (
-          <AppealForm
-            product={appealProduct}
-            onClose={() => setAppealProduct(null)}
-            onSuccess={() => {
-              // 重新获取申诉列表
-              const token = localStorage.getItem("token");
-              fetch("/api/appeals", {
-                headers: { Authorization: `Bearer ${token}` },
-              })
-                .then((res) => res.json())
-                .then((data) => setAppeals(data.appeals || []))
-                .catch(() => {});
-            }}
           />
         )}
       </div>

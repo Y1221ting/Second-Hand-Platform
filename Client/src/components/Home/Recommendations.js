@@ -43,20 +43,15 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
   return (
     <div className="mb-8 mt-6">
       <h2 className="text-xl font-semibold mb-3 flex items-center gap-2 text-gray-800">
-        <span className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
-          AI
+        <span className="bg-gradient-to-r from-green-500 to-teal-500 text-white text-xs px-2 py-0.5 rounded-full font-bold">
+          推荐
         </span>
-        🤖 智能推荐 · 根据当前商品为您匹配
+        同学院热卖 · 为你精选
       </h2>
       <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-thin scrollbar-thumb-gray-300">
         {products.map(product => (
           <div key={product._id} className="flex-shrink-0 w-64">
             <ProductCard product={product} isRecommended={true} />
-            {product.aiReason && (
-              <p className="text-[10px] text-gray-400 mt-1 italic leading-tight px-1">
-                🤖 {product.aiReason}
-              </p>
-            )}
           </div>
         ))}
       </div>

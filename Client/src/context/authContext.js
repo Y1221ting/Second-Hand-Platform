@@ -17,40 +17,14 @@ export const AuthProvider = ({ children }) => {
   });
   const userIdRef = useRef(user?.id);
 
-  const login = async (newUser, newToken) => {
-    const oldUser = JSON.parse(localStorage.getItem("user") || "null");
-    const oldToken = localStorage.getItem("token");
-
-    // 只在"同一账号"重新登录时，才登出旧 session
-    if (oldUser && oldUser.id === newUser.id && oldToken && oldToken !== newToken) {
-      try {
-        await fetch("/api/users/logout", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${oldToken}` },
-        });
-      } catch (_) {
-        // 容错
-      }
-    }
-
+  const login = (newUser, newToken) => {
     setUser(newUser);
     userIdRef.current = newUser.id;
     localStorage.setItem("user", JSON.stringify(newUser));
     localStorage.setItem("token", newToken);
   };
 
-  const logout = async () => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        await fetch("/api/users/logout", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      } catch (_) {
-        // 容错
-      }
-    }
+  const logout = () => {
     setUser(null);
     userIdRef.current = null;
     localStorage.removeItem("user");
@@ -59,17 +33,6 @@ export const AuthProvider = ({ children }) => {
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === "admin";
-
-  // 监听全局 session-expired 事件（服务端返回 SESSION_EXPIRED 时触发）
-  useEffect(() => {
-    const handler = () => {
-      setUser(null);
-      userIdRef.current = null;
-      window.location.href = "/login?session_expired=1";
-    };
-    window.addEventListener("session-expired", handler);
-    return () => window.removeEventListener("session-expired", handler);
-  }, []);
 
   // 监听 localStorage 跨标签页变化（同浏览器只允许一个账号登录）
   useEffect(() => {

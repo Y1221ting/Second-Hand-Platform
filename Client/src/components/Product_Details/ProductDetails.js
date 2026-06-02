@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaEdit, FaShoppingCart, FaStar, FaComment, FaChevronLeft, FaChevronRight, FaTimes, FaExpand } from "react-icons/fa";
+import { FaEdit, FaShoppingCart, FaChevronLeft, FaChevronRight, FaTimes, FaExpand } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
 import Dialog from "./Dialog";
@@ -15,8 +15,6 @@ const ProductDetails = ({ productId }) => {
   const [cartAdded, setCartAdded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [sellerRating, setSellerRating] = useState(null);
-
   const [isDialogOpen, setDialogOpen] = useState(false);
 
   const handleConfirmPurchase = async (userData) => {
@@ -116,44 +114,6 @@ const ProductDetails = ({ productId }) => {
 
     fetchProductDetails();
   }, [productId]);
-
-  // 获取卖家评分
-  useEffect(() => {
-    if (!productDetails?.uploadedBy?.id) return;
-    fetch(`/api/reviews/user/${productDetails.uploadedBy.id}/stats`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => { if (data) setSellerRating(data); })
-      .catch(() => {});
-  }, [productDetails?.uploadedBy?.id]);
-
-  // 联系卖家 → 创建/查找会话 → 跳转聊天
-  const handleContactSeller = async () => {
-    if (!user) {
-      alert("请先登录");
-      navigate("/login");
-      return;
-    }
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/conversations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          participantId: productDetails.uploadedBy.id,
-          productId: productDetails._id,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        navigate(`/messages/${data.conversation._id}`);
-      }
-    } catch {
-      alert("网络错误");
-    }
-  };
 
   if (!productDetails) {
     return <Loading />;
@@ -303,16 +263,6 @@ const ProductDetails = ({ productId }) => {
             </p>
           )}
 
-          {/* 卖家信用卡片 */}
-          {sellerRating && sellerRating.totalReviews > 0 && (
-            <div className="mt-3 flex items-center gap-2 text-sm">
-              <FaStar className="text-yellow-500" />
-              <span className="font-semibold text-gray-900">{sellerRating.avgRating}</span>
-              <span className="text-gray-500">· 好评率 {sellerRating.positiveRate}%</span>
-              <span className="text-gray-400">· {sellerRating.totalReviews} 条评价</span>
-            </div>
-          )}
-
           <p className="text-2xl font-semibold mt-4">
             ¥{Math.min(Number(productDetails.price ?? 0), 9999.9).toFixed(1)}
           </p>
@@ -376,13 +326,6 @@ const ProductDetails = ({ productId }) => {
                     ? "已售罄"
                     : "立即购买"}
                 </button>
-                <button
-                  onClick={handleContactSeller}
-                  className="flex items-center px-5 py-3 rounded text-lg bg-blue-500 hover:bg-blue-600 text-white transition duration-300"
-                >
-                  <FaComment className="mr-2" />
-                  联系卖家
-                </button>
               </div>
             )}
             <Dialog
@@ -423,10 +366,7 @@ const ProductDetails = ({ productId }) => {
       <Recommendations
         userId={user?.id}
         excludeId={productId}
-        category={productDetails.category}
         department={productDetails.uploadedBy?.department}
-        major={productDetails.uploadedBy?.major}
-        sellerId={productDetails.uploadedBy?.id}
       />
     </div>
   );

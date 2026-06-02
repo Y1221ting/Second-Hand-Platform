@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { FaUser, FaSearch, FaBell, FaEnvelope, FaShieldAlt } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaUser, FaSearch, FaBell, FaShieldAlt } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -8,27 +8,9 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [unreadMessages, setUnreadMessages] = useState(0);
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
-
-  // 消息未读数轮询
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const fetchUnread = () => {
-      const token = localStorage.getItem("token");
-      fetch("/api/conversations/unread-count", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then((data) => setUnreadMessages(data.unreadCount || 0))
-        .catch(() => {});
-    };
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 15000);
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
 
   const handleSearch = (e) => {
     if (e.key === "Enter") {
@@ -38,7 +20,6 @@ const Navbar = () => {
       } else {
         navigate("/home");
       }
-      // 不清空输入框 — 保留搜索词，符合用户预期
     }
   };
 
@@ -72,7 +53,7 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* 移动端搜索栏（折叠） */}
+      {/* 移动端搜索栏 */}
       {isMobileSearchOpen && (
         <div className="absolute top-full left-0 right-0 bg-gray-900 px-4 py-3 md:hidden z-50 border-t border-gray-700">
           <div className="relative w-full">
@@ -126,21 +107,7 @@ const Navbar = () => {
               个人中心
             </Link>
 
-            {/* 私信 */}
-            <Link
-              to="/messages"
-              className="relative text-gray-400 hover:text-yellow-500 p-2 transition-colors"
-              title="消息"
-            >
-              <FaEnvelope className="text-sm" />
-              {unreadMessages > 0 && (
-                <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                  {unreadMessages > 9 ? "9+" : unreadMessages}
-                </span>
-              )}
-            </Link>
-
-            {/* 警告通知铃铛 */}
+            {/* 系统通知铃铛 */}
             <Link
               to="/warnings"
               className="relative text-gray-400 hover:text-yellow-500 p-2 transition-colors"

@@ -1,68 +1,65 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
-import { FaExclamationTriangle, FaBoxOpen, FaBan, FaClipboardCheck, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import { FaBell, FaCheckCircle } from "react-icons/fa";
 import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import Loading from "./Utility/Loading";
 
-const typeMeta = {
-  warning: { icon: FaExclamationTriangle, color: "text-yellow-500", label: "管理警告" },
-  product_delisted: { icon: FaBoxOpen, color: "text-orange-500", label: "商品下架" },
-  account_banned: { icon: FaBan, color: "text-red-500", label: "账号封禁" },
-  appeal_result: { icon: FaClipboardCheck, color: "text-blue-500", label: "申诉结果" },
-};
-
-const Warnings = () => {
+const Notifications = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [warnings, setWarnings] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login");
       return;
     }
-    fetchWarnings();
+    fetchMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, filter]);
+  }, [isAuthenticated, filter, page]);
 
-  const fetchWarnings = async () => {
+  const fetchMessages = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
       const params = new URLSearchParams();
+      params.append("page", page);
+      params.append("limit", 20);
       if (filter === "unread") params.append("isRead", "false");
       else if (filter === "read") params.append("isRead", "true");
-      const res = await fetch(`/api/warnings/?${params}`, {
+      const res = await fetch(`/api/messages/?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
         const data = await res.json();
-        setWarnings(data.warnings);
-        setUnreadCount(data.unreadCount);
+        setMessages(data.messages);
+        setTotalPages(data.totalPages);
       }
     } catch (err) {
-      console.error("获取警告失败:", err);
+      console.error("获取消息失败:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const markAsRead = async (warningId) => {
+  const markAsRead = async (messageId) => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`/api/warnings/${warningId}/read`, {
+      const res = await fetch(`/api/messages/${messageId}/read`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        setWarnings((prev) =>
-          prev.map((w) =>
-            w._id === warningId ? { ...w, isRead: true, readAt: new Date() } : w
+        setMessages((prev) =>
+          prev.map((m) =>
+            m._id === messageId ? { ...m, isRead: true } : m
           )
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
@@ -94,7 +91,7 @@ const Warnings = () => {
           ].map((item) => (
             <button
               key={item.value}
-              onClick={() => setFilter(item.value)}
+              onClick={() => { setFilter(item.value); setPage(1); }}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 filter === item.value
                   ? "bg-yellow-500 text-gray-900"
@@ -108,66 +105,70 @@ const Warnings = () => {
 
         {loading ? (
           <Loading />
-        ) : warnings.length > 0 ? (
+        ) : messages.length > 0 ? (
           <div className="space-y-3">
-            {warnings.map((w) => {
-              const meta = typeMeta[w.type] || typeMeta.warning;
-              const Icon = meta.icon;
-              const isAppealApproved = w.type === "appeal_result" && w.metadata?.appealStatus === "approved";
-              return (
-                <div
-                  key={w._id}
-                  onClick={() => !w.isRead && markAsRead(w._id)}
-                  className={`bg-white rounded-xl shadow-sm p-5 flex gap-4 cursor-pointer transition-colors hover:bg-gray-50 ${
-                    !w.isRead ? "border-l-4 border-yellow-500" : ""
-                  }`}
-                >
-                  <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${meta.color} bg-gray-50`}>
-                    <Icon className="text-lg" />
-                  </div>
-                  <div className="flex-grow min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${meta.color} bg-gray-50`}>
-                        {meta.label}
-                      </span>
-                      {w.type === "appeal_result" && (
-                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded flex items-center gap-1 ${
-                          isAppealApproved ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50"
-                        }`}>
-                          {isAppealApproved ? <FaCheckCircle className="text-[10px]" /> : <FaTimesCircle className="text-[10px]" />}
-                          {isAppealApproved ? "已通过" : "已驳回"}
-                        </span>
-                      )}
-                      {!w.isRead && (
-                        <span className="bg-yellow-100 text-yellow-800 text-[10px] px-1.5 py-0.5 rounded">
-                          新
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-gray-900">{w.title}</h3>
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap mt-1">{w.content}</p>
-                    {w.metadata?.reason && (
-                      <p className="text-xs text-gray-400 mt-1">原因：{w.metadata.reason}</p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-2">
-                      {new Date(w.createdAt).toLocaleDateString("zh-CN", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      {w.readAt && " · 已读"}
-                    </p>
-                  </div>
+            {messages.map((m) => (
+              <div
+                key={m._id}
+                onClick={() => !m.isRead && markAsRead(m._id)}
+                className={`bg-white rounded-xl shadow-sm p-5 flex gap-4 cursor-pointer transition-colors hover:bg-gray-50 ${
+                  !m.isRead ? "border-l-4 border-yellow-500" : ""
+                }`}
+              >
+                <div className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-gray-500 bg-gray-50">
+                  <FaBell className="text-lg" />
                 </div>
-              );
-            })}
+                <div className="flex-grow min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {!m.isRead && (
+                      <span className="bg-yellow-100 text-yellow-800 text-[10px] px-1.5 py-0.5 rounded">
+                        新
+                      </span>
+                    )}
+                    {m.isRead && (
+                      <span className="text-gray-400 text-[10px] flex items-center gap-1">
+                        <FaCheckCircle /> 已读
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-semibold text-gray-900">{m.title}</h3>
+                  <p className="text-sm text-gray-600 whitespace-pre-wrap mt-1">{m.content}</p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {new Date(m.createdAt).toLocaleDateString("zh-CN", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-16">
-            <p className="text-gray-400 text-lg mb-2">暂无警告消息</p>
-            <p className="text-gray-400 text-sm">你是个遵守规则的优秀用户</p>
+            <p className="text-gray-400 text-lg mb-2">暂无系统消息</p>
+            <p className="text-gray-400 text-sm">一切正常，继续保持</p>
+          </div>
+        )}
+
+        {/* 分页 */}
+        {totalPages > 1 && (
+          <div className="flex justify-center gap-2 mt-6">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`w-8 h-8 rounded text-sm ${
+                  p === page
+                    ? "bg-yellow-500 text-gray-900"
+                    : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
+                }`}
+              >
+                {p}
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -176,4 +177,4 @@ const Warnings = () => {
   );
 };
 
-export default Warnings;
+export default Notifications;

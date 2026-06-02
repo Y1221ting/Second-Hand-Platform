@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
-import { FaTachometerAlt, FaFlag, FaBox, FaUsers, FaGavel, FaExclamationTriangle, FaHome } from "react-icons/fa";
+import { FaTachometerAlt, FaFlag, FaBox, FaUsers, FaHome } from "react-icons/fa";
 
 const AdminLayout = () => {
   const { isAdmin, user } = useAuth();
@@ -15,8 +15,6 @@ const AdminLayout = () => {
     { to: "/admin/reports", icon: FaFlag, label: "举报管理" },
     { to: "/admin/products", icon: FaBox, label: "商品管理" },
     { to: "/admin/users", icon: FaUsers, label: "用户管理" },
-    { to: "/admin/appeals", icon: FaGavel, label: "申诉管理" },
-    { to: "/admin/warnings", icon: FaExclamationTriangle, label: "警告管理" },
   ];
 
   return (
