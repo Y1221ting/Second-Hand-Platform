@@ -120,7 +120,7 @@ const Register = () => {
         {/* 标题 */}
         <div className="text-center mb-7">
           <h1 className="text-2xl font-bold text-gray-900">注册</h1>
-          <p className="text-gray-400 text-sm mt-1">南昌师范学院 · 校园二手</p>
+          <p className="text-gray-400 text-sm mt-1">校园二手交易平台</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

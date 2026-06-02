@@ -13,7 +13,7 @@ const HomeBanner = ({ departments }) => {
 
   return (
     <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-xl p-6 mb-6 text-gray-900">
-      <h1 className="text-2xl font-bold mb-2">南昌师范学院校园二手</h1>
+      <h1 className="text-2xl font-bold mb-2">校园二手集市</h1>
       <p className="text-lg mb-4">
         已有 <span className="font-bold text-xl">{stats.userCount}</span> 位同学加入，
         <span className="font-bold text-xl"> {stats.productCount} </span> 件商品在售

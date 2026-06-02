@@ -14,7 +14,7 @@ const Privacy = () => {
         <div className="bg-white rounded-xl shadow-sm p-6 space-y-6 text-sm text-gray-700 leading-relaxed">
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-2">1. 我们收集哪些信息</h2>
-            <p>当您注册和使用南昌师范学院二手集市时，我们会收集以下信息：</p>
+            <p>当您注册和使用校园二手集市时，我们会收集以下信息：</p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
               <li><strong>账号信息：</strong>邮箱地址、密码（加密存储）</li>
               <li><strong>个人资料：</strong>姓名、手机号、学院、专业、宿舍楼</li>

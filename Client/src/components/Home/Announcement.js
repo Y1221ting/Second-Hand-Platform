@@ -71,7 +71,7 @@ const Announcement = () => {
         <div className="relative bg-white rounded-2xl shadow-2xl z-10 w-full max-w-sm mx-4 p-8 text-center animate-bounce">
           <div className="text-6xl mb-4">🎉</div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">十分感谢！</h2>
-          <p className="text-gray-500">欢迎加入南昌师范学院二手大家庭～</p>
+          <p className="text-gray-500">欢迎加入校园二手大家庭～</p>
           <p className="text-yellow-500 mt-2 font-medium">祝你淘到心仪好物 ⌯oᴗo⌯</p>
         </div>
       </div>
@@ -101,7 +101,7 @@ const Announcement = () => {
         <div className="text-center mt-4 mb-6">
           <div className="text-4xl mb-3">👋</div>
           <h2 className="text-lg font-bold text-gray-900 mb-3">
-            欢迎来到南昌师范学院二手平台！
+            欢迎来到校园二手交易平台！
           </h2>
           <p className="text-sm text-gray-500 leading-relaxed">
             我是开发者之一 <span className="font-semibold text-yellow-600">听风</span>
