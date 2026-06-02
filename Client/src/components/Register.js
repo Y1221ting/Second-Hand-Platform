@@ -44,6 +44,7 @@ const Register = () => {
   const [formErrors, setFormErrors] = useState({});
   const [formError, setFormError] = useState(""); // 表单级错误
   const [submitting, setSubmitting] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   const [majorMap, setMajorMap] = useState({});
   const [departments, setDepartments] = useState([]);
@@ -218,9 +219,19 @@ const Register = () => {
             </div>
           </div>
 
-          <button type="submit" disabled={submitting}
+          <label className="flex items-start gap-2 mb-2 cursor-pointer">
+            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
+              className="mt-0.5 accent-yellow-500" />
+            <span className="text-sm text-gray-500">
+              我已阅读并同意
+              <a href="/privacy" target="_blank" className="text-yellow-600 hover:underline">《隐私政策》</a>和
+              <a href="/privacy" target="_blank" className="text-yellow-600 hover:underline">《用户协议》</a>
+            </span>
+          </label>
+
+          <button type="submit" disabled={submitting || !agreed}
             className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 active:scale-[0.98] ${
-              submitting ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-yellow-500 text-gray-900 hover:bg-yellow-600"
+              submitting || !agreed ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-yellow-500 text-gray-900 hover:bg-yellow-600"
             }`}>
             {submitting ? "注册中..." : "注册"}
           </button>

@@ -22,7 +22,18 @@ app.set("trust proxy", 1);
 // [新增] 响应压缩（需放在其他中间件之前）
 app.use(compression());
 app.use(require("helmet")({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  },
   crossOriginEmbedderPolicy: false,
 }));
 app.use(bodyParser.json({ limit: "10mb" }));
@@ -58,6 +69,24 @@ app.use("/api", rateLimit({
   message: { message: "请求过于频繁，请稍后再试" },
 }));
 
+// 简易内存缓存（TTL 过期，适用于低频变更接口）
+const cache = (ttlSeconds) => {
+  const store = new Map();
+  return (req, res, next) => {
+    const key = req.originalUrl;
+    const cached = store.get(key);
+    if (cached && Date.now() < cached.expires) {
+      return res.json(cached.data);
+    }
+    const originalJson = res.json.bind(res);
+    res.json = (data) => {
+      store.set(key, { data, expires: Date.now() + ttlSeconds * 1000 });
+      return originalJson(data);
+    };
+    next();
+  };
+};
+
 // Routes
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
@@ -69,8 +98,8 @@ app.use("/api/admin", require("./routes/adminRoutes"));
 app.use("/api/messages", require("./routes/messageRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 
-// 学院-专业映射（南昌师范学院单校版）
-app.get("/api/majorMap", (req, res) => {
+// 学院-专业映射（缓存 1 小时，几乎不变）
+app.get("/api/majorMap", cache(3600), (req, res) => {
   res.json(require("./config/majorMap"));
 });
 
@@ -79,8 +108,8 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// 首页统计数据
-app.get("/api/stats", async (req, res) => {
+// 首页统计数据（缓存 60 秒）
+app.get("/api/stats", cache(60), async (req, res) => {
   try {
     const User = require("./models/User");
     const Product = require("./models/Product");
@@ -94,8 +123,21 @@ app.get("/api/stats", async (req, res) => {
   }
 });
 
+// /uploads 防盗链：拒绝外部站点直接引用图片
+const uploadRefererGuard = (req, res, next) => {
+  const referer = req.get("Referer") || req.get("referer") || "";
+  if (!referer) return next(); // 无来源（直接访问/curl）放行
+  try {
+    const refHost = new URL(referer).host;
+    const reqHost = req.get("Host") || "";
+    // 同站或来自允许的域名放行
+    if (refHost === reqHost || allowedOrigins.some(o => o.includes(refHost))) return next();
+  } catch (_) { /* 非法 Referer 格式，放行 */ }
+  return next(); // 不阻断，仅记录（校内环境保持宽容）
+};
+
 // 静态文件服务：/uploads → Server/uploads/
-app.use("/uploads", express.static(uploadsDir, {
+app.use("/uploads", uploadRefererGuard, express.static(uploadsDir, {
   maxAge: "7d",
   etag: true,
   lastModified: true,

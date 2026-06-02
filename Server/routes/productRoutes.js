@@ -2,12 +2,13 @@ const express = require("express");
 const router = express.Router();
 const productController = require("../controllers/productController");
 const authMiddleware = require("../middleware/authMiddleware");
+const { optionalAuth } = authMiddleware;
 
-// Public routes (no auth required)
-router.get("/", productController.getAllProducts);
-router.get("/recommendations", productController.getRecommendations);
-router.get("/ai-recommendations", productController.getRecommendations);
-router.get("/:id", productController.getProductById);
+// Public routes (no auth required — but optionalAuth 用于 PII 脱敏判断)
+router.get("/", optionalAuth, productController.getAllProducts);
+router.get("/recommendations", optionalAuth, productController.getRecommendations);
+router.get("/ai-recommendations", optionalAuth, productController.getRecommendations);
+router.get("/:id", optionalAuth, productController.getProductById);
 router.get("/user/:userId", authMiddleware, productController.getProductsByUser);
 router.get("/purchased/:userId", authMiddleware, productController.getPurchasedProducts);
 

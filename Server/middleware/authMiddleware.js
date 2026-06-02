@@ -42,4 +42,21 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
+// 可选认证：有 token 则解析用户，无 token 也放行（用于公开路由的 PII 脱敏判断）
+const optionalAuth = async (req, res, next) => {
+  try {
+    const token = req.header("Authorization")?.replace("Bearer ", "");
+    if (!token) return next();
+    const decoded = jwt.verify(token, SECRET);
+    const user = await User.findById(decoded.userId).select("-password");
+    if (user && (decoded.tv || 0) === (user.tokenVersion || 0) && user.status !== "banned") {
+      req.user = user;
+    }
+  } catch (_) {
+    // token 无效或无 token，正常放行
+  }
+  next();
+};
+
 module.exports = authMiddleware;
+module.exports.optionalAuth = optionalAuth;

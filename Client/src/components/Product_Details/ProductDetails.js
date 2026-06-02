@@ -248,7 +248,13 @@ const ProductDetails = ({ productId }) => {
           </p>
           {productDetails.uploadedBy?.dormitory && (
             <p className="text-gray-500 mt-1">
-              宿舍楼：{productDetails.uploadedBy.dormitory}
+              宿舍楼：{" "}
+              {!user
+                ? "登录后查看"
+                : (productDetails.purchasedBy?.id === userId || userId === productDetails.uploadedBy?.id)
+                  ? productDetails.uploadedBy.dormitory
+                  : "购买后查看"
+              }
             </p>
           )}
           {productDetails.uploadedBy?.phone && (

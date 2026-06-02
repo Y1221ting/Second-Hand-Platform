@@ -1,10 +1,30 @@
 const Product = require("../models/Product");
-const bannedKeywords = require("../config/bannedKeywords");
+const { checkBanned } = require("../config/bannedKeywords");
 
-function checkBanned(text) {
-  if (!text) return null;
-  const lower = text.toLowerCase();
-  return bannedKeywords.find(kw => lower.includes(kw.toLowerCase()));
+// PII 脱敏：根据请求者身份决定保留哪些联系信息
+// - 未认证：仅保留 id/name/college/department/major
+// - 认证非卖家/买家：保留 id/name/college/department/major/dormitory
+// - 卖家本人或买家：保留全部
+function sanitizeProduct(product, reqUser) {
+  const obj = product.toObject ? product.toObject() : product;
+  if (!obj.uploadedBy) return obj;
+
+  const userId = reqUser?._id?.toString() || reqUser?.id;
+  const isOwner = userId && obj.uploadedBy.id === userId;
+  const isBuyer = userId && obj.purchasedBy?.id === userId;
+
+  const sensitive = ["phone", "wechat", "qq"];
+  const allPII = [...sensitive, "dormitory"];
+
+  if (!userId) {
+    // 未认证：仅保留基础信息
+    allPII.forEach(f => { if (obj.uploadedBy[f] !== undefined) delete obj.uploadedBy[f]; });
+  } else if (!isOwner && !isBuyer) {
+    // 认证但非交易相关方：隐藏敏感联系方式
+    sensitive.forEach(f => { if (obj.uploadedBy[f] !== undefined) delete obj.uploadedBy[f]; });
+  }
+  // 卖家或买家：保留全部
+  return obj;
 }
 
 // Create a product
@@ -49,7 +69,14 @@ exports.createProduct = async (req, res) => {
     req.body.listedByDepartment = req.user.department || "";
     req.body.listedByMajor = req.user.major || "";
 
-    const product = new Product(req.body);
+    // 字段白名单：防止通过 req.body 覆盖 status/purchasedBy/createdAt 等敏感字段
+    const allowedFields = ["name", "description", "price", "category", "images", "specifications", "quantity"];
+    const safeProduct = { uploadedBy: req.body.uploadedBy, listedByDepartment: req.body.listedByDepartment, listedByMajor: req.body.listedByMajor };
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) safeProduct[field] = req.body[field];
+    });
+
+    const product = new Product(safeProduct);
     await product.save();
     res.status(201).json(product);
   } catch (error) {
@@ -67,12 +94,12 @@ exports.getAllProducts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
-    const search = req.query.search || "";
-    const category = req.query.category || "";
-    const sort = req.query.sort || "latest";
-
-    const department = req.query.department || "";
-    const userDepartment = req.query.userDepartment || "";
+    // 类型校验：防 NoSQL 注入（query string 可被解析为对象如 {$ne:...}）
+    const search = typeof req.query.search === "string" ? req.query.search : "";
+    const category = typeof req.query.category === "string" ? req.query.category : "";
+    const sort = typeof req.query.sort === "string" ? req.query.sort : "latest";
+    const department = typeof req.query.department === "string" ? req.query.department : "";
+    const userDepartment = typeof req.query.userDepartment === "string" ? req.query.userDepartment : "";
 
     let query = {};
 
@@ -127,12 +154,13 @@ exports.getAllProducts = async (req, res) => {
       .limit(limit)
       .select(fields);
 
-    // 优化：列表页只返回第一张图片，减少数据传输量
+    // 优化：列表页只返回第一张图片 + PII 脱敏
     const optimizedProducts = products.map(product => {
-      const productObj = product.toObject();
+      let productObj = product.toObject();
       if (productObj.images && productObj.images.length > 0) {
         productObj.images = [productObj.images[0]];
       }
+      productObj = sanitizeProduct(productObj, req.user);
       return productObj;
     });
 
@@ -155,7 +183,7 @@ exports.getProductById = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-    const productObj = product.toObject();
+    const productObj = sanitizeProduct(product, req.user);
     res.status(200).json(productObj);
   } catch (error) {
     console.error(error);
@@ -328,6 +356,11 @@ exports.addSpecificationToProduct = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
     if (!checkOwnership(product, req.user._id.toString(), res)) return;
+    // 违禁词检查
+    const specHit = checkBanned(`${req.body.key || ""} ${req.body.value || ""}`);
+    if (specHit) {
+      return res.status(400).json({ message: "规格信息包含违规内容，请修改后重新提交" });
+    }
     product.specifications.push(req.body);
     await product.save();
     res.status(200).json(product);
@@ -348,6 +381,11 @@ exports.updateProductSpecification = async (req, res) => {
     const specification = product.specifications.id(req.params.specificationId);
     if (!specification) {
       return res.status(404).json({ message: "Specification not found" });
+    }
+    // 违禁词检查
+    const specHit = checkBanned(`${req.body.key || ""} ${req.body.value || ""}`);
+    if (specHit) {
+      return res.status(400).json({ message: "规格信息包含违规内容，请修改后重新提交" });
     }
     specification.key = req.body.key;
     specification.value = req.body.value;
@@ -430,12 +468,13 @@ exports.getRecommendations = async (req, res) => {
       ...fillProducts,
     ];
 
-    // 列表页只返回首张图片
+    // 列表页只返回首张图片 + PII 脱敏
     const result = combined.map(p => {
-      const obj = p.toObject();
+      let obj = p.toObject();
       if (obj.images && obj.images.length > 0) {
         obj.images = [obj.images[0]];
       }
+      obj = sanitizeProduct(obj, req.user);
       return obj;
     });
 

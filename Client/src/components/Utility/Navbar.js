@@ -178,6 +178,13 @@ const Navbar = () => {
                         管理后台
                       </Link>
                     )}
+                    <Link
+                      to="/privacy"
+                      className="block px-4 py-2.5 text-gray-500 hover:bg-yellow-50 hover:text-yellow-600 transition-colors text-sm"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      隐私政策
+                    </Link>
                     <hr className="my-1 border-gray-100" />
                     <button
                       onClick={handleLogout}

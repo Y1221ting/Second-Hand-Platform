@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const Wanted = require("../models/Wanted");
+const { checkBanned } = require("../config/bannedKeywords");
 
 // 发布求购
 router.post("/", authMiddleware, async (req, res) => {
@@ -11,6 +12,12 @@ router.post("/", authMiddleware, async (req, res) => {
     }
     if (req.body.budget <= 0 || req.body.budget > 9999.9) {
       return res.status(400).json({ message: "预算需在 0 ~ 9999.9 之间" });
+    }
+
+    // 违禁词检查
+    const hit = checkBanned(`${req.body.name || ""} ${req.body.description || ""}`);
+    if (hit) {
+      return res.status(400).json({ message: "求购信息包含违规内容，请修改后重新发布" });
     }
 
     const wanted = new Wanted({

@@ -1,24 +1,37 @@
 const User = require("../models/User");
 const Product = require("../models/Product");
 const { hashPassword, verifyPassword, createToken } = require("../config/auth");
+const { checkBanned } = require("../config/bannedKeywords");
 
 // Register a user
 exports.registerUser = async (req, res) => {
   try {
-    // 1. Check password length before hashing
-    if (req.body.password && req.body.password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    // 1. 邮箱类型校验（防 NoSQL 注入：$ne/$regex 等操作符对象）
+    if (typeof req.body.email !== "string" || !req.body.email.trim()) {
+      return res.status(400).json({ message: "邮箱格式不正确" });
+    }
+    const email = req.body.email.trim().toLowerCase();
+
+    // 2. Check password length before hashing
+    if (req.body.password && req.body.password.length < 8) {
+      return res.status(400).json({ message: "密码至少需要8位" });
     }
 
     // Check if the email already exists（防枚举：不告知具体原因）
-    const existingUser = await User.findOne({ email: req.body.email });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: "注册失败，请检查填写信息" });
     }
 
+    // 3. 违禁词检查（用户资料字段）
+    const profileHit = checkBanned([req.body.fullName, req.body.wechat, req.body.qq].filter(Boolean).join(" "));
+    if (profileHit) {
+      return res.status(400).json({ message: "个人信息包含违规内容，请修改后重新提交" });
+    }
+
     // Create a new user（单校版：college 写死为南昌师范学院）
     const newUser = new User({
-      email: req.body.email,
+      email,
       password: req.body.password,
       fullName: req.body.fullName,
       college: "南昌师范学院",
@@ -49,12 +62,13 @@ exports.registerUser = async (req, res) => {
 // Login a user
 exports.loginUser = async (req, res) => {
   try {
-    // 空值校验
-    if (!req.body.email || !req.body.password) {
+    // 空值 + 类型校验（防 NoSQL 注入：$ne/$regex 等操作符对象）
+    if (typeof req.body.email !== "string" || !req.body.email.trim() || !req.body.password) {
       return res.status(400).json({ message: "邮箱和密码不能为空" });
     }
+    const email = req.body.email.trim().toLowerCase();
 
-    const existingUser = await User.findOne({ email: req.body.email });
+    const existingUser = await User.findOne({ email });
     if (!existingUser) {
       // 防用户枚举：统一返回模糊错误
       return res.status(400).json({ message: "邮箱或密码错误" });
@@ -62,8 +76,7 @@ exports.loginUser = async (req, res) => {
 
     // 账户锁定检查
     if (existingUser.lockUntil && existingUser.lockUntil > new Date()) {
-      const remaining = Math.ceil((existingUser.lockUntil - new Date()) / 60000);
-      return res.status(429).json({ message: `账户已锁定，请 ${remaining} 分钟后重试` });
+      return res.status(429).json({ message: "账户已锁定，请稍后重试" });
     }
 
     // 封禁检查
@@ -80,11 +93,10 @@ exports.loginUser = async (req, res) => {
         existingUser.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
       }
       await existingUser.save({ validateModifiedOnly: true });
-      const attempts = existingUser.loginAttempts;
-      if (attempts >= 5) {
-        return res.status(429).json({ message: "密码错误次数过多，账户已锁定 15 分钟" });
+      if (existingUser.loginAttempts >= 5) {
+        return res.status(429).json({ message: "账户已锁定，请稍后重试" });
       }
-      return res.status(400).json({ message: `邮箱或密码错误（还剩 ${5 - attempts} 次机会）` });
+      return res.status(400).json({ message: "邮箱或密码错误" });
     }
 
     // 登录成功 → 重置锁定计数
@@ -175,6 +187,12 @@ exports.updateUser = async (req, res) => {
         safeUpdate[field] = body[field];
       }
     });
+
+    // 违禁词检查（用户可编辑的文本字段）
+    const profileHit = checkBanned([safeUpdate.fullName, safeUpdate.wechat, safeUpdate.qq].filter(Boolean).join(" "));
+    if (profileHit) {
+      return res.status(400).json({ message: "个人信息包含违规内容，请修改后重新提交" });
+    }
 
     const user = await User.findByIdAndUpdate(userId, safeUpdate, {
       new: true,
