@@ -15,11 +15,9 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: admin
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
-    # 多参数组合：Cache 192MB + 禁用表扫描超时 + 慢查询日志
+    # MongoDB 7.0 仅支持 cacheSize + slowms（ConcurrentRead/Write Transactions 已移除）
     command: >
       --wiredTigerCacheSizeGB 0.15
-      --wiredTigerConcurrentReadTransactions 32
-      --wiredTigerConcurrentWriteTransactions 8
       --slowms 200
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
