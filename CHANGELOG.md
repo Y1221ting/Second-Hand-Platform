@@ -4,29 +4,56 @@ All notable changes to this project will be documented in this file.
 
 ## [2.5.0] — 2026-06-02
 
+### 致命安全修复（Phase 1 — 阻断所有测试）
+
+- **NoSQL 注入 — 登录/注册**（`userController.js`）：`loginUser` 和 `registerUser` 中对 `req.body.email` 加 `typeof === "string"` 校验后 `.trim().toLowerCase()`，防 `$ne`/`$regex` 操作符注入
+- **NoSQL 注入 — 商品查询参数**（`productController.js`）：`getAllProducts` 中的 `search`/`category`/`department`/`userDepartment`/`sort` 等 query 参数全部加类型守卫
+- **批量赋值 — 创建商品**（`productController.js`）：`createProduct` 从 `new Product(req.body)` 改为字段白名单（7 个 allowedFields），防越权修改 `status`/`uploadedBy`
+- **文件上传安全加固**（`uploadController.js`）：新增 `verifyImageMagicBytes()`，读取文件头 4 字节判断真实类型（JPEG: FF D8 FF / PNG: 89 50 4E 47 / GIF: 47 49 46 38 / WebP: 52 49 46 46），替代可伪造的 MIME type 检查。SVG 直接拒绝（可内嵌 `<script>` 导致 XSS）
+- **/uploads 防盗链**（`server.js`）：新增 `uploadRefererGuard` 中间件，校验 Referer 仅允许本站引用，无 Referer 放行（校内环境宽松策略）
+
+### 隐私保护（Phase 2 — 阻断 PII 泄露）
+
+- **商品 API PII 脱敏**（`productController.js`）：新增 `sanitizeProduct()` 三层脱敏——未认证用户移除全部 PII（phone/wechat/qq/dormitory）/ 认证非交易方仅移除敏感字段（phone/wechat/qq）/ 交易双方保留全部。应用于 `getAllProducts`/`getProductById`/`getRecommendations` 三处
+- **可选认证中间件**（`authMiddleware.js`）：新增 `optionalAuth`，有 JWT 则解析用户，无则放行。用于 PII 脱敏路由——无需强制登录即可区分认证/匿名用户
+- **启用 CSP**（`server.js` + `nginx.conf`）：Helmet `contentSecurityPolicy` 从 `false` 改为 Tailwind 兼容策略（`default-src 'self'` + `style-src 'unsafe-inline'`）；Nginx 层 4 个安全头（`X-Frame-Options: DENY` / `Referrer-Policy` / `Permissions-Policy` / `Content-Security-Policy`）
+- **前端宿舍楼仅买家可见**（`ProductDetails.js`）：宿舍楼展示条件从"无条件"改为"仅买家/卖家可见"，与手机号的展示逻辑一致
+
+### 内容风控（Phase 3 — 阻断违规内容）
+
+- **用户资料违禁词**（`userController.js`）：`registerUser` 和 `updateUser` 中对 `fullName`/`wechat`/`qq` 加违禁词检查
+- **求购帖违禁词**（`wantedRoutes.js`）：创建求购时对 `name`/`description` 加违禁词检查
+- **商品规格违禁词**（`productController.js`）：`addSpecificationToProduct`/`updateProductSpecification` 中对 `key`/`value` 加违禁词检查
+- **违禁词列表扩充 + 公共化**（`bannedKeywords.js`）：扩充至 50+ 条，覆盖电子书倒卖/隐形眼镜/宠物活体/化妆品分装/自制食品等校园品类。`checkBanned()` 从 productController 提取为公共函数，5 处引用点统一生效
+
+### 基础设施加固（Phase 4 — 运维安全 + UX）
+
+- **Docker 非 root 运行**（`Server/Dockerfile`）：新增 `adduser -S appuser` + `USER appuser`，容器进程不再以 root 运行
+- **PM2 进程管理**（`Server/Dockerfile` + `package.json`）：CMD 改为 `pm2-runtime server.js`，提供崩溃自动重启 + 日志管理 + 内存监控；`package.json` 新增 `"start": "node server.js"`
+- **API 内存缓存**（`server.js`）：新增 `cache(ttlSeconds)` TTL Map 中间件，`/api/majorMap`（1h）/ `/api/stats`（60s）。缓存存储在内存中，容器重启清空
+- **登录反枚举**（`userController.js`）：所有登录失败统一返回"邮箱或密码错误"，不区分"用户不存在"和"密码错误"；锁定提示不暴露剩余分钟数/尝试次数
+- **密码长度前后端一致**（`userController.js` + `Register.js`）：前端校验和后端 Controller 统一为 `< 8` → 拒绝，与 Mongoose Schema `minlength: 8` 一致
+- **PIPL 同意复选框**（`Register.js`）：注册提交前必须勾选"已阅读并同意《隐私政策》《用户协议》"，未勾选禁用注册按钮
+- **隐私政策入口增强**（`Navbar.js`）：用户下拉菜单新增"隐私政策"链接
+
 ### P0 安全/稳定性修复
 
-- **全局错误处理**: Express error middleware + `process.on('unhandledRejection')` + `process.on('uncaughtException')`，防止未捕获异常导致进程静默崩溃或泄漏堆栈信息
-- **Node 堆内存显式限制**: docker-compose.yml backend 新增 `NODE_OPTIONS=--max-old-space-size=200`，配合 Docker 256MB 硬限防止 OOM Killer 杀进程
-- **helmet 安全响应头**: 安装 helmet@8，启用 `X-Content-Type-Options`、`X-Frame-Options`、`X-DNS-Prefetch-Control` 等（CSP/COEP 暂关避免误伤 React）
-
-### P1 防护加固
-
-- **全局 API 限流**: `/api` 所有路由 100次/分钟轻度限流（express-rate-limit），login/register 保持原有严格限流不变
-- **User 模型新增索引**: `{ status: 1 }` 和 `{ role: 1 }`，加速管理员后台筛选查询
-- **静态文件缓存**: `/uploads` 图片增加 `maxAge=7d` + `etag` + `lastModified`，减少重复图片请求
-- **卸载 bcrypt**: 只留 bcryptjs（纯 JS），移除 bcrypt C++ 编译依赖（清理 42 个包），Docker image 更小
+- **全局错误处理**：Express error middleware + `process.on('unhandledRejection')` + `process.on('uncaughtException')`，防止未捕获异常导致进程静默崩溃
+- **Node 堆内存显式限制**：docker-compose.yml backend 新增 `NODE_OPTIONS=--max-old-space-size=200`，配合 Docker 256MB 硬限防止 OOM
+- **全局 API 限流**（`server.js`）：`/api` 所有路由 100 次/分钟轻度限流（express-rate-limit），login/register 保持原有严格限流
+- **静态文件缓存**：`/uploads` 图片增加 `maxAge=7d` + `etag` + `lastModified`，减少重复请求
+- **卸载 bcrypt**：只留 bcryptjs（纯 JS），移除 bcrypt C++ 编译依赖（清理 42 个包）
 
 ### 运维完善
 
-- **新增 `.dockerignore`**: Server/ 目录下排除 node_modules/.env/uploads/日志，build context 从 ~100MB 降到 ~5MB
-- **新增 `DEVELOPER_MANUAL.md`**: 完整开发者手册（环境要求、Docker 部署、MongoDB 配置约束、代码安全准则、性能优化、API 速查、运维 SOP、FAQ）
+- **新增 `.dockerignore`**：Server/ 下排除 node_modules/.env/uploads/日志，build context 从 ~100MB 降到 ~5MB
+- **CORS 域名管理**：支持 `CLIENT_URL` 逗号分隔多域名，origin 校验函数动态匹配
 
 ### 文档同步
 
-- **CHANGELOG.md**: 本文档，新增 v2.5.0
-- **PROJECT_SUMMARY.md**: 同步更新至当前代码状态（移除已砍功能描述，补充新增安全/运维配置）
-- **memory/**: 项目记忆同步更新优化历史清单
+- **CHANGELOG.md**：更新 v2.5.0 完整变更记录（8 致命 + 11 必改 + 1 优化，4 Phase）
+- **STUDY.md**：安全章节扩充至 Phase 1-4 全部 20 项 + 新增第 12 章"安全加固操作指南"（验证表格 + 部署流程 + 监控命令 + 故障处理 + CORS 管理）
+- **memory/security-fix-plan.md**：全量修复清单，分 Phase 执行记录
 
 ---
 

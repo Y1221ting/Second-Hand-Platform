@@ -52,8 +52,8 @@ router.get("/stats", async (req, res) => {
 router.get("/reports", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const status = req.query.status || "";
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const status = typeof req.query.status === "string" ? req.query.status : "";
 
     const query = {};
     if (status) query.status = status;
@@ -88,6 +88,9 @@ router.put("/reports/:id", async (req, res) => {
     report.handleNote = note || "";
     await report.save();
 
+    // 审计日志：记录管理员处理举报
+    console.log(`[AUDIT] admin=${req.user._id} action=handle_report reportId=${report._id} result=${report.status} note="${note || ""}"`);
+
     // 如果是通过，则下架商品并写入原因
     if (action === "handle") {
       const reason = note
@@ -121,9 +124,9 @@ router.put("/reports/:id", async (req, res) => {
 router.get("/products", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const search = req.query.search || "";
-    const status = req.query.status || "";
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const search = typeof req.query.search === "string" ? req.query.search : "";
+    const status = typeof req.query.status === "string" ? req.query.status : "";
 
     const escaped = search ? search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : "";
 
@@ -178,6 +181,9 @@ router.put("/products/:id", async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // 审计日志
+    console.log(`[AUDIT] admin=${req.user._id} action=${status === "inactive" ? "delist_product" : "restore_product"} productId=${req.params.id} reason="${reason || ""}"`);
+
     // 自动创建通知给卖家
     if (existing.uploadedBy?.id) {
       await Message.create({
@@ -202,10 +208,10 @@ router.put("/products/:id", async (req, res) => {
 router.get("/users", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const search = req.query.search || "";
-    const role = req.query.role || "";
-    const status = req.query.status || "";
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const search = typeof req.query.search === "string" ? req.query.search : "";
+    const role = typeof req.query.role === "string" ? req.query.role : "";
+    const status = typeof req.query.status === "string" ? req.query.status : "";
 
     const escapedUserSearch = search ? search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") : "";
 
@@ -271,6 +277,9 @@ router.put("/users/:id", async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    // 审计日志
+    console.log(`[AUDIT] admin=${req.user._id} action=set_user_status targetUserId=${req.params.id} newStatus=${status}`);
+
     // 返回前去除密码
     const data = user.toObject();
     delete data.password;
@@ -327,6 +336,9 @@ router.post("/warnings", async (req, res) => {
     });
     await msg.save();
 
+    // 审计日志
+    console.log(`[AUDIT] admin=${req.user._id} action=send_warning targetUserId=${userId} title="${title.trim().substring(0, 50)}"`);
+
     res.status(201).json({ message: "消息已发送", warning: msg });
   } catch (error) {
     console.error("发送警告失败:", error);
@@ -341,8 +353,8 @@ router.post("/warnings", async (req, res) => {
 router.get("/warnings", async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const status = req.query.status || ""; // all | unread | read
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const status = typeof req.query.status === "string" ? req.query.status : ""; // all | unread | read
 
     const query = {};
     if (status === "unread") query.isRead = false;

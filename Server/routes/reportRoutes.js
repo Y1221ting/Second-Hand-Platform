@@ -23,7 +23,7 @@ router.post("/", authMiddleware, async (req, res) => {
   } catch (error) {
     console.error("举报失败:", error);
     if (error.name === "ValidationError") {
-      return res.status(400).json({ message: error.message });
+      return res.status(400).json({ message: "输入数据格式不正确" });
     }
     res.status(500).json({ message: "服务器内部错误" });
   }

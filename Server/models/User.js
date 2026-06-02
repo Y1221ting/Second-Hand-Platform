@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
     unique: [true, "Email already registered!"],
     trim: true,
     lowercase: true,
+    maxlength: [254, "邮箱地址过长"],
     validate: {
       validator: function (value) {
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -31,6 +32,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, "Full Name of user is required"],
     trim: true,
+    maxlength: [50, "姓名不能超过50个字符"],
   },
   college: {
     type: String,
@@ -39,6 +41,7 @@ const userSchema = new mongoose.Schema({
   phoneNo: {
     type: String,
     trim: true,
+    maxlength: [11, "手机号应为11位"],
     validate: {
       validator: function (value) {
         return /^1[3-9]\d{9}$/.test(value);
@@ -60,25 +63,30 @@ const userSchema = new mongoose.Schema({
   major: {
     type: String,
     required: [true, "专业不能为空"],
+    maxlength: [100, "专业名称过长"],
   },
   dormitory: {
     type: String,
     trim: true,
+    maxlength: [100, "宿舍楼信息过长"],
     default: "",
   },
   wechat: {
     type: String,
     trim: true,
+    maxlength: [50, "微信号过长"],
     default: "",
   },
   qq: {
     type: String,
     trim: true,
+    maxlength: [20, "QQ号过长"],
     default: "",
   },
   address: {
     type: String,
     trim: true,
+    maxlength: [200, "地址过长"],
     default: "南昌师范学院",
   },
   cart: [{

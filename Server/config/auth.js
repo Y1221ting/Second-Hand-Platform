@@ -8,7 +8,7 @@ if (!process.env.JWT_SECRET || process.env.JWT_SECRET === "change-me-in-producti
 const SECRET = process.env.JWT_SECRET;
 
 async function hashPassword(password) {
-  return await bcrypt.hash(password, 12); // OWASP 推荐 ≥12 轮
+  return await bcrypt.hash(password, 8); // bcryptjs 纯JS实现，8轮适配 2GB 低内存服务器
 }
 
 async function verifyPassword(password, hashedPassword) {

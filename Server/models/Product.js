@@ -2,14 +2,14 @@ const mongoose = require("mongoose");
 
 const SellerSchema = new mongoose.Schema({
   id:         String,
-  name:       String,
+  name:       { type: String, maxlength: 50 },
   college:    String,
-  department: String,
-  major:      String,
-  dormitory:  String,
-  phone:      String,
-  wechat:     String,
-  qq:         String,
+  department: { type: String, maxlength: 100 },
+  major:      { type: String, maxlength: 100 },
+  dormitory:  { type: String, maxlength: 100 },
+  phone:      { type: String, maxlength: 11 },
+  wechat:     { type: String, maxlength: 50 },
+  qq:         { type: String, maxlength: 20 },
 });
 
 // Define the specifications schema
@@ -23,6 +23,7 @@ const ProductSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    maxlength: [200, "商品名称不能超过200个字符"],
   },
   uploadedBy: {
     type: SellerSchema,
@@ -39,6 +40,7 @@ const ProductSchema = new mongoose.Schema({
   description: {
     type: String,
     required: true,
+    maxlength: [2000, "商品描述不能超过2000个字符"],
   },
   price: {
     type: Number,

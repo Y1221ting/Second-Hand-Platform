@@ -36,7 +36,7 @@
 | 求购/举报/申诉 | 完整的内容治理体系 |
 | AI 辅助 | 通义千问 API 生成描述、推荐分类 |
 | 管理后台 | 数据概览、举报/商品/用户/申诉管理 |
-| 安全防护 | IP 限流、手机号唯一、NoSQL 注入防护、多设备互踢 |
+| 安全防护 | IP限流、NoSQL注入防护、PII脱敏、CSP+安全头、文件magic bytes、违禁词过滤、防盗链、多设备互踢 |
 
 **线上地址：** http://freevian.top:5000  
 **GitHub：** https://github.com/Y1221ting/Second-Hand-Platform.git
@@ -668,6 +668,30 @@ await Product.findByIdAndUpdate(id, safeUpdate);
 | Appeal | `{ status, createdAt }` | 管理员申诉列表 |
 | Appeal | `{ productId, sellerId, status }` | 申诉查重 |
 | Wanted | `{ createdAt }` | 求购列表按时间排序 |
+
+#### v2.5.0 新增安全特性
+
+**NoSQL 注入类型守卫**：`loginUser` 和 `registerUser` 中对 `req.body.email` 做 `typeof === "string"` 校验后 `.trim().toLowerCase()`，防操作符注入（`$ne`/`$regex`）。商品查询参数 `search`/`category`/`department` 同样加类型守卫。
+
+**文件上传 Magic Bytes 验证**（`Server/controllers/uploadController.js`）：读取文件头 4 字节判断真实类型（JPEG: FF D8 FF / PNG: 89 50 4E 47 / GIF: 47 49 46 38 / WebP: 52 49 46 46），替代可伪造的 MIME type 检查。SVG 直接拒绝（可内嵌 `<script>` 导致 XSS）。
+
+**商品 API PII 脱敏**（`Server/controllers/productController.js`）：`sanitizeProduct()` 按三层策略脱敏——未认证用户移除全部 PII（phone/wechat/qq/dormitory），认证非交易方仅移除敏感字段（phone/wechat/qq），交易双方保留全部。应用于 `getAllProducts`/`getProductById`/`getRecommendations` 三个接口。
+
+**CSP + 安全响应头**：Helmet 启用 CSP（`default-src 'self'`，Tailwind 兼容 `style-src 'unsafe-inline'`）+ Nginx 层 4 个安全头（`X-Frame-Options: DENY`、`Referrer-Policy`、`Permissions-Policy`、`Content-Security-Policy`）。
+
+**违禁词过滤体系**（`Server/config/bannedKeywords.js`）：50+ 条违禁词覆盖色情/赌博/毒品/违禁品/代写论文/电子烟/隐形眼镜/活体宠物/化妆品分装/自制食品。`checkBanned()` 公共函数，注册/编辑资料/创建商品/规格编辑/求购帖 5 处调用。修改 `bannedKeywords` 数组即可全局生效。
+
+**/uploads 防盗链**（`Server/server.js`）：`uploadRefererGuard` 中间件校验 Referer，仅允许本站引用。无 Referer 的请求（直接访问/curl）放行（校内环境宽松策略）。
+
+**Docker 非 root + PM2 进程管理**（`Server/Dockerfile`）：Server 容器以 `appuser` 运行（`adduser -S appuser`），CMD 使用 `pm2-runtime` 提供崩溃自动重启、日志管理、内存监控。
+
+**API 内存缓存**（`Server/server.js`）：TTL Map 缓存中间件，`/api/majorMap`（1h）和 `/api/stats`（60s）已启用。缓存存储在内存中，容器重启清空。
+
+**登录反枚举**：所有登录失败统一返回"邮箱或密码错误"，锁定提示不暴露剩余时间/次数。密码校验前后端统一为 ≥ 8 位。
+
+**PIPL 合规**：注册页隐私政策同意复选框（未勾选禁用注册按钮）；Navbar 用户下拉菜单添加"隐私政策"入口。
+
+**前端宿舍楼可见性控制**（`ProductDetails.js`）：宿舍楼字段仅买家/卖家可见，非交易方和未登录用户显示"购买后查看"。
 
 ---
 
@@ -1315,4 +1339,133 @@ d:\Second-Hand-main\
     │   └── appealRoutes.js      # /api/appeals
     └── services/
         └── aiService.js         # 通义千问 API 调用（qwen-plus）
+
+---
+
+## 12. 安全加固操作指南（v2.5.0）
+
+> 上线安全审计后新增 20 项安全修复。以下为日常运维中的使用说明。
+
+### 12.1 验证安全功能是否生效
+
+| 验证项 | 方法 | 预期结果 |
+|-------|------|---------|
+| NoSQL 注入防护 | `curl -X POST http://localhost:8000/api/users/login -H "Content-Type: application/json" -d '{"email":{"$ne":""},"password":"x"}'` | 400 "邮箱格式不正确" |
+| PII 脱敏 | 未登录访问 `GET /api/products` | 响应中 `uploadedBy` 不含 `phone`/`wechat`/`qq` |
+| CSP | 浏览器 DevTools → Network → 任意响应头查看 `Content-Security-Policy` | 存在 CSP 头且 console 无 CSP 报错 |
+| 违禁词 | 注册用户名填写"代写论文" | 400 "个人信息包含违规内容" |
+| Docker 非 root | `docker exec second-hand-backend whoami` | `appuser` |
+| PM2 进程 | `docker exec second-hand-backend pm2 status` | 显示 server 进程 online |
+| 文件上传安全 | 尝试上传 SVG 文件 | 400 拒绝 |
+| 登录反枚举 | 用不存在的邮箱登录 | 返回"邮箱或密码错误"（而非"用户不存在"） |
+
+### 12.2 修改违禁词列表
+
+编辑 `Server/config/bannedKeywords.js`，在 `bannedKeywords` 数组中增删关键词：
+
+```javascript
+const bannedKeywords = [
+  // ... 现有词条
+  "新违禁词1",
+  "新违禁词2",
+];
+```
+
+修改后重建后端容器。所有引用点（注册/编辑资料/创建商品/规格编辑/求购帖）自动生效。
+
+**注意**：避免添加过短或常见的词（如"猫""狗""PDF"），否则会误杀正常交易。违禁词应至少 3 个字，且有明确的违规指向。
+
+### 12.3 调整限流参数
+
+全局限流（`Server/server.js`）：
+
+```javascript
+app.use("/api", rateLimit({
+  windowMs: 60 * 1000,  // 时间窗口（毫秒）
+  max: 100,              // 窗口内最大请求数
+}));
+```
+
+登录/注册限流在 `Server/config/rateLimiter.js` 中单独调整（更严格的限制）。
+
+### 12.4 调整 API 缓存时长
+
+```javascript
+// Server/server.js
+app.get("/api/majorMap", cache(3600), ...)  // 3600 秒 = 1 小时
+app.get("/api/stats", cache(60), ...)        // 60 秒
+```
+
+缓存为内存存储（Map），容器重启后自动清空。若需对新接口加缓存，只需在路由中添加 `cache(ttl)` 中间件即可。
+
+### 12.5 部署流程（含安全检查）
+
+```bash
+# 1. 本地构建前端
+cd Client && npm run build
+
+# 2. 提交并推送
+git add . && git commit -m "描述" && git push
+
+# 3. 服务器拉取
+ssh root@your-server
+cd /www/wwwroot/Second-Hand-main
+git pull
+
+# 4. 确保 .env 文件存在且密钥完备
+# 必要变量：JWT_SECRET, QWEN_API_KEY, MONGODB_URI_FULL, CLIENT_URL
+
+# 5. 重建并启动
+docker compose up -d --build
+
+# 6. 验证安全配置
+docker exec second-hand-backend whoami          # 应输出 appuser
+docker exec second-hand-backend pm2 status       # 应显示 online
+curl http://localhost:8000/api/health            # 应返回 { status: "ok" }
+```
+
+### 12.6 监控与日志
+
+```bash
+# PM2 进程状态
+docker exec second-hand-backend pm2 status
+
+# PM2 日志（最近 50 行）
+docker exec second-hand-backend pm2 logs --lines 50
+
+# 容器日志
+docker logs second-hand-backend --tail 100
+
+# 容器资源使用
+docker stats second-hand-backend second-hand-mongodb
+
+# MongoDB 缓存大小检查
+docker exec second-hand-mongodb mongosh -u admin -p "$MONGO_PASS" --eval "db.serverStatus().wiredTiger.cache"
+```
+
+### 12.7 故障处理
+
+| 现象 | 可能原因 | 修复方法 |
+|------|---------|---------|
+| 后端反复重启 | MongoDB 未就绪、`.env` 缺少变量 | `docker logs second-hand-backend` 查看具体报错，等待 MongoDB 启动或补全变量 |
+| PM2 进程不在线 | 容器内进程异常退出 | `docker exec second-hand-backend pm2 restart all` |
+| 图片上传被拒 | 文件类型不在白名单（非 JPEG/PNG/GIF/WebP） | 确认图片格式；SVG 永久禁止 |
+| 违禁词误拦截 | `bannedKeywords.js` 中有过短的通用词 | 移除误拦截的关键词后重建容器 |
+| CSP 报错 | 新增了第三方资源（CDN、外部字体等） | 按需在 `server.js` 的 CSP 策略中添加白名单域名 |
+| 缓存数据过期但未更新 | 缓存 TTL 设的太长 | 重启容器清空缓存，或调小 `cache()` 的 TTL 参数 |
+| 容器内存溢出 | 2GB 服务器资源不足 | `docker stats` 查看；调低 MongoDB WiredTiger 缓存或 PM2 内存限制 |
+
+### 12.8 CORS 域名管理
+
+当需要新增允许的前端域名时，修改 `.env` 中的 `CLIENT_URL`：
+
+```bash
+# 单域名
+CLIENT_URL=http://localhost:3000
+
+# 多域名（逗号分隔）
+CLIENT_URL=http://localhost:3000,https://freevian.top,http://192.168.1.100:3000
+```
+
+CORS 中间件会自动解析逗号分隔的域名列表，重启后端容器生效。同时 CSP 中也可加对应的 `connect-src` 白名单。
 ```

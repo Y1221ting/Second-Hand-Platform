@@ -18,6 +18,7 @@ const reportSchema = new mongoose.Schema({
   detail: {
     type: String,
     trim: true,
+    maxlength: [500, "举报详情不能超过500个字符"],
   },
   status: {
     type: String,
@@ -30,6 +31,7 @@ const reportSchema = new mongoose.Schema({
   handleNote: {
     type: String,
     trim: true,
+    maxlength: [500, "处理备注不能超过500个字符"],
   },
   createdAt: {
     type: Date,

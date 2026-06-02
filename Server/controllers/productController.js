@@ -81,9 +81,8 @@ exports.createProduct = async (req, res) => {
     res.status(201).json(product);
   } catch (error) {
     console.error(error);
-    // Handle validation errors
     if (error.name === "ValidationError") {
-      return res.status(400).json({ message: error.message });
+      return res.status(400).json({ message: "输入数据格式不正确" });
     }
     res.status(500).json({ message: "Internal server error" });
   }
@@ -236,9 +235,8 @@ exports.updateProductById = async (req, res) => {
     res.status(200).json(updatedProduct);
   } catch (error) {
     console.error(error);
-    // Handle validation errors
     if (error.name === "ValidationError") {
-      return res.status(400).json({ message: error.message });
+      return res.status(400).json({ message: "输入数据格式不正确" });
     }
     res.status(500).json({ message: "Internal server error" });
   }
@@ -277,7 +275,10 @@ exports.getProductsByUser = async (req, res) => {
     // Fetch products listed by the user
     const products = await Product.find({ "uploadedBy.id": userId });
 
-    res.status(200).json(products);
+    // PII 脱敏
+    const sanitized = products.map(p => sanitizeProduct(p, req.user));
+
+    res.status(200).json(sanitized);
   } catch (error) {
     console.error("Error fetching user products:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -298,7 +299,10 @@ exports.getPurchasedProducts = async (req, res) => {
       "uploadedBy.id": { $ne: userId }
     });
 
-    res.status(200).json(products);
+    // PII 脱敏
+    const sanitized = products.map(p => sanitizeProduct(p, req.user));
+
+    res.status(200).json(sanitized);
   } catch (error) {
     console.error("Error fetching purchased products:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -424,7 +428,7 @@ exports.getRecommendations = async (req, res) => {
     const userId = req.query.userId || "";
     const limit = Math.min(parseInt(req.query.limit) || 6, 20);
     const excludeId = req.query.excludeId || "";
-    const department = req.query.department || "";
+    const department = typeof req.query.department === "string" ? req.query.department : "";
 
     const exclusions = excludeId ? [excludeId] : [];
     const baseFilter = {
@@ -485,6 +489,14 @@ exports.getRecommendations = async (req, res) => {
   }
 };
 
+// 商品状态机：合法转换白名单
+const VALID_TRANSITIONS = {
+  unsold:    ["sold_out", "inactive"],       // 在售 → 售罄/下架
+  sold_out:  ["unsold"],                      // 售罄 → 重新上架
+  inactive:  ["unsold"],                      // 下架 → 重新上架
+  sold:      [],                              // 单个售出状态（暂未使用）
+};
+
 exports.updateProductStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -499,6 +511,12 @@ exports.updateProductStatus = async (req, res) => {
     // 所有权校验：只能修改自己的商品
     if (product.uploadedBy.id !== req.user._id.toString()) {
       return res.status(403).json({ error: "Forbidden" });
+    }
+
+    // 状态机校验
+    const allowed = VALID_TRANSITIONS[product.status] || [];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ message: `不允许从"${product.status}"变为"${status}"` });
     }
 
     product.status = status;

@@ -287,7 +287,7 @@ exports.checkoutCart = async (req, res) => {
           results.failed.push({ productId: item.productId, reason });
         }
       } catch (err) {
-        results.failed.push({ productId: item.productId, reason: err.message });
+        results.failed.push({ productId: item.productId, reason: "结算失败，请重试" });
       }
     }
 

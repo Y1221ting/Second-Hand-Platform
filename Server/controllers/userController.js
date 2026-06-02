@@ -23,6 +23,14 @@ exports.registerUser = async (req, res) => {
       return res.status(400).json({ message: "注册失败，请检查填写信息" });
     }
 
+    // Check if the phone number already exists
+    if (req.body.phoneNo) {
+      const existingPhone = await User.findOne({ phoneNo: req.body.phoneNo });
+      if (existingPhone) {
+        return res.status(400).json({ message: "该手机号已注册，请直接登录" });
+      }
+    }
+
     // 3. 违禁词检查（用户资料字段）
     const profileHit = checkBanned([req.body.fullName, req.body.wechat, req.body.qq].filter(Boolean).join(" "));
     if (profileHit) {
@@ -51,9 +59,8 @@ exports.registerUser = async (req, res) => {
     if (error.code === 11000 && error.keyPattern?.phoneNo) {
       return res.status(400).json({ message: "该手机号已注册，请直接登录" });
     }
-    // Handle validation errors (missing fields, invalid format)
     if (error.name === "ValidationError") {
-      return res.status(400).json({ message: error.message });
+      return res.status(400).json({ message: "输入数据格式不正确" });
     }
     res.status(500).json({ message: "Internal server error" });
   }
@@ -122,9 +129,16 @@ exports.loginUser = async (req, res) => {
   }
 };
 
-// Logout — 前端清除 token 即可（JWT 无状态，无需服务端处理）
+// Logout — 递增 tokenVersion 使所有旧 token 立即失效
 exports.logoutUser = async (req, res) => {
-  res.json({ message: "已登出" });
+  try {
+    req.user.tokenVersion = (req.user.tokenVersion || 0) + 1;
+    await req.user.save({ validateModifiedOnly: true });
+    res.json({ message: "已登出" });
+  } catch (error) {
+    console.error("登出失败:", error);
+    res.status(500).json({ message: "服务器内部错误" });
+  }
 };
 
 exports.getAllUsers = async (req, res) => {
@@ -225,11 +239,59 @@ exports.updateUser = async (req, res) => {
     delete result.password;
     res.json(result);
   } catch (error) {
-    // Check for specific validation errors
     if (error.name === "ValidationError") {
-      return res.status(400).json({ message: error.message });
+      return res.status(400).json({ message: "输入数据格式不正确" });
     }
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+// Change password
+exports.changePassword = async (req, res) => {
+  const { userId } = req.params;
+  const { oldPassword, newPassword } = req.body;
+
+  try {
+    // 越权检查：只能修改自己的密码
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ message: "无权修改他人密码" });
+    }
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: "旧密码和新密码不能为空" });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ message: "新密码至少需要8位" });
+    }
+
+    if (!/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+      return res.status(400).json({ message: "新密码必须包含字母和数字" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "用户不存在" });
+    }
+
+    // 验证旧密码
+    const isMatch = await verifyPassword(oldPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "旧密码错误" });
+    }
+
+    // 更新密码 + 递增 tokenVersion 使所有旧 token 立即失效
+    user.password = await hashPassword(newPassword);
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    await user.save({ validateModifiedOnly: true });
+
+    // 签发新 token
+    const token = createToken(user._id.toString(), user.tokenVersion);
+
+    res.json({ message: "密码修改成功，请使用新密码重新登录", token });
+  } catch (error) {
+    console.error("修改密码失败:", error);
+    res.status(500).json({ message: "服务器内部错误" });
   }
 };
 

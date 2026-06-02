@@ -18,9 +18,10 @@ const ProductForm = ({
   formData,
   handleChange,
   handleImageChange,
-  handleAddImage,
   imageFieldError,
   handleRemoveImage,
+  handleRemoveNewImage,
+  newImages,
   specificationField,
   setSpecificationField,
   handleAddSpecification,
@@ -117,16 +118,13 @@ const ProductForm = ({
           onChange={handleImageChange}
           className="w-full border rounded-lg py-2 px-3"
         />
-        <button
-          type="button"
-          onClick={handleAddImage}
-          className="mt-2 bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600 transition duration-300"
-        >
-          添加图片
-        </button>
+        <p className="text-xs text-gray-400 mt-1">选择文件后自动添加到列表</p>
         {imageFieldError && <p className="text-red-500">{imageFieldError}</p>}
+
+        {/* 已有图片 */}
         {formData.images.length > 0 && (
           <div className="mt-4">
+            <p className="text-sm text-gray-500 mb-2">已有图片：</p>
             {formData.images.map((image, index) => (
               <div key={index} className="flex items-center mb-2">
                 {/* eslint-disable-next-line */}
@@ -138,6 +136,30 @@ const ProductForm = ({
                 <button
                   type="button"
                   onClick={() => handleRemoveImage(index)}
+                  className="bg-red-500 text-white py-2 px-3 rounded-lg hover:bg-red-600 transition duration-300"
+                >
+                  删除
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 新添加的图片（未上传） */}
+        {newImages && newImages.length > 0 && (
+          <div className="mt-4">
+            <p className="text-sm text-blue-500 mb-2">待上传的新图片：</p>
+            {newImages.map((file, index) => (
+              <div key={index} className="flex items-center mb-2">
+                {/* eslint-disable-next-line */}
+                <img
+                  src={URL.createObjectURL(file)}
+                  alt={`New Image ${index + 1}`}
+                  className="w-32 h-32 object-cover rounded-lg mr-3"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveNewImage(index)}
                   className="bg-red-500 text-white py-2 px-3 rounded-lg hover:bg-red-600 transition duration-300"
                 >
                   删除

@@ -4,6 +4,7 @@ const wantedSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    maxlength: [200, "商品名称不能超过200个字符"],
   },
   budget: {
     type: Number,
@@ -14,6 +15,7 @@ const wantedSchema = new mongoose.Schema({
   description: {
     type: String,
     default: "",
+    maxlength: [2000, "描述不能超过2000个字符"],
   },
   postedBy: {
     id:         String,

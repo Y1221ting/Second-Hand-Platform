@@ -14,14 +14,14 @@ const EditProduct = () => {
     category: "other",
     description: "",
     price: "",
-    images: [],
+    images: [],       // 已有图片 URL (字符串)
     specifications: [],
   });
+  const [newImages, setNewImages] = useState([]);  // 新增图片 File 对象
   const [specificationField, setSpecificationField] = useState({
     key: "",
     value: "",
   });
-  const [imageField, setImageField] = useState(null);
   const [imageFieldError, setImageFieldError] = useState("");
   const [isOwner, setIsOwner] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -36,43 +36,30 @@ const EditProduct = () => {
   // Handle image file change
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    setImageField(file);
-    setImageFieldError(""); // Clear any previous error messages
-  };
-
-  // Add a new image to the images array after converting it to base64
-  const handleAddImage = () => {
-    if (imageField) {
-      const reader = new FileReader();
-      reader.readAsDataURL(imageField);
-      reader.onloadend = () => {
-        const base64Image = reader.result; // Get the base64 representation of the image
-        setFormData({
-          ...formData,
-          images: [...formData.images, base64Image],
-        });
-        setImageField(""); // Clear the image field
-        setImageFieldError(""); // Clear any previous error messages
-      };
-    } else {
-      setImageFieldError("Please select an image file.");
+    if (file) {
+      setNewImages(prev => [...prev, file]);
+      setImageFieldError("");
     }
+    e.target.value = ""; // reset input
   };
 
-  // Remove an image from the images array
+  // Remove an existing image
   const handleRemoveImage = (index) => {
     const updatedImages = [...formData.images];
     updatedImages.splice(index, 1);
-    setFormData({
-      ...formData,
-      images: updatedImages,
-    });
+    setFormData({ ...formData, images: updatedImages });
+  };
+
+  // Remove a new (not yet uploaded) image
+  const handleRemoveNewImage = (index) => {
+    const updated = [...newImages];
+    updated.splice(index, 1);
+    setNewImages(updated);
   };
 
   // Handle form field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
-    // 价格上限弹窗提醒
     if (name === "price" && Number(value) > 9999.9) {
       alert("价格不能超过 ¥9999.9（以角为最小单位）");
       return;
@@ -90,10 +77,7 @@ const EditProduct = () => {
         ...formData,
         specifications: [...formData.specifications, specificationField],
       });
-      setSpecificationField({
-        key: "",
-        value: "",
-      }); // Clear the specification field
+      setSpecificationField({ key: "", value: "" });
     }
   };
 
@@ -101,19 +85,15 @@ const EditProduct = () => {
   const handleRemoveSpecification = (index) => {
     const updatedSpecifications = [...formData.specifications];
     updatedSpecifications.splice(index, 1);
-    setFormData({
-      ...formData,
-      specifications: updatedSpecifications,
-    });
+    setFormData({ ...formData, specifications: updatedSpecifications });
   };
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Perform client-side validation, for example, ensuring required fields are filled
     if (!formData.name || !formData.description || !formData.price) {
-      console.error("Please fill out all required fields.");
+      alert("请填写所有必填字段");
       return;
     }
 
@@ -125,24 +105,48 @@ const EditProduct = () => {
         return;
       }
 
-      const response = await fetch(
-        `/api/products/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(formData),
+      // Step 1: 上传新增图片（File → URL）
+      let uploadedUrls = [];
+      if (newImages.length > 0) {
+        const fd = new FormData();
+        newImages.forEach((file) => fd.append("images", file));
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          alert(errData.message || "图片上传失败");
+          return;
         }
-      );
+
+        const uploadData = await uploadRes.json();
+        uploadedUrls = uploadData.urls;
+      }
+
+      // Step 2: 合并已有图片 URL + 新上传的 URL
+      const allImages = [...formData.images, ...uploadedUrls];
+
+      // Step 3: 更新商品（不含 images，图片通过 addImage/removeImage 接口管理）
+      const response = await fetch(`/api/products/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...formData,
+          images: allImages,
+        }),
+      });
 
       if (response.ok) {
-        console.log("Product updated successfully!");
         navigate(`/product/${id}`);
       } else {
         const errorData = await response.json();
-        console.error("Failed to update product:", errorData);
         if (response.status === 403) {
           alert("权限不足：您只能编辑自己发布的商品");
         } else if (response.status === 401) {
@@ -165,7 +169,6 @@ const EditProduct = () => {
         const response = await fetch(`/api/products/${id}`);
         if (response.ok) {
           const data = await response.json();
-          // 检查是否是商品所有者
           if (user && data.uploadedBy?.id !== user.id) {
             alert("您没有权限编辑此商品");
             navigate("/home");
@@ -177,11 +180,9 @@ const EditProduct = () => {
             category: data.category,
             description: data.description,
             price: data.price,
-            images: data.images,
-            specifications: data.specifications,
+            images: data.images || [],
+            specifications: data.specifications || [],
           });
-        } else {
-          console.error("Failed to fetch product details");
         }
       } catch (error) {
         console.error(error);
@@ -229,9 +230,10 @@ const EditProduct = () => {
           formData={formData}
           handleChange={handleChange}
           handleImageChange={handleImageChange}
-          handleAddImage={handleAddImage}
           imageFieldError={imageFieldError}
           handleRemoveImage={handleRemoveImage}
+          handleRemoveNewImage={handleRemoveNewImage}
+          newImages={newImages}
           specificationField={specificationField}
           setSpecificationField={setSpecificationField}
           handleAddSpecification={handleAddSpecification}
