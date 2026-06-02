@@ -251,7 +251,7 @@ const ProductForm = ({
         <div className="mt-3">
           <span className="text-xs text-gray-400">热门规格：</span>
           <div className="flex flex-wrap gap-1.5 mt-1">
-            {(SPEC_SUGGESTIONS[formData.category] || SPEC_SUGGESTIONS.other).map((s) => (
+            {(SPEC_SUGGESTIONS[formData.category] || SPEC_SUGGESTIONS["其他"]).map((s) => (
               <button
                 key={s}
                 type="button"
