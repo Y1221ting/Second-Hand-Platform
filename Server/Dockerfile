@@ -12,6 +12,7 @@ COPY controllers/ ./controllers/
 COPY middleware/ ./middleware/
 COPY models/ ./models/
 COPY routes/ ./routes/
+COPY scripts/ ./scripts/
 COPY server.js ./
 
 EXPOSE 8000
