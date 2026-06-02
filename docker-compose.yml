@@ -56,7 +56,7 @@ services:
     environment:
       - MONGODB_URI=${MONGODB_URI_FULL}
       - PORT=8000
-      - CLIENT_URL=http://8.162.24.145:5000
+      - CLIENT_URL=http://8.162.24.145:5000,http://freevian.top:5000
       - JWT_SECRET=${JWT_SECRET}
       - NODE_ENV=production
       - NODE_OPTIONS=--max-old-space-size=200
