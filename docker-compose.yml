@@ -56,7 +56,7 @@ services:
     environment:
       - MONGODB_URI=${MONGODB_URI_FULL}
       - PORT=8000
-      - CLIENT_URL=http://8.162.24.145:5000,http://freevian.top:5000
+      - CLIENT_URL=http://8.162.24.145,http://freevian.top
       - JWT_SECRET=${JWT_SECRET}
       - NODE_ENV=production
       - NODE_OPTIONS=--max-old-space-size=200
@@ -96,11 +96,11 @@ services:
       context: ./Client
       dockerfile: Dockerfile
       args:
-        - REACT_APP_BASE_URL=http://8.162.24.145:8000
+        - REACT_APP_BASE_URL=
     container_name: second-hand-frontend
     restart: always
     ports:
-      - "5000:80"
+      - "80:80"
     depends_on:
       backend:
         condition: service_healthy
