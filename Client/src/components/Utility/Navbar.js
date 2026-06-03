@@ -12,14 +12,18 @@ const Navbar = () => {
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
 
+  const doSearch = () => {
+    const trimmed = searchTerm.trim();
+    if (trimmed) {
+      navigate(`/home?search=${encodeURIComponent(trimmed)}`);
+    } else {
+      navigate("/home");
+    }
+  };
+
   const handleSearch = (e) => {
     if (e.key === "Enter") {
-      const trimmed = searchTerm.trim();
-      if (trimmed) {
-        navigate(`/home?search=${encodeURIComponent(trimmed)}`);
-      } else {
-        navigate("/home");
-      }
+      doSearch();
     }
   };
 
@@ -49,7 +53,7 @@ const Navbar = () => {
             onKeyDown={handleSearch}
             className="w-full py-1.5 px-4 pr-10 rounded-full bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm transition-colors"
           />
-          <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+          <button type="button" onClick={doSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 text-sm transition-colors" aria-label="搜索"><FaSearch /></button>
         </div>
       </div>
 
@@ -69,7 +73,7 @@ const Navbar = () => {
               className="w-full py-2 px-4 pr-10 rounded-full bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm transition-colors"
               autoFocus
             />
-            <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
+            <button type="button" onClick={doSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 text-sm transition-colors" aria-label="搜索"><FaSearch /></button>
           </div>
         </div>
       )}

@@ -98,17 +98,20 @@ exports.getAllProducts = async (req, res) => {
     const category = typeof req.query.category === "string" ? req.query.category : "";
     const sort = typeof req.query.sort === "string" ? req.query.sort : "latest";
     const department = typeof req.query.department === "string" ? req.query.department : "";
+    const major = typeof req.query.major === "string" ? req.query.major : "";
+    const minPrice = typeof req.query.minPrice === "string" ? req.query.minPrice : "";
+    const maxPrice = typeof req.query.maxPrice === "string" ? req.query.maxPrice : "";
     const userDepartment = typeof req.query.userDepartment === "string" ? req.query.userDepartment : "";
 
     let query = {};
 
     if (search) {
-      // 混合搜索：$text (索引快) + $regex on name (兜底部分匹配)
-      // "机械键盘" → $text 命中；"机械" → $regex 兜底也能找到"机械键盘"
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = { $regex: escaped, $options: "i" };
       query.$or = [
         { $text: { $search: search } },
-        { name: { $regex: escaped, $options: "i" } },
+        { name: regex },
+        { description: regex },
       ];
     }
 
@@ -120,7 +123,15 @@ exports.getAllProducts = async (req, res) => {
       query["uploadedBy.department"] = department;
     }
 
-    if (req.query.minPrice || req.query.maxPrice) {
+    if (major) {
+      query["uploadedBy.major"] = major;
+    }
+
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = parseFloat(minPrice);
+      if (maxPrice) query.price.$lte = parseFloat(maxPrice);
+    }
       query.price = {};
       if (req.query.minPrice) query.price.$gte = parseFloat(req.query.minPrice);
       if (req.query.maxPrice) query.price.$lte = parseFloat(req.query.maxPrice);

@@ -16,9 +16,23 @@ const Filters = ({
   handleCategoryFilterChange,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
+  const [minInput, setMinInput] = useState("");
+  const [maxInput, setMaxInput] = useState("");
 
   const toggleFilters = () => {
     setShowFilters(!showFilters);
+  };
+
+  const handlePriceConfirm = () => {
+    const min = minInput === "" ? 0 : Math.max(0, parseFloat(minInput) || 0);
+    const max = maxInput === "" ? 10000 : Math.min(10000, parseFloat(maxInput) || 10000);
+    handlePriceRangeChange(min, max);
+  };
+
+  const handlePriceClear = () => {
+    setMinInput("");
+    setMaxInput("");
+    handlePriceRangeChange(0, 10000);
   };
 
   const filtersClass = `${showFilters ? "block" : "hidden"} md:block`;
@@ -103,32 +117,43 @@ const Filters = ({
             <option value="其他">其他</option>
           </select>
         </div>
-        {/* 价格范围 */}
+        {/* 价格范围 — 双输入框 + 确认按钮 */}
         <div className="mb-4">
-          <label className="text-gray-600 block mb-2">价格范围：</label>
-          <input
-            type="range"
-            min={0}
-            max={10000}
-            value={priceRange[0]}
-            onChange={(e) =>
-              handlePriceRangeChange(+e.target.value, priceRange[1])
-            }
-            className="mr-2 w-full bg-gray-900"
-          />
-          <input
-            type="range"
-            min={0}
-            max={10000}
-            value={priceRange[1]}
-            onChange={(e) =>
-              handlePriceRangeChange(priceRange[0], +e.target.value)
-            }
-            className="ml-2 w-full bg-gray-900"
-          />
-          <div className="flex justify-between">
-            <span className="text-gray-600">{priceRange[0]}</span>
-            <span className="text-gray-600">{priceRange[1]}</span>
+          <label className="text-gray-600 block mb-2">价格范围（元）：</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              placeholder="最低价"
+              value={minInput}
+              onChange={(e) => setMinInput(e.target.value)}
+              min="0"
+              max="9999"
+              className="w-full p-2 rounded bg-gray-800 text-white text-sm border border-gray-700 focus:outline-none focus:border-yellow-500"
+            />
+            <span className="text-gray-500 text-sm">—</span>
+            <input
+              type="number"
+              placeholder="最高价"
+              value={maxInput}
+              onChange={(e) => setMaxInput(e.target.value)}
+              min="0"
+              max="10000"
+              className="w-full p-2 rounded bg-gray-800 text-white text-sm border border-gray-700 focus:outline-none focus:border-yellow-500"
+            />
+          </div>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={handlePriceConfirm}
+              className="flex-1 bg-yellow-500 text-gray-900 py-1.5 rounded text-sm font-medium hover:bg-yellow-400 transition-colors"
+            >
+              确认
+            </button>
+            <button
+              onClick={handlePriceClear}
+              className="flex-1 bg-gray-700 text-gray-300 py-1.5 rounded text-sm hover:bg-gray-600 transition-colors"
+            >
+              重置
+            </button>
           </div>
         </div>
       </div>
