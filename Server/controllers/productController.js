@@ -109,7 +109,6 @@ exports.getAllProducts = async (req, res) => {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = { $regex: escaped, $options: "i" };
       query.$or = [
-        { $text: { $search: search } },
         { name: regex },
         { description: regex },
       ];
@@ -137,10 +136,7 @@ exports.getAllProducts = async (req, res) => {
     query.status = { $nin: ["sold_out", "inactive"] };
 
     let sortObj = {};
-    if (search) {
-      // 搜索时按文本相关性排序（带 score 字段）
-      sortObj = { score: { $meta: "textScore" } };
-    } else if (sort === "latest") sortObj = { createdAt: -1 };
+    if (sort === "latest") sortObj = { createdAt: -1 };
     else if (sort === "lowestPrice") sortObj = { price: 1 };
     else if (sort === "highestPrice") sortObj = { price: -1 };
     else if (sort === "closest" && userDepartment) {
@@ -154,7 +150,7 @@ exports.getAllProducts = async (req, res) => {
 
     const total = await Product.countDocuments(query);
     const fields = "name category description price images specifications status quantity purchasedBy createdAt uploadedBy";
-    const products = await Product.find(query, search ? { score: { $meta: "textScore" } } : {})
+    const products = await Product.find(query)
       .sort(sortObj)
       .skip((page - 1) * limit)
       .limit(limit)
