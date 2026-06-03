@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaUser, FaSearch, FaBell, FaShieldAlt } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { useNotifications } from "../../context/NotificationContext";
@@ -12,6 +12,12 @@ const Navbar = () => {
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 搜索框同步 URL 中的 search 参数（刷新页面、重置全部等场景）
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    setSearchTerm(params.get("search") || "");
+  }, [location.search]);
 
   const doSearch = () => {
     const trimmed = searchTerm.trim();
