@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Filters from "./Filters";
 import ProductList from "./ProductList";
@@ -76,7 +76,8 @@ const ProductsList = () => {
       if (!("page" in updates)) {
         current.delete("page");
       }
-      navigate(`/home?${current.toString()}`, { replace: true });
+      const qs = current.toString();
+      navigate(qs ? `/home?${qs}` : "/home", { replace: true });
     },
     [location.search, navigate]
   );
@@ -162,6 +163,18 @@ const ProductsList = () => {
 
   const filters = readUrlParams();
 
+  // 稳定 priceRange 引用，避免 Filters 内 useEffect 每次渲染都触发
+  const stablePriceRange = useMemo(
+    () => [
+      filters.minPrice ? parseFloat(filters.minPrice) : 0,
+      filters.maxPrice ? parseFloat(filters.maxPrice) : 10000,
+    ],
+    [filters.minPrice, filters.maxPrice]
+  );
+
+  // 仅首次加载无数据时展示全屏 Loading，避免 Filters 因 isLoading 切换而反复卸载
+  const showFullLoading = isLoading && products.length === 0;
+
   return (
     <main className="lg:w-4/5 mx-4 md:mx-auto py-4">
       <Announcement />
@@ -176,8 +189,8 @@ const ProductsList = () => {
       )}
       <h1 className="text-2xl font-semibold mb-4">最近上新</h1>
       <div>
-        {!isLoading ? (
-          <div className="flex flex-col md:flex-row">
+        <div className="flex flex-col md:flex-row">
+          {!showFullLoading && (
             <Filters
               departmentFilter={filters.department}
               handleDepartmentChange={handleDepartmentChange}
@@ -188,27 +201,28 @@ const ProductsList = () => {
               majorDisabled={majorDisabled}
               sortBy={filters.sort}
               handleSortChange={handleSortChange}
-              priceRange={[
-                filters.minPrice ? parseFloat(filters.minPrice) : 0,
-                filters.maxPrice ? parseFloat(filters.maxPrice) : 10000,
-              ]}
+              priceRange={stablePriceRange}
               handlePriceRangeChange={handlePriceRangeChange}
               categoryFilter={filters.category}
               handleCategoryFilterChange={handleCategoryFilterChange}
               handleResetAll={() => navigate("/home")}
             />
-            <div className="w-full flex flex-col items-center">
+          )}
+          <div className="w-full flex flex-col items-center">
+            {showFullLoading ? (
+              <Loading />
+            ) : (
               <ProductList currentProducts={products} />
+            )}
+            {!showFullLoading && (
               <Pagination
                 totalPages={totalPages}
                 currentPage={currentPage}
                 paginate={paginate}
               />
-            </div>
+            )}
           </div>
-        ) : (
-          <Loading />
-        )}
+        </div>
       </div>
     </main>
   );
