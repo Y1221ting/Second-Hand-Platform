@@ -132,10 +132,6 @@ exports.getAllProducts = async (req, res) => {
       if (minPrice) query.price.$gte = parseFloat(minPrice);
       if (maxPrice) query.price.$lte = parseFloat(maxPrice);
     }
-      query.price = {};
-      if (req.query.minPrice) query.price.$gte = parseFloat(req.query.minPrice);
-      if (req.query.maxPrice) query.price.$lte = parseFloat(req.query.maxPrice);
-    }
 
     // 默认排除已售罄和已下架商品
     query.status = { $nin: ["sold_out", "inactive"] };
