@@ -1,21 +1,6 @@
 const Product = require("../models/Product");
 const { checkBanned } = require("../config/bannedKeywords");
 
-// 缓存 $text 索引检测结果（null=未检测, true=可用, false=不可用）
-let textIndexAvailable = null;
-
-async function checkTextIndex() {
-  if (textIndexAvailable !== null) return textIndexAvailable;
-  try {
-    await Product.countDocuments({ $text: { $search: "_idx_probe_" } }).limit(1);
-    textIndexAvailable = true;
-  } catch (_) {
-    console.warn("[productController] text index 不可用，搜索回退到 regex 模式");
-    textIndexAvailable = false;
-  }
-  return textIndexAvailable;
-}
-
 // PII 脱敏：根据请求者身份决定保留哪些联系信息
 // - 未认证：仅保留 id/name/college/department/major
 // - 认证非卖家/买家：保留 id/name/college/department/major/dormitory
@@ -119,24 +104,14 @@ exports.getAllProducts = async (req, res) => {
     const userDepartment = typeof req.query.userDepartment === "string" ? req.query.userDepartment : "";
 
     let query = {};
-    let useTextScore = false;
 
     if (search) {
       const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const regex = { $regex: escaped, $options: "i" };
-      if (await checkTextIndex()) {
-        query.$or = [
-          { $text: { $search: search } },
-          { name: regex },
-          { description: regex },
-        ];
-        useTextScore = true;
-      } else {
-        query.$or = [
-          { name: regex },
-          { description: regex },
-        ];
-      }
+      query.$or = [
+        { name: regex },
+        { description: regex },
+      ];
     }
 
     if (category) {
@@ -161,9 +136,7 @@ exports.getAllProducts = async (req, res) => {
     query.status = { $nin: ["sold_out", "inactive"] };
 
     let sortObj = {};
-    if (useTextScore) {
-      sortObj = { score: { $meta: "textScore" } };
-    } else if (sort === "latest") sortObj = { createdAt: -1 };
+    if (sort === "latest") sortObj = { createdAt: -1 };
     else if (sort === "lowestPrice") sortObj = { price: 1 };
     else if (sort === "highestPrice") sortObj = { price: -1 };
     else if (sort === "closest" && userDepartment) {
@@ -177,7 +150,7 @@ exports.getAllProducts = async (req, res) => {
 
     const total = await Product.countDocuments(query);
     const fields = "name category description price images specifications status quantity purchasedBy createdAt uploadedBy";
-    const products = await Product.find(query, useTextScore ? { score: { $meta: "textScore" } } : {})
+    const products = await Product.find(query)
       .sort(sortObj)
       .skip((page - 1) * limit)
       .limit(limit)
