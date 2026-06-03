@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { FaUser, FaSearch, FaBell, FaShieldAlt } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { useNotifications } from "../../context/NotificationContext";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -11,14 +11,24 @@ const Navbar = () => {
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const doSearch = () => {
     const trimmed = searchTerm.trim();
-    if (trimmed) {
-      navigate(`/home?search=${encodeURIComponent(trimmed)}`);
-    } else {
-      navigate("/home");
+    const params = new URLSearchParams();
+    // 保留当前页面已有的筛选条件（仅首页）
+    if (location.pathname === "/home") {
+      const current = new URLSearchParams(location.search);
+      for (const [k, v] of current) {
+        if (k !== "page") params.set(k, v);
+      }
     }
+    if (trimmed) {
+      params.set("search", trimmed);
+    } else {
+      params.delete("search");
+    }
+    navigate(`/home?${params.toString()}`);
   };
 
   const handleSearch = (e) => {

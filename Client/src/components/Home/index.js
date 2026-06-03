@@ -14,15 +14,9 @@ const ProductsList = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("");
-  const [majorFilter, setMajorFilter] = useState("");
   const [products, setProducts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
-  const [sortBy, setSortBy] = useState("latest");
-  const [priceRange, setPriceRange] = useState([0, 10000]);
-  const [categoryFilter, setCategoryFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
 
   // 学院-专业映射
@@ -41,78 +35,99 @@ const ProductsList = () => {
       .catch(() => console.error("获取学院列表失败"));
   }, []);
 
-  // 从 URL 参数同步搜索状态和页码
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const searchFromUrl = params.get("search");
-    const pageFromUrl = parseInt(params.get("page")) || 1;
-    setDebouncedSearch(searchFromUrl || "");
-    setCurrentPage(pageFromUrl);
+  // 从 URL 读取所有筛选参数（唯一数据源）
+  const readUrlParams = useCallback(() => {
+    const p = new URLSearchParams(location.search);
+    return {
+      search: p.get("search") || "",
+      department: p.get("department") || "",
+      major: p.get("major") || "",
+      category: p.get("category") || "",
+      sort: p.get("sort") || "latest",
+      minPrice: p.get("minPrice") || "",
+      maxPrice: p.get("maxPrice") || "",
+      page: parseInt(p.get("page")) || 1,
+    };
   }, [location.search]);
 
-  const triggerSearch = () => {
-    const params = new URLSearchParams(location.search);
-    params.delete("page");
-    navigate(`/home?${params.toString()}`, { replace: true });
-  };
-
-  const handleDepartmentChange = (e) => {
-    const dept = e.target.value;
-    setDepartmentFilter(dept);
-    setMajorFilter("");
-    if (dept && majorMap[dept]) {
-      setMajors(majorMap[dept]);
+  // 专业下拉框联动 URL 中的 department
+  useEffect(() => {
+    const { department } = readUrlParams();
+    if (department && majorMap[department]) {
+      setMajors(majorMap[department]);
       setMajorDisabled(false);
     } else {
       setMajors([]);
-      setMajorDisabled(true);
+      setMajorDisabled(!department);
     }
-    triggerSearch();
+  }, [location.search, majorMap, readUrlParams]);
+
+  // 合并更新 URL 参数（保留未传入的旧参数，自动重置 page）
+  const applyFilters = useCallback(
+    (updates) => {
+      const current = new URLSearchParams(location.search);
+      for (const [k, v] of Object.entries(updates)) {
+        if (v === "" || v === null || v === undefined) {
+          current.delete(k);
+        } else {
+          current.set(k, String(v));
+        }
+      }
+      if (!("page" in updates)) {
+        current.delete("page");
+      }
+      navigate(`/home?${current.toString()}`, { replace: true });
+    },
+    [location.search, navigate]
+  );
+
+  const handleDepartmentChange = (e) => {
+    applyFilters({ department: e.target.value, major: "" });
   };
 
   const handleMajorChange = (e) => {
-    setMajorFilter(e.target.value);
-    triggerSearch();
+    applyFilters({ major: e.target.value });
   };
 
   const handleSortChange = (e) => {
-    setSortBy(e.target.value);
-    triggerSearch();
+    applyFilters({ sort: e.target.value });
   };
 
   const handlePriceRangeChange = (min, max) => {
-    setPriceRange([min, max]);
-    triggerSearch();
+    applyFilters({
+      minPrice: min > 0 ? String(min) : "",
+      maxPrice: max < 10000 ? String(max) : "",
+    });
   };
 
   const handleCategoryFilterChange = (e) => {
-    setCategoryFilter(e.target.value);
-    triggerSearch();
+    applyFilters({ category: e.target.value });
   };
 
-  const fetchProducts = useCallback(async (page = 1) => {
+  const fetchProducts = useCallback(async () => {
+    const { search, category, department, major, sort, minPrice, maxPrice, page } = readUrlParams();
+    setCurrentPage(page);
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
       params.append("page", page);
       params.append("limit", 20);
-      if (debouncedSearch.trim()) params.append("search", debouncedSearch.trim());
-      if (categoryFilter) params.append("category", categoryFilter);
-      if (departmentFilter) params.append("department", departmentFilter);
-      if (majorFilter) params.append("major", majorFilter);
-      params.append("sort", sortBy);
-      if (sortBy === "closest" && user?.department) {
+      if (search.trim()) params.append("search", search.trim());
+      if (category) params.append("category", category);
+      if (department) params.append("department", department);
+      if (major) params.append("major", major);
+      params.append("sort", sort);
+      if (sort === "closest" && user?.department) {
         params.append("userDepartment", user.department);
       }
-      if (priceRange[0] > 0) params.append("minPrice", priceRange[0]);
-      if (priceRange[1] < 10000) params.append("maxPrice", priceRange[1]);
+      if (minPrice) params.append("minPrice", minPrice);
+      if (maxPrice) params.append("maxPrice", maxPrice);
 
       const response = await fetch(`/api/products/?${params.toString()}`);
       if (response.ok) {
         const data = await response.json();
         setProducts(data.products);
         setTotalPages(data.totalPages);
-        setCurrentPage(data.page);
       } else {
         console.error("Failed to fetch products");
       }
@@ -121,43 +136,37 @@ const ProductsList = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, departmentFilter, majorFilter, sortBy, priceRange, categoryFilter, user?.department]);
+  }, [readUrlParams, user?.department]);
 
+  // URL 变化 → 拉取商品
   useEffect(() => {
-    fetchProducts(currentPage);
-  }, [fetchProducts, currentPage]);
+    fetchProducts();
+  }, [fetchProducts]);
 
+  // 页面可见性恢复时刷新
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        fetchProducts(currentPage);
+        fetchProducts();
       }
     };
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [fetchProducts, currentPage]);
+  }, [fetchProducts]);
 
   const paginate = (pageNumber) => {
-    const params = new URLSearchParams(location.search);
-    params.set("page", pageNumber);
-    navigate(`/home?${params.toString()}`, { replace: true });
+    applyFilters({ page: pageNumber });
   };
+
+  const filters = readUrlParams();
 
   return (
     <main className="lg:w-4/5 mx-4 md:mx-auto py-4">
-      {/* 公告弹窗 */}
       <Announcement />
-
-      {/* 顶部统计 Banner */}
       <HomeBanner departments={departments} />
-
-      {/* 同学求购 */}
       <WantedList />
-
-      {/* 你所在专业的热门 */}
       {user?.department && (
         <Recommendations
           userId={user.id}
@@ -165,25 +174,28 @@ const ProductsList = () => {
           limit={4}
         />
       )}
-
       <h1 className="text-2xl font-semibold mb-4">最近上新</h1>
       <div>
         {!isLoading ? (
           <div className="flex flex-col md:flex-row">
             <Filters
-              departmentFilter={departmentFilter}
+              departmentFilter={filters.department}
               handleDepartmentChange={handleDepartmentChange}
-              majorFilter={majorFilter}
+              majorFilter={filters.major}
               handleMajorChange={handleMajorChange}
               departments={departments}
               majors={majors}
               majorDisabled={majorDisabled}
-              sortBy={sortBy}
+              sortBy={filters.sort}
               handleSortChange={handleSortChange}
-              priceRange={priceRange}
+              priceRange={[
+                filters.minPrice ? parseFloat(filters.minPrice) : 0,
+                filters.maxPrice ? parseFloat(filters.maxPrice) : 10000,
+              ]}
               handlePriceRangeChange={handlePriceRangeChange}
-              categoryFilter={categoryFilter}
+              categoryFilter={filters.category}
               handleCategoryFilterChange={handleCategoryFilterChange}
+              handleResetAll={() => navigate("/home")}
             />
             <div className="w-full flex flex-col items-center">
               <ProductList currentProducts={products} />

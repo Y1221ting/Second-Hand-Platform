@@ -92,15 +92,15 @@ exports.createProduct = async (req, res) => {
 exports.getAllProducts = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
     // 类型校验：防 NoSQL 注入（query string 可被解析为对象如 {$ne:...}）
     const search = typeof req.query.search === "string" ? req.query.search : "";
     const category = typeof req.query.category === "string" ? req.query.category : "";
     const sort = typeof req.query.sort === "string" ? req.query.sort : "latest";
     const department = typeof req.query.department === "string" ? req.query.department : "";
     const major = typeof req.query.major === "string" ? req.query.major : "";
-    const minPrice = typeof req.query.minPrice === "string" ? req.query.minPrice : "";
-    const maxPrice = typeof req.query.maxPrice === "string" ? req.query.maxPrice : "";
+    const minPrice = typeof req.query.minPrice === "string" && req.query.minPrice !== "" ? req.query.minPrice : "";
+    const maxPrice = typeof req.query.maxPrice === "string" && req.query.maxPrice !== "" ? req.query.maxPrice : "";
     const userDepartment = typeof req.query.userDepartment === "string" ? req.query.userDepartment : "";
 
     let query = {};

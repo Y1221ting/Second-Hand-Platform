@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const Filters = ({
   departmentFilter,
@@ -14,10 +14,17 @@ const Filters = ({
   handlePriceRangeChange,
   categoryFilter,
   handleCategoryFilterChange,
+  handleResetAll,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [minInput, setMinInput] = useState("");
   const [maxInput, setMaxInput] = useState("");
+
+  // 当 URL 参数变化时同步输入框（用户点击确认/重置/重置全部后触发）
+  useEffect(() => {
+    setMinInput(priceRange[0] > 0 ? String(priceRange[0]) : "");
+    setMaxInput(priceRange[1] < 10000 ? String(priceRange[1]) : "");
+  }, [priceRange]);
 
   const toggleFilters = () => {
     setShowFilters(!showFilters);
@@ -156,6 +163,13 @@ const Filters = ({
             </button>
           </div>
         </div>
+        {/* 重置全部筛选 */}
+        <button
+          onClick={handleResetAll}
+          className="w-full bg-red-500 text-white py-2 rounded text-sm font-medium hover:bg-red-400 transition-colors"
+        >
+          重置全部
+        </button>
       </div>
     </div>
   );
