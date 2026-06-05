@@ -111,22 +111,23 @@ const Navbar = () => {
           {showHistory && searchHistory.length > 0 && !searchTerm.trim() && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-2">
               {searchHistory.map((term, idx) => (
-                <button
+                <div
                   key={idx}
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => { setSearchTerm(term); doSearch(term); }}
-                  className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                  className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer"
                 >
-                  <span className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="flex items-center gap-2 min-w-0 flex-1"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setSearchTerm(term); doSearch(term); }}
+                  >
                     <span className="text-gray-500 text-xs shrink-0">🕐</span>
                     <span className="truncate">{term}</span>
                   </span>
                   <span
                     onClick={(e) => { e.stopPropagation(); removeSearch(term); }}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    className="text-gray-500 hover:text-red-400 ml-2 shrink-0 text-xs"
+                    className="text-gray-500 hover:text-red-400 ml-2 shrink-0 text-xs cursor-pointer px-1"
                   >✕</span>
-                </button>
+                </div>
               ))}
               <div className="border-t border-gray-700 mt-1 pt-1">
                 <button
@@ -166,22 +167,23 @@ const Navbar = () => {
             {showHistory && searchHistory.length > 0 && !searchTerm.trim() && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-2">
                 {searchHistory.map((term, idx) => (
-                  <button
+                  <div
                     key={idx}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => { setSearchTerm(term); setIsMobileSearchOpen(false); doSearch(term); }}
-                    className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors cursor-pointer"
                   >
-                    <span className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="flex items-center gap-2 min-w-0 flex-1"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => { setSearchTerm(term); setIsMobileSearchOpen(false); doSearch(term); }}
+                    >
                       <span className="text-gray-500 text-xs shrink-0">🕐</span>
                       <span className="truncate">{term}</span>
                     </span>
                     <span
                       onClick={(e) => { e.stopPropagation(); removeSearch(term); }}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      className="text-gray-500 hover:text-red-400 ml-2 shrink-0 text-xs"
+                      className="text-gray-500 hover:text-red-400 ml-2 shrink-0 text-xs cursor-pointer px-1"
                     >✕</span>
-                  </button>
+                  </div>
                 ))}
                 <div className="border-t border-gray-700 mt-1 pt-1">
                   <button
