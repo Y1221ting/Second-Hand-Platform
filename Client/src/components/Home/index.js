@@ -260,8 +260,8 @@ const ProductsList = () => {
               <>
                 {isRefreshing && (
                   <div className="w-full px-4">
-                    <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
-                      <div className="h-1 bg-yellow-500 rounded-full animate-pulse w-2/3" />
+                    <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-1.5 w-1/4 bg-yellow-500 rounded-full animate-loading-bar" />
                     </div>
                   </div>
                 )}
