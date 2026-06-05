@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const Message = require("../models/Message");
+const logger = require("../config/logger");
 
 // 获取当前用户的消息列表
 router.get("/", authMiddleware, async (req, res) => {
@@ -22,7 +23,7 @@ router.get("/", authMiddleware, async (req, res) => {
 
     res.json({ messages, total, page, totalPages: Math.ceil(total / limit) });
   } catch (err) {
-    console.error("获取消息失败:", err);
+    logger.error("获取消息失败", { message: err.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "获取消息失败" });
   }
 });

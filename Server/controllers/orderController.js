@@ -1,4 +1,5 @@
 const Order = require("../models/Order");
+const logger = require("../config/logger");
 
 // 内部函数：创建订单（purchaseProduct 和 checkoutCart 共用）
 exports.createOrder = async ({ buyer, seller, product, quantity, buyerInfo }) => {
@@ -38,7 +39,7 @@ exports.getBuyOrders = async (req, res) => {
     ]);
     res.json({ orders, total, page, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    console.error("获取购买订单失败:", error);
+    logger.error("获取购买订单失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "服务器内部错误" });
   }
 };
@@ -58,7 +59,7 @@ exports.getSellOrders = async (req, res) => {
     ]);
     res.json({ orders, total, page, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    console.error("获取售出订单失败:", error);
+    logger.error("获取售出订单失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "服务器内部错误" });
   }
 };
@@ -85,7 +86,7 @@ exports.updateOrderStatus = async (req, res) => {
 
     res.json({ message: "订单状态已更新", order });
   } catch (error) {
-    console.error("更新订单状态失败:", error);
+    logger.error("更新订单状态失败", { message: error.message, orderId: req.params?.id, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "服务器内部错误" });
   }
 };

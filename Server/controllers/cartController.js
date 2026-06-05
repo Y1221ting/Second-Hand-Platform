@@ -1,5 +1,6 @@
 const Product = require("../models/Product");
 const User = require("../models/User");
+const logger = require("../config/logger");
 
 // 1. 获取我的购物车
 exports.getCart = async (req, res) => {
@@ -26,7 +27,7 @@ exports.getCart = async (req, res) => {
 
     res.status(200).json({ cart });
   } catch (error) {
-    console.error("获取购物车失败:", error);
+    logger.error("获取购物车失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "服务器内部错误" });
   }
 };
@@ -55,15 +56,18 @@ exports.addToCart = async (req, res) => {
 
     // 2. 不能加自己的商品
     if (product.uploadedBy.id === req.user._id.toString()) {
+      logger.warn("加入购物车：不能加自有商品", { userId: req.user._id.toString(), productId });
       return res.status(400).json({ message: "不能将自有商品加入购物车" });
     }
 
     // 3. 检查商品状态
     if (product.status === "sold_out" || product.status === "inactive") {
+      logger.warn("加入购物车：商品已下架或售罄", { userId: req.user._id.toString(), productId, status: product.status });
       return res.status(400).json({ message: "该商品已下架或售罄" });
     }
 
     if (product.quantity <= 0) {
+      logger.warn("加入购物车：库存不足", { userId: req.user._id.toString(), productId, quantity: product.quantity });
       return res.status(400).json({ message: "该商品库存不足" });
     }
 
@@ -99,9 +103,10 @@ exports.addToCart = async (req, res) => {
     }
 
     await user.save({ validateModifiedOnly: true });
+    logger.info("加入购物车成功", { userId: req.user._id.toString(), productId, quantity });
     res.status(200).json({ message: "已加入购物车", cart: user.cart });
   } catch (error) {
-    console.error("加入购物车失败:", error);
+    logger.error("加入购物车失败", { message: error.message, userId: req.user?._id?.toString(), productId: req.params?.productId });
     if (error.name === "CastError") {
       return res.status(400).json({ message: "无效的商品 ID" });
     }
@@ -136,9 +141,10 @@ exports.removeFromCart = async (req, res) => {
       return obj;
     });
 
+    logger.info("移除购物车商品", { userId: req.user._id.toString(), productId });
     res.status(200).json({ message: "已移除", cart });
   } catch (error) {
-    console.error("移除购物车商品失败:", error);
+    logger.error("移除购物车商品失败", { message: error.message, userId: req.user?._id?.toString(), productId: req.params?.productId });
     res.status(500).json({ message: "服务器内部错误" });
   }
 };
@@ -186,9 +192,10 @@ exports.updateQuantity = async (req, res) => {
       return obj;
     });
 
+    logger.info("更新购物车数量", { userId: req.user._id.toString(), productId, quantity });
     res.status(200).json({ message: "数量已更新", cart });
   } catch (error) {
-    console.error("更新购物车数量失败:", error);
+    logger.error("更新购物车数量失败", { message: error.message, userId: req.user?._id?.toString(), productId: req.params?.productId });
     res.status(500).json({ message: "服务器内部错误" });
   }
 };
@@ -202,7 +209,7 @@ exports.clearCart = async (req, res) => {
 
     res.status(200).json({ message: "购物车已清空" });
   } catch (error) {
-    console.error("清空购物车失败:", error);
+    logger.error("清空购物车失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "服务器内部错误" });
   }
 };
@@ -262,7 +269,7 @@ exports.checkoutCart = async (req, res) => {
             });
             orderId = order._id;
           } catch (orderErr) {
-            console.error("创建订单失败（购买已成功）:", orderErr);
+            logger.error("结算：创建订单失败（购买已成功）", { message: orderErr.message });
           }
 
           results.success.push({
@@ -296,12 +303,13 @@ exports.checkoutCart = async (req, res) => {
     user.cart = user.cart.filter(item => !successIds.has(item.productId.toString()));
     await user.save({ validateModifiedOnly: true });
 
+    logger.info("购物车结算完成", { userId: req.user._id.toString(), success: results.success.length, failed: results.failed.length, total: results.success.length + results.failed.length });
     res.status(200).json({
       message: `结算完成：成功 ${results.success.length} 件，失败 ${results.failed.length} 件`,
       results,
     });
   } catch (error) {
-    console.error("购物车结算失败:", error);
+    logger.error("购物车结算失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "服务器内部错误" });
   }
 };

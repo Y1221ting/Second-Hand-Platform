@@ -1,5 +1,6 @@
 const Product = require("../models/Product");
 const { checkBanned } = require("../config/bannedKeywords");
+const logger = require("../config/logger");
 
 // PII 脱敏：根据请求者身份决定保留哪些联系信息
 // - 未认证：仅保留 id/name/college/department/major
@@ -38,6 +39,7 @@ exports.createProduct = async (req, res) => {
     // 0.5 违禁词检查
     const hit = checkBanned(`${req.body.name || ""} ${req.body.description || ""}`);
     if (hit) {
+      logger.warn("创建商品：违禁词拦截", { userId: req.user._id.toString(), word: hit, name: req.body.name?.substring(0, 50) });
       return res.status(400).json({ message: `商品信息包含违禁词，请修改后重新发布` });
     }
 
@@ -78,9 +80,10 @@ exports.createProduct = async (req, res) => {
 
     const product = new Product(safeProduct);
     await product.save();
+    logger.info("创建商品成功", { userId: req.user._id.toString(), productId: product._id.toString(), name: product.name, price: product.price, category: product.category });
     res.status(201).json(product);
   } catch (error) {
-    console.error(error);
+    logger.error("创建商品失败", { message: error.message, userId: req.user?._id?.toString(), name: req.body?.name?.substring(0, 50) });
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: "输入数据格式不正确" });
     }
@@ -191,7 +194,7 @@ exports.getAllProducts = async (req, res) => {
       totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
-    console.error(error);
+    logger.error("服务器错误", { message: error.message, stack: error.stack?.substring(0, 200) });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -210,7 +213,7 @@ exports.getProductById = async (req, res) => {
     }
     res.status(200).json(productObj);
   } catch (error) {
-    console.error(error);
+    logger.error("服务器错误", { message: error.message, stack: error.stack?.substring(0, 200) });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -257,9 +260,10 @@ exports.updateProductById = async (req, res) => {
       new: true,
       runValidators: true,
     });
+    logger.warn("更新商品", { userId: req.user._id.toString(), productId: req.params.id, updatedFields: Object.keys(safeUpdate).join(",") });
     res.status(200).json(updatedProduct);
   } catch (error) {
-    console.error(error);
+    logger.error("更新商品失败", { message: error.message, productId: req.params.id, userId: req.user?._id?.toString() });
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: "输入数据格式不正确" });
     }
@@ -281,9 +285,10 @@ exports.deleteProductById = async (req, res) => {
     }
 
     await Product.findByIdAndDelete(req.params.id);
+    logger.info("删除商品", { userId: req.user._id.toString(), productId: req.params.id, productName: product.name });
     res.status(200).json({ message: "Product successfully deleted" });
   } catch (error) {
-    console.error(error);
+    logger.error("删除商品失败", { message: error.message, productId: req.params.id, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -305,7 +310,7 @@ exports.getProductsByUser = async (req, res) => {
 
     res.status(200).json(sanitized);
   } catch (error) {
-    console.error("Error fetching user products:", error);
+    logger.error("获取用户商品失败", { message: error.message });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -329,7 +334,7 @@ exports.getPurchasedProducts = async (req, res) => {
 
     res.status(200).json(sanitized);
   } catch (error) {
-    console.error("Error fetching purchased products:", error);
+    logger.error("获取已购买商品失败", { message: error.message });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -355,7 +360,7 @@ exports.addImageToProduct = async (req, res) => {
     await product.save();
     res.status(200).json(product);
   } catch (error) {
-    console.error(error);
+    logger.error("服务器错误", { message: error.message, stack: error.stack?.substring(0, 200) });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -372,7 +377,7 @@ exports.removeImageFromProduct = async (req, res) => {
     await product.save();
     res.status(200).json(product);
   } catch (error) {
-    console.error(error);
+    logger.error("服务器错误", { message: error.message, stack: error.stack?.substring(0, 200) });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -394,7 +399,7 @@ exports.addSpecificationToProduct = async (req, res) => {
     await product.save();
     res.status(200).json(product);
   } catch (error) {
-    console.error(error);
+    logger.error("服务器错误", { message: error.message, stack: error.stack?.substring(0, 200) });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -421,7 +426,7 @@ exports.updateProductSpecification = async (req, res) => {
     await product.save();
     res.status(200).json(product);
   } catch (error) {
-    console.error(error);
+    logger.error("服务器错误", { message: error.message, stack: error.stack?.substring(0, 200) });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -442,7 +447,7 @@ exports.removeProductSpecification = async (req, res) => {
     await product.save();
     res.status(200).json(product);
   } catch (error) {
-    console.error(error);
+    logger.error("服务器错误", { message: error.message, stack: error.stack?.substring(0, 200) });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -509,7 +514,7 @@ exports.getRecommendations = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    console.error("获取推荐失败:", error);
+    logger.error("获取推荐失败", { message: error.message });
     res.status(200).json([]);
   }
 };
@@ -549,7 +554,7 @@ exports.updateProductStatus = async (req, res) => {
 
     res.json(product);
   } catch (error) {
-    console.error("Error updating product status: ", error);
+    logger.error("更新商品状态失败", { message: error.message, productId: req.params?.id });
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
@@ -584,11 +589,19 @@ exports.purchaseProduct = async (req, res) => {
 
     if (!product) {
       const existing = await Product.findById(req.params.id);
-      if (!existing) return res.status(404).json({ message: "商品不存在" });
-      if (existing.uploadedBy.id === req.user._id.toString())
+      if (!existing) {
+        logger.warn("购买失败：商品不存在", { productId: req.params.id, userId: req.user._id.toString() });
+        return res.status(404).json({ message: "商品不存在" });
+      }
+      if (existing.uploadedBy.id === req.user._id.toString()) {
+        logger.warn("购买失败：尝试购买自己的商品", { productId: req.params.id, userId: req.user._id.toString() });
         return res.status(400).json({ message: "不能购买自己的商品" });
+      }
+      logger.warn("购买失败：库存不足或已下架", { productId: req.params.id, userId: req.user._id.toString() });
       return res.status(400).json({ message: "库存不足或商品已下架" });
     }
+
+    logger.info("商品购买成功", { buyerId: req.user._id.toString(), productId: product._id.toString(), sellerId: product.uploadedBy.id, price: product.price });
 
     // 库存归零 → 售罄；仍有库存 → 保持可购买
     if (product.quantity === 0) {
@@ -612,11 +625,51 @@ exports.purchaseProduct = async (req, res) => {
       });
       return res.status(200).json({ message: "购买成功", product, orderId: order._id });
     } catch (orderErr) {
-      console.error("创建订单失败（购买已成功）:", orderErr);
+      logger.error("创建订单失败（购买已成功）", { message: orderErr.message });
       return res.status(200).json({ message: "购买成功", product });
     }
   } catch (error) {
-    console.error(error);
+    logger.error("服务器错误", { message: error.message, stack: error.stack?.substring(0, 200) });
     res.status(500).json({ message: "服务器内部错误" });
+  }
+};
+
+// 获取筛选计数（分类/学院维度的商品数量，供前端下拉框展示）
+exports.getFilterCounts = async (req, res) => {
+  try {
+    const result = await Product.aggregate([
+      { $match: { status: { $nin: ["sold_out", "inactive"] } } },
+      {
+        $facet: {
+          byCategory: [
+            { $group: { _id: "$category", count: { $sum: 1 } } },
+          ],
+          byDepartment: [
+            { $group: { _id: "$uploadedBy.department", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+          ],
+        },
+      },
+    ]);
+
+    const counts = result[0];
+
+    // 转换为 { key: count } 格式
+    const byCategory = {};
+    counts.byCategory.forEach(({ _id, count }) => {
+      if (_id) byCategory[_id] = count;
+    });
+
+    const byDepartment = {};
+    counts.byDepartment.forEach(({ _id, count }) => {
+      if (_id) byDepartment[_id] = count;
+    });
+
+    const total = Object.values(byCategory).reduce((sum, c) => sum + c, 0);
+
+    res.status(200).json({ byCategory, byDepartment, total });
+  } catch (error) {
+    logger.error("获取筛选计数失败", { message: error.message });
+    res.status(200).json({ byCategory: {}, byDepartment: {}, total: 0 });
   }
 };

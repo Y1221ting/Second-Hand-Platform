@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const Report = require("../models/Report");
+const logger = require("../config/logger");
 
 // 举报商品
 router.post("/", authMiddleware, async (req, res) => {
@@ -21,7 +22,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
     res.status(201).json({ message: "举报已提交" });
   } catch (error) {
-    console.error("举报失败:", error);
+    logger.error("举报失败", { message: error.message, userId: req.user?._id?.toString() });
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: "输入数据格式不正确" });
     }

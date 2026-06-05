@@ -5,6 +5,7 @@ const User = require("../models/User");
 const Product = require("../models/Product");
 const Report = require("../models/Report");
 const Message = require("../models/Message");
+const logger = require("../config/logger");
 
 // 所有接口：先认证，再检查管理员角色
 router.use(authMiddleware);
@@ -41,7 +42,7 @@ router.get("/stats", async (req, res) => {
       pendingUsers,
     });
   } catch (error) {
-    console.error("stats error:", error);
+    logger.error("管理员统计失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "获取统计数据失败" });
   }
 });
@@ -89,7 +90,7 @@ router.put("/reports/:id", async (req, res) => {
     await report.save();
 
     // 审计日志：记录管理员处理举报
-    console.log(`[AUDIT] admin=${req.user._id} action=handle_report reportId=${report._id} result=${report.status} note="${note || ""}"`);
+    logger.info("管理员处理举报", { admin: req.user._id.toString(), action: "handle_report", reportId: report._id.toString(), result: report.status });
 
     // 如果是通过，则下架商品并写入原因
     if (action === "handle") {
@@ -182,7 +183,7 @@ router.put("/products/:id", async (req, res) => {
     );
 
     // 审计日志
-    console.log(`[AUDIT] admin=${req.user._id} action=${status === "inactive" ? "delist_product" : "restore_product"} productId=${req.params.id} reason="${reason || ""}"`);
+    logger.info("管理员商品操作", { admin: req.user._id.toString(), action: status === "inactive" ? "delist_product" : "restore_product", productId: req.params.id });
 
     // 自动创建通知给卖家
     if (existing.uploadedBy?.id) {
@@ -197,7 +198,7 @@ router.put("/products/:id", async (req, res) => {
 
     res.json({ message: status === "inactive" ? "已下架" : "已恢复", product });
   } catch (error) {
-    console.error("商品管理失败:", error);
+    logger.error("管理员商品操作失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "操作失败" });
   }
 });
@@ -284,7 +285,7 @@ router.put("/users/:id", async (req, res) => {
     );
 
     // 审计日志
-    console.log(`[AUDIT] admin=${req.user._id} action=set_user_status targetUserId=${req.params.id} newStatus=${status}`);
+    logger.info("管理员设置用户状态", { admin: req.user._id.toString(), action: "set_user_status", targetUserId: req.params.id, newStatus: status });
 
     // 返回前去除密码
     const data = user.toObject();
@@ -303,7 +304,7 @@ router.put("/users/:id", async (req, res) => {
 
     res.json({ message: status === "banned" ? "已封禁" : status === "active" ? "已激活" : "已设为待审核", user: data });
   } catch (error) {
-    console.error("封禁用户失败:", error);
+    logger.error("管理员封禁用户失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "操作失败" });
   }
 });
@@ -343,11 +344,11 @@ router.post("/warnings", async (req, res) => {
     await msg.save();
 
     // 审计日志
-    console.log(`[AUDIT] admin=${req.user._id} action=send_warning targetUserId=${userId} title="${title.trim().substring(0, 50)}"`);
+    logger.info("管理员发送警告", { admin: req.user._id.toString(), action: "send_warning", targetUserId: userId });
 
     res.status(201).json({ message: "消息已发送", warning: msg });
   } catch (error) {
-    console.error("发送警告失败:", error);
+    logger.error("管理员发送警告失败", { message: error.message, userId: req.user?._id?.toString() });
     if (error.name === "CastError") {
       return res.status(400).json({ message: "无效的用户ID格式" });
     }
@@ -377,7 +378,7 @@ router.get("/warnings", async (req, res) => {
 
     res.json({ warnings, total, page, totalPages: Math.ceil(total / limit) });
   } catch (error) {
-    console.error("获取警告列表失败:", error);
+    logger.error("管理员获取警告列表失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "获取警告列表失败" });
   }
 });

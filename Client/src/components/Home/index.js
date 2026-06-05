@@ -20,6 +20,7 @@ const ProductsList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [filterCounts, setFilterCounts] = useState(null);
 
   // 学院-专业映射
   const [majorMap, setMajorMap] = useState({});
@@ -35,6 +36,14 @@ const ProductsList = () => {
         setDepartments(Object.keys(data));
       })
       .catch(() => console.error("获取学院列表失败"));
+  }, []);
+
+  // 获取筛选计数（分类/学院维度）
+  useEffect(() => {
+    fetch("/api/products/counts")
+      .then((res) => res.json())
+      .then((data) => setFilterCounts(data))
+      .catch(() => setFilterCounts(null)); // 静默失败
   }, []);
 
   // 从 URL 读取所有筛选参数（唯一数据源）
@@ -231,6 +240,7 @@ const ProductsList = () => {
               categoryFilter={filters.category}
               handleCategoryFilterChange={handleCategoryFilterChange}
               handleResetAll={() => navigate("/home")}
+              counts={filterCounts}
             />
           )}
           <div className="w-full flex flex-col items-center">

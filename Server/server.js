@@ -7,6 +7,7 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 const compression = require("compression");
+const logger = require("./config/logger");
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const cartRoutes = require("./routes/cartRoutes");
@@ -101,6 +102,7 @@ const cache = (ttlSeconds) => {
 
 // Routes
 app.use("/api/users", userRoutes);
+app.get("/api/products/counts", cache(60), productRoutes); // 筛选计数（缓存 60s，必须在 /api/products 之前注册）
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/upload", uploadRoutes);
@@ -157,7 +159,7 @@ app.use("/uploads", uploadRefererGuard, express.static(uploadsDir, {
 
 // 全局错误处理（4参数 = Express error handler）
 app.use((err, req, res, next) => {
-  console.error("Uncaught route error:", err.message);
+  logger.error("Uncaught route error", { message: err.message, stack: err.stack?.substring(0, 200) });
   res.status(err.status || 500).json({
     message: process.env.NODE_ENV === "production" ? "服务器内部错误" : err.message,
   });
@@ -165,16 +167,16 @@ app.use((err, req, res, next) => {
 
 // 兜底：未捕获的 promise 不直接退出，记录后让 Docker restart 策略接管
 process.on("unhandledRejection", (reason) => {
-  console.error("UNHANDLED REJECTION:", reason);
+  logger.error("UNHANDLED REJECTION", { message: reason?.message || reason, stack: reason?.stack?.substring(0, 200) });
 });
 
 process.on("uncaughtException", (err) => {
-  console.error("UNCAUGHT EXCEPTION:", err);
+  logger.error("UNCAUGHT EXCEPTION", { message: err.message, stack: err.stack?.substring(0, 300) });
   process.exit(1);
 });
 
 // Start the server
 const port = process.env.PORT || 8000;
 app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+  logger.info(`Server running on port ${port}`, { env: process.env.NODE_ENV || "development" });
 });

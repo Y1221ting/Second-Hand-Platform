@@ -6,8 +6,8 @@ const { optionalAuth } = authMiddleware;
 
 // Public routes (no auth required — but optionalAuth 用于 PII 脱敏判断)
 router.get("/", optionalAuth, productController.getAllProducts);
+router.get("/counts", productController.getFilterCounts);
 router.get("/recommendations", optionalAuth, productController.getRecommendations);
-router.get("/ai-recommendations", optionalAuth, productController.getRecommendations);
 router.get("/:id", optionalAuth, productController.getProductById);
 router.get("/user/:userId", authMiddleware, productController.getProductsByUser);
 router.get("/purchased/:userId", authMiddleware, productController.getPurchasedProducts);

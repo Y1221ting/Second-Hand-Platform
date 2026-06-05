@@ -1,6 +1,7 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const logger = require("../config/logger");
 
 // 魔法字节验证：读取文件头 4 字节，匹配已知图片格式签名
 function verifyImageMagicBytes(filepath) {
@@ -89,7 +90,7 @@ exports.uploadImages = (req, res) => {
     }
     res.json({ urls });
   } catch (error) {
-    console.error(error);
+    logger.error("上传失败", { message: error.message });
     res.status(500).json({ message: "上传失败" });
   }
 };

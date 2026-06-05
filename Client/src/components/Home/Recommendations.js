@@ -19,7 +19,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
         if (sellerId) params.append("sellerId", sellerId);
         params.append("limit", 6);
 
-        const res = await fetch(`/api/products/ai-recommendations?${params.toString()}`);
+        const res = await fetch(`/api/products/recommendations?${params.toString()}`);
         if (res.ok && mounted) {
           const data = await res.json();
           setProducts(Array.isArray(data) ? data : []);

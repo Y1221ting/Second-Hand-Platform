@@ -1,5 +1,6 @@
 require("dotenv").config({ path: require("path").join(__dirname, "..", "..", ".env") });
 const mongoose = require("mongoose");
+const logger = require("./logger");
 
 const connectDB = async () => {
   try {
@@ -8,9 +9,9 @@ const connectDB = async () => {
       minPoolSize: 2,
       serverSelectionTimeoutMS: 5000,
     });
-    console.log("MongoDB connected");
+    logger.info("MongoDB 连接成功");
   } catch (error) {
-    console.error("MongoDB connection error:", error);
+    logger.error("MongoDB 连接失败", { message: error.message });
     process.exit(1);
   }
 };

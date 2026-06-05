@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Product = require("../models/Product");
 const { hashPassword, verifyPassword, createToken } = require("../config/auth");
 const { checkBanned } = require("../config/bannedKeywords");
+const logger = require("../config/logger");
 
 // Register a user
 exports.registerUser = async (req, res) => {
@@ -52,9 +53,10 @@ exports.registerUser = async (req, res) => {
     newUser.password = await hashPassword(req.body.password);
     await newUser.save({ validateModifiedOnly: true });
 
+    logger.info("用户注册成功", { userId: newUser._id.toString(), email, ip: req.ip });
     res.status(201).json({ message: "注册申请已提交，请等待管理员审核" });
   } catch (error) {
-    console.error(error);
+    logger.error("注册失败", { message: error.message, email: req.body?.email, ip: req.ip });
     // 手机号重复（MongoDB 唯一索引冲突）
     if (error.code === 11000 && error.keyPattern?.phoneNo) {
       return res.status(400).json({ message: "该手机号已注册，请直接登录" });
@@ -106,8 +108,10 @@ exports.loginUser = async (req, res) => {
       }
       await existingUser.save({ validateModifiedOnly: true });
       if (existingUser.loginAttempts >= 5) {
+        logger.warn("登录失败：账户已锁定", { userId: existingUser._id.toString(), ip: req.ip });
         return res.status(429).json({ message: "账户已锁定，请稍后重试" });
       }
+      logger.warn("登录失败：密码错误", { userId: existingUser._id.toString(), attempt: existingUser.loginAttempts, ip: req.ip });
       return res.status(400).json({ message: "邮箱或密码错误" });
     }
 
@@ -127,9 +131,10 @@ exports.loginUser = async (req, res) => {
 
     // 未激活用户也能登录，但前端根据 status 限制发布功能
     const pendingApproval = existingUser.status === "inactive";
+    logger.info("用户登录成功", { userId: existingUser._id.toString(), ip: req.ip, pendingApproval });
     res.status(200).json({ token, user: userData, pendingApproval });
   } catch (error) {
-    console.error(error);
+    logger.error("登录异常", { message: error.message, ip: req.ip });
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -141,7 +146,7 @@ exports.logoutUser = async (req, res) => {
     await req.user.save({ validateModifiedOnly: true });
     res.json({ message: "已登出" });
   } catch (error) {
-    console.error("登出失败:", error);
+    logger.error("登出失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "服务器内部错误" });
   }
 };
@@ -295,7 +300,7 @@ exports.changePassword = async (req, res) => {
 
     res.json({ message: "密码修改成功，请使用新密码重新登录", token });
   } catch (error) {
-    console.error("修改密码失败:", error);
+    logger.error("修改密码失败", { message: error.message, userId: req.user?._id?.toString() });
     res.status(500).json({ message: "服务器内部错误" });
   }
 };

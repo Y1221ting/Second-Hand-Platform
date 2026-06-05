@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import Slider from "rc-slider";
+import "rc-slider/assets/index.css";
 
 const Filters = ({
   departmentFilter,
@@ -15,6 +17,7 @@ const Filters = ({
   categoryFilter,
   handleCategoryFilterChange,
   handleResetAll,
+  counts,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [minInput, setMinInput] = useState("");
@@ -64,9 +67,9 @@ const Filters = ({
             onChange={handleDepartmentChange}
             className="p-2 rounded bg-gray-800 text-white w-full"
           >
-            <option value="">全部学院</option>
+            <option value="">全部学院{counts?.total ? ` (${counts.total})` : ""}</option>
             {departments.map((dept) => (
-              <option key={dept} value={dept}>{dept}</option>
+              <option key={dept} value={dept}>{dept}{counts?.byDepartment?.[dept] ? ` (${counts.byDepartment[dept]})` : ""}</option>
             ))}
           </select>
         </div>
@@ -112,43 +115,53 @@ const Filters = ({
             onChange={handleCategoryFilterChange}
             className="p-2 rounded bg-gray-800 text-white w-full"
           >
-            <option value="">全部</option>
-            <option value="教材教辅">教材教辅</option>
-            <option value="电子数码">电子数码</option>
-            <option value="生活用品">生活用品</option>
-            <option value="体育用品">体育用品</option>
-            <option value="服饰美妆">服饰美妆</option>
-            <option value="文具办公">文具办公</option>
-            <option value="宿舍神器">宿舍神器</option>
-            <option value="乐器爱好">乐器爱好</option>
-            <option value="其他">其他</option>
+            <option value="">全部{counts?.total ? ` (${counts.total})` : ""}</option>
+            {["教材教辅","电子数码","生活用品","体育用品","服饰美妆","文具办公","宿舍神器","乐器爱好","其他"].map(cat => (
+              <option key={cat} value={cat}>{cat}{counts?.byCategory?.[cat] ? ` (${counts.byCategory[cat]})` : ""}</option>
+            ))}
           </select>
         </div>
-        {/* 价格范围 — 双输入框 + 确认按钮 */}
+        {/* 价格范围 — 双滑块 + 输入框同步 */}
         <div className="mb-4">
           <label className="text-gray-600 block mb-2">价格范围（元）：</label>
-          <div className="flex items-center gap-2">
+          <div className="px-1 mb-3">
+            <Slider
+              range
+              min={0}
+              max={10000}
+              step={10}
+              value={[minInput || 0, maxInput || 10000]}
+              onChange={([min, max]) => { setMinInput(min); setMaxInput(max); }}
+              trackStyle={[{ backgroundColor: "#eab308" }]}
+              handleStyle={[
+                { borderColor: "#eab308", backgroundColor: "#1f2937", opacity: 1 },
+                { borderColor: "#eab308", backgroundColor: "#1f2937", opacity: 1 },
+              ]}
+              railStyle={{ backgroundColor: "#374151" }}
+            />
+          </div>
+          <div className="flex items-center gap-2 mb-2">
             <input
               type="number"
-              placeholder="最低价"
-              value={minInput}
-              onChange={(e) => setMinInput(e.target.value)}
+              placeholder="0"
+              value={minInput || ""}
+              onChange={(e) => setMinInput(e.target.value ? Math.max(0, parseInt(e.target.value) || 0) : "")}
               min="0"
               max="9999"
               className="w-full p-2 rounded bg-gray-800 text-white text-sm border border-gray-700 focus:outline-none focus:border-yellow-500"
             />
-            <span className="text-gray-500 text-sm">—</span>
+            <span className="text-gray-500 text-sm shrink-0">—</span>
             <input
               type="number"
-              placeholder="最高价"
-              value={maxInput}
-              onChange={(e) => setMaxInput(e.target.value)}
+              placeholder="10000"
+              value={maxInput || ""}
+              onChange={(e) => setMaxInput(e.target.value ? Math.min(10000, parseInt(e.target.value) || 0) : "")}
               min="0"
               max="10000"
               className="w-full p-2 rounded bg-gray-800 text-white text-sm border border-gray-700 focus:outline-none focus:border-yellow-500"
             />
           </div>
-          <div className="flex gap-2 mt-2">
+          <div className="flex gap-2">
             <button
               onClick={handlePriceConfirm}
               className="flex-1 bg-yellow-500 text-gray-900 py-1.5 rounded text-sm font-medium hover:bg-yellow-400 transition-colors"

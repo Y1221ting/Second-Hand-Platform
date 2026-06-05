@@ -98,7 +98,7 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
           </div>
           {isRecommended && (
             <span className="absolute top-1 left-1 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-sm z-10 pointer-events-none">
-              AI 推荐
+              推荐
             </span>
           )}
         </div>

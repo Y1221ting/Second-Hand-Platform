@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const { SECRET } = require("../config/auth");
+const logger = require("../config/logger");
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -37,7 +38,7 @@ const authMiddleware = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error("authMiddleware 错误:", error);
+    logger.error("authMiddleware 错误", { message: error.message });
     res.status(500).json({ message: "服务器错误" });
   }
 };
