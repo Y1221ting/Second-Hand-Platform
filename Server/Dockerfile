@@ -19,6 +19,7 @@ COPY server.js ./
 
 # 非 root 用户（Docker 安全最佳实践）
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN mkdir -p /app/logs && chown appuser:appgroup /app/logs
 USER appuser
 
 EXPOSE 8000
