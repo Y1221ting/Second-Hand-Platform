@@ -106,12 +106,30 @@ exports.getAllProducts = async (req, res) => {
     let query = {};
 
     if (search) {
-      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const regex = { $regex: escaped, $options: "i" };
-      query.$or = [
-        { name: regex },
-        { description: regex },
-      ];
+      // 轻量分词：按空白/标点拆分为多个 token，每个 token 都必须在 name 或 description 中出现
+      const tokens = search
+        .split(/[\s,，。！!、\t]+/)
+        .map(t => t.trim())
+        .filter(t => t.length > 0);
+
+      if (tokens.length === 0) {
+        // 纯空白/标点 → 不搜索
+      } else if (tokens.length === 1) {
+        // 单 token：保持原有行为
+        const escaped = tokens[0].replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = { $regex: escaped, $options: "i" };
+        query.$or = [
+          { name: regex },
+          { description: regex },
+        ];
+      } else {
+        // 多 token AND：每个 token 独立匹配 name 或 description
+        query.$and = tokens.map(token => {
+          const tEscaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          const tRegex = { $regex: tEscaped, $options: "i" };
+          return { $or: [{ name: tRegex }, { description: tRegex }] };
+        });
+      }
     }
 
     if (category) {

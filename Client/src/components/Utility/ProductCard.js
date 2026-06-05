@@ -2,8 +2,9 @@ import React, { useState, memo } from "react";
 import { FaShoppingCart, FaBolt, FaFlag } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
+import Highlight from "./Highlight";
 
-const ProductCard = memo(({ product, isRecommended }) => {
+const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [clickedButtonId, setClickedButtonId] = useState(null);
@@ -103,7 +104,7 @@ const ProductCard = memo(({ product, isRecommended }) => {
         </div>
       </Link>
       <h3 className="text-base font-semibold mb-0.5 truncate" title={product.name}>
-        {product.name}
+        <Highlight text={product.name} keyword={searchTerm} />
       </h3>
       <div className="flex items-center justify-between mb-0.5">
         <p className="text-xs text-gray-300 truncate max-w-[60%]">

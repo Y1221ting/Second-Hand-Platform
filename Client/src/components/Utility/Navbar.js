@@ -4,14 +4,46 @@ import { useAuth } from "../../context/authContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
+const SEARCH_HISTORY_KEY = "search_history";
+const MAX_HISTORY = 10;
+
+const getStoredHistory = () => {
+  try { return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY)) || []; }
+  catch { return []; }
+};
+const setStoredHistory = (arr) => {
+  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(arr));
+};
+
 const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchHistory, setSearchHistory] = useState(getStoredHistory);
+  const [showHistory, setShowHistory] = useState(false);
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const saveSearch = (term) => {
+    const t = term.trim();
+    if (!t) return;
+    const updated = [t, ...searchHistory.filter((h) => h !== t)].slice(0, MAX_HISTORY);
+    setSearchHistory(updated);
+    setStoredHistory(updated);
+  };
+
+  const removeSearch = (term) => {
+    const updated = searchHistory.filter((h) => h !== term);
+    setSearchHistory(updated);
+    setStoredHistory(updated);
+  };
+
+  const clearSearches = () => {
+    setSearchHistory([]);
+    localStorage.removeItem(SEARCH_HISTORY_KEY);
+  };
 
   // 搜索框同步 URL 中的 search 参数（刷新页面、重置全部等场景）
   useEffect(() => {
@@ -19,8 +51,8 @@ const Navbar = () => {
     setSearchTerm(params.get("search") || "");
   }, [location.search]);
 
-  const doSearch = () => {
-    const trimmed = searchTerm.trim();
+  const doSearch = (term) => {
+    const trimmed = (term || searchTerm).trim();
     const params = new URLSearchParams();
     // 保留当前页面已有的筛选条件（仅首页）
     if (location.pathname === "/home") {
@@ -31,9 +63,11 @@ const Navbar = () => {
     }
     if (trimmed) {
       params.set("search", trimmed);
+      saveSearch(trimmed);
     } else {
       params.delete("search");
     }
+    setShowHistory(false);
     navigate(`/home?${params.toString()}`);
   };
 
@@ -67,9 +101,44 @@ const Navbar = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={handleSearch}
+            onFocus={() => setShowHistory(true)}
+            onBlur={() => setTimeout(() => setShowHistory(false), 150)}
             className="w-full py-1.5 px-4 pr-10 rounded-full bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm transition-colors"
           />
-          <button type="button" onClick={doSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 text-sm transition-colors" aria-label="搜索"><FaSearch /></button>
+          <button type="button" onClick={() => doSearch()} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 text-sm transition-colors" aria-label="搜索"><FaSearch /></button>
+
+          {/* 搜索历史下拉 */}
+          {showHistory && searchHistory.length > 0 && !searchTerm.trim() && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-2">
+              {searchHistory.map((term, idx) => (
+                <button
+                  key={idx}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { setSearchTerm(term); doSearch(term); }}
+                  className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="text-gray-500 text-xs shrink-0">🕐</span>
+                    <span className="truncate">{term}</span>
+                  </span>
+                  <span
+                    onClick={(e) => { e.stopPropagation(); removeSearch(term); }}
+                    onMouseDown={(e) => e.stopPropagation()}
+                    className="text-gray-500 hover:text-red-400 ml-2 shrink-0 text-xs"
+                  >✕</span>
+                </button>
+              ))}
+              <div className="border-t border-gray-700 mt-1 pt-1">
+                <button
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { clearSearches(); }}
+                  className="w-full text-center py-1.5 text-xs text-gray-500 hover:text-red-400 transition-colors"
+                >
+                  🗑 清除全部搜索历史
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -86,10 +155,45 @@ const Navbar = () => {
                 handleSearch(e);
                 if (e.key === "Enter") setIsMobileSearchOpen(false);
               }}
+              onFocus={() => setShowHistory(true)}
+              onBlur={() => setTimeout(() => setShowHistory(false), 150)}
               className="w-full py-2 px-4 pr-10 rounded-full bg-gray-800 text-white placeholder-gray-400 border border-gray-700 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 text-sm transition-colors"
               autoFocus
             />
-            <button type="button" onClick={doSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 text-sm transition-colors" aria-label="搜索"><FaSearch /></button>
+            <button type="button" onClick={() => doSearch()} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-yellow-500 text-sm transition-colors" aria-label="搜索"><FaSearch /></button>
+
+            {/* 搜索历史下拉（移动端） */}
+            {showHistory && searchHistory.length > 0 && !searchTerm.trim() && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 py-2">
+                {searchHistory.map((term, idx) => (
+                  <button
+                    key={idx}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { setSearchTerm(term); setIsMobileSearchOpen(false); doSearch(term); }}
+                    className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 transition-colors"
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <span className="text-gray-500 text-xs shrink-0">🕐</span>
+                      <span className="truncate">{term}</span>
+                    </span>
+                    <span
+                      onClick={(e) => { e.stopPropagation(); removeSearch(term); }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      className="text-gray-500 hover:text-red-400 ml-2 shrink-0 text-xs"
+                    >✕</span>
+                  </button>
+                ))}
+                <div className="border-t border-gray-700 mt-1 pt-1">
+                  <button
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => { clearSearches(); }}
+                    className="w-full text-center py-1.5 text-xs text-gray-500 hover:text-red-400 transition-colors"
+                  >
+                    🗑 清除全部搜索历史
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

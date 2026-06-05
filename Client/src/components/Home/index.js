@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Filters from "./Filters";
 import ProductList from "./ProductList";
 import Pagination from "./Pagination";
+import ActiveFilterTags from "./ActiveFilterTags";
+import EmptyState from "./EmptyState";
 import Loading from "../Utility/Loading";
 import HomeBanner from "./HomeBanner";
 import Recommendations from "./Recommendations";
@@ -105,6 +107,20 @@ const ProductsList = () => {
     applyFilters({ category: e.target.value });
   };
 
+  // 移除单个筛选标签（学院重置时联动清专业）
+  const handleRemoveFilter = useCallback(
+    (key) => {
+      if (key === "minPrice") {
+        applyFilters({ minPrice: "", maxPrice: "" });
+      } else if (key === "department") {
+        applyFilters({ department: "", major: "" });
+      } else {
+        applyFilters({ [key]: "" });
+      }
+    },
+    [applyFilters]
+  );
+
   const fetchProducts = useCallback(async () => {
     const { search, category, department, major, sort, minPrice, maxPrice, page } = readUrlParams();
     setCurrentPage(page);
@@ -174,6 +190,8 @@ const ProductsList = () => {
 
   // 仅首次加载无数据时展示全屏 Loading，避免 Filters 因 isLoading 切换而反复卸载
   const showFullLoading = isLoading && products.length === 0;
+  // 已有数据时的后续加载（搜索/筛选/翻页），显示轻量指示器
+  const isRefreshing = isLoading && products.length > 0;
 
   return (
     <main className="lg:w-4/5 mx-4 md:mx-auto py-4">
@@ -188,6 +206,13 @@ const ProductsList = () => {
         />
       )}
       <h1 className="text-2xl font-semibold mb-4">最近上新</h1>
+      {!showFullLoading && (
+        <ActiveFilterTags
+          filters={filters}
+          onRemove={handleRemoveFilter}
+          onResetAll={() => navigate("/home")}
+        />
+      )}
       <div>
         <div className="flex flex-col md:flex-row">
           {!showFullLoading && (
@@ -211,10 +236,29 @@ const ProductsList = () => {
           <div className="w-full flex flex-col items-center">
             {showFullLoading ? (
               <Loading />
+            ) : products.length === 0 ? (
+              <EmptyState
+                search={filters.search}
+                category={filters.category}
+                department={filters.department}
+                major={filters.major}
+                minPrice={filters.minPrice}
+                maxPrice={filters.maxPrice}
+                onResetAll={() => navigate("/home")}
+              />
             ) : (
-              <ProductList currentProducts={products} />
+              <>
+                {isRefreshing && (
+                  <div className="w-full px-4">
+                    <div className="w-full h-1 bg-gray-800 rounded-full overflow-hidden">
+                      <div className="h-1 bg-yellow-500 rounded-full animate-pulse w-2/3" />
+                    </div>
+                  </div>
+                )}
+                <ProductList currentProducts={products} searchTerm={filters.search} />
+              </>
             )}
-            {!showFullLoading && (
+            {!showFullLoading && products.length > 0 && (
               <Pagination
                 totalPages={totalPages}
                 currentPage={currentPage}
