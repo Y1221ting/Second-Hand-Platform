@@ -182,6 +182,14 @@ exports.getUserById = async (req, res) => {
     if (!result.createdAt) {
       result.createdAt = result.updatedAt || new Date("2026-01-01");
     }
+
+    // IDOR 防护：非本人查询时脱敏联系方式
+    const isSelf = req.user._id.toString() === userId;
+    if (!isSelf) {
+      const sensitive = ["phoneNo", "wechat", "qq", "email", "dormitory"];
+      sensitive.forEach(f => { delete result[f]; });
+    }
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });

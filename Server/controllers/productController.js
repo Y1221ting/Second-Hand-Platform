@@ -318,9 +318,14 @@ exports.getProductsByUser = async (req, res) => {
 exports.getPurchasedProducts = async (req, res) => {
   try {
     const userId = req.params.userId;
-    
+
     if (!userId || userId.length !== 24) {
       return res.status(400).json({ message: "Invalid user ID format" });
+    }
+
+    // IDOR 防护：仅允许查看自己的购买记录
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ message: "无权查看他人购买记录" });
     }
 
     // 获取用户购买的商品，排除用户自己发布的商品
