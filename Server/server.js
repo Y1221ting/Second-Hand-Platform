@@ -43,6 +43,14 @@ app.use(require("helmet")({
 app.use(bodyParser.json({ limit: "10mb" }));
 app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 
+// === 校名展示覆盖（测试阶段使用，上线前删除此块） ===
+const DISPLAY_UNIVERSITY_NAME = "测试大学";
+const _originalJson = app.response.json;
+app.response.json = function (obj) {
+  const replaced = JSON.stringify(obj).replace(/南昌师范学院/g, DISPLAY_UNIVERSITY_NAME);
+  return _originalJson.call(this, JSON.parse(replaced));
+};
+// === 校名展示覆盖 END ===
 const allowedOrigins = process.env.CLIENT_URL
   ? process.env.CLIENT_URL.split(",").map(s => s.trim())
   : ["http://localhost:3000"];
