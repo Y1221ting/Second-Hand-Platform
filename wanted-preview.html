@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SecondHand 功能导览图</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #111827;  /* gray-900 */
+    color: #fff;
+    padding: 2rem;
+    min-height: 100vh;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+  .header h1 {
+    font-size: 1.8rem;
+    letter-spacing: 1px;
+  }
+  .header h1 .second { color: #EAB308; }  /* yellow-500 */
+  .header h1 .hand { color: #fff; }
+  .header p {
+    color: #9CA3AF;  /* gray-400 */
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+  }
+
+  /* 角色列布局 */
+  .role-row {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .role-sidebar {
+    width: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .role-sidebar .icon {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem;
+  }
+  .role-sidebar .label {
+    font-size: 0.8rem;
+    color: #9CA3AF;
+    font-weight: 500;
+  }
+  .role-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  /* 模块卡片（白色卡片） */
+  .module {
+    background: #fff;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .module-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1F2937;  /* gray-800 */
+    margin-bottom: 0.5rem;
+    display: flex; align-items: center;
+    gap: 0.5rem;
+  }
+  .module-title .badge {
+    font-size: 0.65rem;
+    background: #EAB308;  /* yellow-500 */
+    color: #111827;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    font-weight: 600;
+  }
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    font-size: 0.85rem;
+    color: #374151;  /* gray-700 */
+  }
+  .links a {
+    color: #374151;
+    text-decoration: none;
+    padding: 0.15rem 0;
+    border-bottom: 1px solid transparent;
+    transition: all 0.15s;
+    cursor: default;
+  }
+  .links a:hover {
+    color: #EAB308;
+    border-bottom-color: #EAB308;
+  }
+  .links .sep { color: #D1D5DB; }  /* gray-300 */
+  .desc {
+    font-size: 0.78rem;
+    color: #6B7280;  /* gray-500 */
+    margin-top: 0.2rem;
+    line-height: 1.5;
+  }
+
+  /* 箭头流 */
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin: 0.25rem 0 1rem 0;
+  }
+  .flow-box {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+    color: #D1D5DB;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .flow-arrow {
+    color: #EAB308;
+    font-size: 1.2rem;
+  }
+
+  /* 技术栈标签 */
+  .tech-strip {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+    padding: 1rem 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .tech-strip span {
+    background: rgba(255,255,255,0.06);
+    color: #9CA3AF;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .footer-note {
+    text-align: center;
+    color: #6B7280;
+    font-size: 0.7rem;
+    margin-top: 1.5rem;
+  }
+
+  /* 网格用于分块摆放下面的功能 */
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .feature-grid .module { margin: 0; }
+
+  /* AI 模块特殊 */
+  .ai-module {
+    background: linear-gradient(135deg, #FBBF24 0%, #EAB308 100%);  /* yellow-400 -> yellow-500 */
+    color: #111827;
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .ai-module .module-title { color: #111827; }
+  .ai-module .links { color: #1F2937; }
+  .ai-module .links a { color: #1F2937; }
+  .ai-module .links a:hover { color: #fff; }
+  .ai-module .desc { color: #374151; }
+  .ai-module .badge { background: #111827; color: #FBBF24; }
+
+  .ai-funnel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+  .funnel-step {
+    background: rgba(0,0,0,0.15);
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+  .funnel-arrow { color: #111827; font-weight: 700; font-size: 1rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="second">Second</span><span class="hand">Hand</span> 功能导览图</h1>
+  <p>校园二手交易平台 · 完整功能结构与操作路径</p>
+</div>
+
+<!-- ========== 访客 ========== -->
+<div class="role-row">
+  <div class="role-sidebar">
+    <div class="icon" style="background:#374151;color:#EAB308;">👤</div>
+    <div class="label">访客</div>
+  </div>
+  <div class="role-content">
+    <div class="module">
+      <div class="module-title">📖 浏览体验</div>
+      <div class="links">
+        <a>首页推荐商品流</a><span class="sep">|</span>
+        <a>按分类 / 价格 / 条件筛选</a><span class="sep">|</span>
+        <a>搜索商品（按Enter）</a><span class="sep">|</span>
+        <a>商品详情页</a>
+      </div>
+      <div class="desc">未登录可浏览全部商品、搜索、使用AI推荐栏（热销 / 猜你喜欢），点击商品查看完整详情。</div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-row">
+  <div class="flow-box">浏览 → 看中商品</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-box">点击「联系卖家」<br/>弹出登录提示</div>
+  <span class="flow-arrow">→</span>
+  <div class="flow-box" style="border-color:#EAB308;background:rgba(234,179,8,0.1);">登录 / 注册</div>
+</div>
+
+<!-- ========== 登录 / 注册 ========== -->
+<div class="role-row">
+  <div class="role-sidebar">
+    <div class="icon" style="background:#374151;color:#EAB308;">🔐</div>
+    <div class="label">登录注册</div>
+  </div>
+  <div class="role-content">
+    <div class="module">
+      <div class="module-title">🚪 认证流程</div>
+      <div class="links">
+        <a>手机号快捷登录</a><span class="sep">|</span>
+        <a>邮箱 + 密码登录</a><span class="sep">|</span>
+        <a>新用户注册</a>
+      </div>
+      <div class="desc">注册成功跳转登录页，手机号登录简化验证流程。JWT Token 持久化，刷新不丢失。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 已登录用户 ========== -->
+<div class="role-row">
+  <div class="role-sidebar">
+    <div class="icon" style="background:#EAB308;color:#111827;">👤</div>
+    <div class="label">用户</div>
+  </div>
+  <div class="role-content">
+    <div class="module">
+      <div class="module-title">🧭 导航 &amp; 个人中心</div>
+      <div class="links">
+        <a>首页 / 发布闲置 / 个人中心</a><span class="sep">|</span>
+        <a>系统通知铃铛</a><span class="sep">|</span>
+        <a>购物车</a><span class="sep">|</span>
+        <a>隐私政策</a>
+      </div>
+      <div class="desc">顶部深色 Navbar + 黄色品牌强调色。头像下拉菜单含个人资料、购物车、发布商品、管理后台（管理员）、退出。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 功能网格 ========== -->
+<div class="feature-grid">
+
+  <div class="module">
+    <div class="module-title">📦 商品管理</div>
+    <div class="links">
+      <a>发布商品</a><span class="sep">|</span>
+      <a>编辑商品</a><span class="sep">|</span>
+      <a>下架商品</a>
+    </div>
+    <div class="desc">发布闲置：上传图片、填写名称 / 描述 / 价格 / 分类 / 成色 / 联系方式。商品可随时编辑或下架。</div>
+  </div>
+
+  <div class="module">
+    <div class="module-title">👤 个人中心</div>
+    <div class="links">
+      <a>个人资料编辑</a><span class="sep">|</span>
+      <a>我的商品列表</a><span class="sep">|</span>
+      <a>我的收藏</a><span class="sep">|</span>
+      <a>购物车</a><span class="sep">|</span>
+      <a>历史足迹</a>
+    </div>
+    <div class="desc">Tab 切换：我发布的 / 我收藏的 / 购物车 / 足迹。已购得商品下架管理，紧凑横条卡片布局。</div>
+  </div>
+
+  <div class="module">
+    <div class="module-title">🛒 交易流程</div>
+    <div class="links">
+      <a>收藏商品</a><span class="sep">|</span>
+      <a>加入购物车</a><span class="sep">|</span>
+      <a>联系卖家（微信/QQ）</a>
+    </div>
+    <div class="desc">商品详情页收藏 + 加购按钮，已收藏可取消。购物车支持数量调整和删除，库存上限校验。</div>
+  </div>
+
+  <div class="module">
+    <div class="module-title">🔔 通知系统</div>
+    <div class="links">
+      <a>系统通知列表</a><span class="sep">|</span>
+      <a>未读红点标记</a><span class="sep">|</span>
+      <a>标记已读</a>
+    </div>
+    <div class="desc">全局通知铃铛显示未读数（9+封顶），通知页标记已读/全部已读。</div>
+  </div>
+
+</div>
+
+<!-- ========== AI 推荐（高亮） ========== -->
+<div class="ai-module">
+  <div class="module-title">
+    🤖 AI 智能推荐 <span class="badge">核心亮点</span>
+  </div>
+  <div class="links">
+    <a>热销推荐</a><span class="sep">|</span>
+    <a>猜你喜欢</a><span class="sep">|</span>
+    <a>相似商品推荐</a><span class="sep">|</span>
+    <a>推理过程可视化</a>
+  </div>
+  <div class="desc" style="margin-top:0.5rem;">
+    <strong>五级漏斗架构：</strong> 规则引擎 → 知识图谱 → 协同过滤 → 通义千问 LLM → 排序打分
+  </div>
+  <div class="ai-funnel">
+    <span class="funnel-step">🏷️ 规则引擎</span>
+    <span class="funnel-arrow">→</span>
+    <span class="funnel-step">🔗 知识图谱</span>
+    <span class="funnel-arrow">→</span>
+    <span class="funnel-step">👥 协同过滤</span>
+    <span class="funnel-arrow">→</span>
+    <span class="funnel-step">🧠 通义千问</span>
+    <span class="funnel-arrow">→</span>
+    <span class="funnel-step">📊 排序输出</span>
+  </div>
+  <div class="desc" style="margin-top:0.4rem;">
+    AI 推荐栏展示于首页（Recommendations 组件），用户可展开查看完整推理路径。真实 AI 实现，非简单标签匹配。
+  </div>
+</div>
+
+<!-- ========== 管理员 ========== -->
+<div class="role-row">
+  <div class="role-sidebar">
+    <div class="icon" style="background:#DC2626;color:#fff;">🛡️</div>
+    <div class="label">管理员</div>
+  </div>
+  <div class="role-content">
+    <div class="module">
+      <div class="module-title">⚙️ 管理后台</div>
+      <div class="links">
+        <a>用户列表 / 封禁</a><span class="sep">|</span>
+        <a>商品审核 / 下架</a><span class="sep">|</span>
+        <a>发送系统通知</a><span class="sep">|</span>
+        <a>数据概览统计</a>
+      </div>
+      <div class="desc">管理员专用入口（Shield 图标），管理用户状态、审核商品内容、推送平台通知。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 后端架构 ========== -->
+<div class="module" style="margin-top:0.5rem;">
+  <div class="module-title">🗄️ 后端服务 API</div>
+  <div class="links">
+    <a>商品 CRUD</a><span class="sep">|</span>
+    <a>用户认证 JWT</a><span class="sep">|</span>
+    <a>购物车管理</a><span class="sep">|</span>
+    <a>收藏管理</a><span class="sep">|</span>
+    <a>通知管理</a><span class="sep">|</span>
+    <a>AI 推荐引擎</a><span class="sep">|</span>
+    <a>足迹记录</a>
+  </div>
+  <div class="desc">
+    Express.js RESTful API，MongoDB 数据库（托管 freevian.top），Decimal128 价格序列化双保险。Docker Compose + Nginx 部署，阿里云 2 核 2G，约 300-500 QPS。
+  </div>
+</div>
+
+<!-- ========== 技术栈 ========== -->
+<div class="tech-strip">
+  <span>React 18</span>
+  <span>TailwindCSS</span>
+  <span>Node.js</span>
+  <span>Express</span>
+  <span>MongoDB</span>
+  <span>JWT 认证</span>
+  <span>通义千问 API</span>
+  <span>Docker Compose</span>
+  <span>Nginx</span>
+  <span>阿里云 2C2G</span>
+</div>
+
+<div class="footer-note">
+  freevian.top:5000 · Second-Hand 校园二手交易平台 v3.0
+</div>
+
+</body>
+</html>

@@ -1,0 +1,8 @@
+Creating an optimized production build...
+Failed to compile.
+
+[eslint] 
+src\components\Utility\ProductCard.js
+Syntax error: Unterminated JSX contents. (230:10) (230:10)
+
+
