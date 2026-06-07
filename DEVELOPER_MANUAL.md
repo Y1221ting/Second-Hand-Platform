@@ -243,7 +243,7 @@ docs:    文档更新
 
 ### 4.3 严禁操作
 
-- **严禁 `git add -A` 或 `git add .`** — 可能误提交 .env、node_modules、uploads 图片
+- **严禁 `git add .`** — 可能误提交 .env、node_modules、uploads 图片。请用 `git add <具体文件>`
 - **严禁 `git push --force`** — 会覆盖远程历史
 - **严禁 `npm install` 新包不经过评审** — 每个新依赖都增加安全面和资源消耗
 - **严禁将 .env 内容发给任何人** — 包括截图、日志、代码片段
@@ -867,8 +867,7 @@ docker exec second-hand-backend node scripts/seed.js  # 24条种子数据
 
 | 文档 | 位置 | 用途 |
 |------|------|------|
-| 学习指南 | `STUDY.md` | 比赛演示，技术点讲解 |
-| 审计报告 | `memory/comprehensive-audit-report.md` | 安全审计发现与修复记录 |
+| 上线开发文档 | `上线开发文档.md` | 生产上线 9 模块清单（安全检查/HTTPS/备份/应急等） |
 | 变更日志 | `CHANGELOG.md` | 版本历史 |
 | 项目总结 | `PROJECT_SUMMARY.md` | 项目概述 |
 | 发展方向 | `development.md` | 下阶段规划 |

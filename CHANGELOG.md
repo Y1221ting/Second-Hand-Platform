@@ -57,6 +57,28 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.5.1] — 2026-06-07
+
+### 安全修复
+
+- **IDOR — `getUserById` 隐私泄露**（`userController.js`）：非本人查询时脱敏隐藏 `phoneNo`/`wechat`/`qq`/`email`/`dormitory`
+- **IDOR — `getPurchasedProducts` 越权访问**（`productController.js`）：添加所有权校验，仅允许查看自己的购买记录
+- **MongoDB 连接加固**（`db.js`）：优先使用 `MONGODB_URI_FULL`（Docker 内部网络），公网 URI 改为 localhost
+- **MongoDB 公网暴露验证**：确认 `docker-compose.yml` 端口绑定为 `127.0.0.1:27017`，公网不可达
+
+### 新增文档
+
+- **上线开发文档**（`上线开发文档.md`）：9 模块完整上线清单（安全检查/HTTPS/加固/监控/备份/CI/运营/性能/应急）
+- **CLAUDE.md**：项目执行公约，定义五步工作流程
+
+### 文档清理
+
+- 删除 `STUDY.md`（严重过时约 60%，且泄露数据库密码）
+- 删除 `development.md`（重构实施手册，已完成历史使命）
+- 更新 `DEVELOPER_MANUAL.md`：调整 git 规范、清理过期交叉引用
+
+---
+
 ## [2.4.0] — 2026-06-01
 
 ### 全量安全审计 + 修复（14 漏洞 + 12 索引）
