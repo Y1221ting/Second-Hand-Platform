@@ -3,9 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { FaTrash, FaShoppingCart, FaArrowLeft, FaMinus, FaPlus } from "react-icons/fa";
 import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
+import { useAuth } from "../context/authContext";
 import Loading from "./Utility/Loading";
+import Recommendations from "./Home/Recommendations";
 
 const Cart = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -189,17 +192,27 @@ const Cart = () => {
             </button>
           </div>
         ) : cartItems.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-lg shadow">
-            <FaShoppingCart className="text-6xl text-gray-300 mx-auto mb-4" />
-            <p className="text-xl text-gray-500 mb-2">购物车是空的</p>
-            <p className="text-gray-400 mb-6">快去挑选心仪的商品吧</p>
-            <Link
-              to="/home"
-              className="inline-block bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-8 py-3 rounded-lg font-semibold transition-colors"
-            >
-              去逛逛
-            </Link>
-          </div>
+          <>
+            <div className="text-center py-16 bg-white rounded-lg shadow">
+              <FaShoppingCart className="text-6xl text-gray-300 mx-auto mb-4" />
+              <p className="text-xl text-gray-500 mb-2">购物车是空的</p>
+              <p className="text-gray-400 mb-6">快去挑选心仪的商品吧</p>
+              <Link
+                to="/home"
+                className="inline-block bg-yellow-500 hover:bg-yellow-600 text-gray-900 px-8 py-3 rounded-lg font-semibold transition-colors"
+              >
+                去逛逛
+              </Link>
+            </div>
+            {/* 空购物车推荐商品 */}
+            <div className="mt-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">猜你喜欢</h2>
+              <Recommendations
+                userId={user?.id || null}
+                department={null}
+              />
+            </div>
+          </>
         ) : (
           <>
             {/* 购物车列表 */}
