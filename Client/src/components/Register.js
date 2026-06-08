@@ -44,6 +44,7 @@ const Register = () => {
   const [formErrors, setFormErrors] = useState({});
   const [formError, setFormError] = useState(""); // 表单级错误
   const [submitting, setSubmitting] = useState(false);
+  const [registered, setRegistered] = useState(false);
   const [agreed, setAgreed] = useState(false);
 
   const [majorMap, setMajorMap] = useState({});
@@ -125,8 +126,8 @@ const Register = () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert("注册成功！您的账号正在等待管理员审核，审核通过后即可发布商品。\n\n您现在可以先登录浏览商品。");
-        navigate("/login");
+        setRegistered(true);
+        return;
       } else {
         const mapped = mapBackendError(data.message);
         if (mapped.field) {
@@ -146,6 +147,34 @@ const Register = () => {
     `w-full py-2.5 px-4 rounded-lg bg-gray-50 border ${
       formErrors[name] ? "border-red-400 bg-red-50" : "border-gray-200"
     } focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-sm transition-colors`;
+
+  // 注册成功后显示成功页面
+  if (registered) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4 py-8">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-8 text-center">
+          <p className="text-6xl mb-4">✅</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">注册成功！</h1>
+          <p className="text-gray-500 mb-1">你的账号正在等待管理员审核</p>
+          <p className="text-gray-400 text-sm mb-8">审核通过后即可登录发布商品</p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => navigate("/home")}
+              className="w-full py-3 bg-yellow-500 text-gray-900 rounded-lg font-semibold hover:bg-yellow-600 transition-colors"
+            >
+              先去逛逛
+            </button>
+            <button
+              onClick={() => navigate("/login")}
+              className="w-full py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            >
+              回到登录
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900 px-4 py-8">
