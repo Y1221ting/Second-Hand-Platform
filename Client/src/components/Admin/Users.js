@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { FaTimes, FaBox, FaShoppingCart, FaExclamationTriangle } from "react-icons/fa";
 import Loading from "../Utility/Loading";
 
 const Users = () => {
@@ -11,11 +13,18 @@ const Users = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [confirmId, setConfirmId] = useState(null);
   const [confirmAction, setConfirmAction] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // 详情抽屉
+  const [detailUserId, setDetailUserId] = useState(null);
+  const [detailData, setDetailData] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  // 发送警告
   const [showWarningModal, setShowWarningModal] = useState(false);
   const [warningUserId, setWarningUserId] = useState("");
   const [warningTitle, setWarningTitle] = useState("");
   const [warningContent, setWarningContent] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -47,6 +56,32 @@ const Users = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, roleFilter, statusFilter]);
 
+  // 查看用户详情
+  const handleViewDetail = async (userId) => {
+    setDetailUserId(userId);
+    setDetailData(null);
+    setDetailLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/admin/users/${userId}/detail`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDetailData(data);
+      } else {
+        const err = await res.json();
+        alert(err.message || "获取详情失败");
+        setDetailUserId(null);
+      }
+    } catch {
+      alert("网络错误");
+      setDetailUserId(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   const handleSearch = () => {
     setPage(1);
     fetchUsers();
@@ -66,6 +101,11 @@ const Users = () => {
       });
       if (res.ok) {
         setConfirmId(null);
+        // 如果详情抽屉打开着，关闭它并刷新列表
+        if (detailUserId === userId) {
+          setDetailUserId(null);
+          setDetailData(null);
+        }
         fetchUsers();
       } else {
         const data = await res.json();
@@ -103,7 +143,8 @@ const Users = () => {
         setWarningTitle("");
         setWarningContent("");
         setWarningUserId("");
-        alert("警告已发送");
+        // 刷新详情中的警告列表
+        if (detailUserId) handleViewDetail(detailUserId);
       } else {
         const data = await res.json();
         alert(data.message || "发送失败");
@@ -113,6 +154,16 @@ const Users = () => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const openWarningModal = (userId) => {
+    setWarningUserId(userId);
+    setShowWarningModal(true);
+  };
+
+  const formatPrice = (price) => {
+    const num = Number(price ?? 0);
+    return num % 1 === 0 ? num.toFixed(0) : num.toFixed(1);
   };
 
   if (loading) return <Loading />;
@@ -244,13 +295,10 @@ const Users = () => {
                               {u.status === "banned" ? "解封" : u.status === "inactive" ? "激活" : "封禁"}
                             </button>
                             <button
-                              onClick={() => {
-                                setWarningUserId(u._id);
-                                setShowWarningModal(true);
-                              }}
-                              className="px-2 py-1 bg-yellow-500 text-gray-900 rounded text-xs hover:bg-yellow-600 transition-colors"
+                              onClick={() => handleViewDetail(u._id)}
+                              className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200 transition-colors border border-gray-300"
                             >
-                              警告
+                              查看
                             </button>
                           </>
                         )}
@@ -290,7 +338,181 @@ const Users = () => {
         </div>
       )}
 
-      {/* 发送警告模态框 */}
+      {/* ========== 用户详情抽屉 ========== */}
+      {detailUserId && (
+        <>
+          {/* 遮罩 */}
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => { setDetailUserId(null); setDetailData(null); }} />
+          {/* 抽屉 */}
+          <div className="fixed top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl z-50 overflow-y-auto transition-transform">
+            {/* 头部 */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+              <h2 className="text-lg font-bold text-gray-900">用户详情</h2>
+              <button
+                onClick={() => { setDetailUserId(null); setDetailData(null); }}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {detailLoading ? (
+              <div className="p-6"><Loading /></div>
+            ) : detailData ? (
+              <div className="p-6 space-y-6">
+                {/* 用户基本信息 */}
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{detailData.user.fullName}</h3>
+                  <p className="text-sm text-gray-500 mt-0.5">{detailData.user.email}</p>
+                  <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-600">
+                    <span>{detailData.user.department || "-"} · {detailData.user.major || "-"}</span>
+                    {detailData.user.dormitory && <span>宿舍：{detailData.user.dormitory}</span>}
+                    {detailData.user.phoneNo && <span>手机：{detailData.user.phoneNo.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")}</span>}
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      detailData.user.role === "admin" ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-800"
+                    }`}>
+                      {detailData.user.role === "admin" ? "管理员" : "用户"}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                      detailData.user.status === "banned" ? "bg-red-100 text-red-800" :
+                      detailData.user.status === "inactive" ? "bg-yellow-100 text-yellow-800" :
+                      "bg-green-100 text-green-800"
+                    }`}>
+                      {detailData.user.status === "banned" ? "已封禁" : detailData.user.status === "inactive" ? "待审核" : "正常"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">
+                    注册时间：{new Date(detailData.user.createdAt).toLocaleString("zh-CN")}
+                  </p>
+                </div>
+
+                {/* 操作按钮 */}
+                <div className="flex gap-2">
+                  {detailData.user.role !== "admin" && (
+                    <>
+                      {detailData.user.status !== "banned" && (
+                        <button
+                          onClick={() => openWarningModal(detailData.user._id)}
+                          className="px-4 py-2 bg-yellow-500 text-gray-900 rounded-lg text-sm font-medium hover:bg-yellow-600 transition-colors"
+                        >
+                          发送警告
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          const newStatus = detailData.user.status === "banned" ? "active"
+                            : detailData.user.status === "inactive" ? "active" : "banned";
+                          if (window.confirm(`确定${newStatus === "banned" ? "封禁" : newStatus === "active" ? "激活" : ""}该用户？`)) {
+                            handleBan(detailData.user._id, newStatus);
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          detailData.user.status === "banned"
+                            ? "bg-green-500 text-white hover:bg-green-600"
+                            : "bg-red-500 text-white hover:bg-red-600"
+                        }`}
+                      >
+                        {detailData.user.status === "banned" ? "解封" : detailData.user.status === "inactive" ? "激活" : "封禁"}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* 发布商品 */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FaBox className="text-gray-500 text-xs" />
+                    <h3 className="text-sm font-bold text-gray-900">发布商品（{detailData.productCount}）</h3>
+                  </div>
+                  {detailData.products.length === 0 ? (
+                    <p className="text-sm text-gray-400 pl-5">暂无商品</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {detailData.products.map((p) => (
+                        <Link
+                          key={p._id}
+                          to={`/product/${p._id}`}
+                          target="_blank"
+                          className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+                        >
+                          <div
+                            className="w-10 h-10 rounded bg-gray-200 bg-cover bg-center shrink-0"
+                            style={{ backgroundImage: p.images?.[0] ? `url(${p.images[0]})` : undefined }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{p.name}</p>
+                            <p className="text-gray-400 text-xs">¥{formatPrice(p.price)}</p>
+                          </div>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            p.status === "unsold" ? "bg-green-100 text-green-800" :
+                            p.status === "inactive" ? "bg-red-100 text-red-800" :
+                            "bg-gray-100 text-gray-800"
+                          }`}>
+                            {p.status === "unsold" ? "在售" : p.status === "inactive" ? "已下架" : p.status === "sold_out" ? "售罄" : p.status}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 购买记录 */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FaShoppingCart className="text-gray-500 text-xs" />
+                    <h3 className="text-sm font-bold text-gray-900">购买记录（{detailData.purchasedCount}）</h3>
+                  </div>
+                  {detailData.purchased.length === 0 ? (
+                    <p className="text-sm text-gray-400 pl-5">暂无购买记录</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {detailData.purchased.map((p) => (
+                        <div key={p._id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg text-sm">
+                          <div
+                            className="w-10 h-10 rounded bg-gray-200 bg-cover bg-center shrink-0"
+                            style={{ backgroundImage: p.images?.[0] ? `url(${p.images[0]})` : undefined }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{p.name}</p>
+                            <p className="text-gray-400 text-xs">¥{formatPrice(p.price)} · 卖家 {p.uploadedBy?.name || "-"}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 警告记录 */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <FaExclamationTriangle className="text-gray-500 text-xs" />
+                    <h3 className="text-sm font-bold text-gray-900">警告记录</h3>
+                  </div>
+                  {detailData.warnings.length === 0 ? (
+                    <p className="text-sm text-gray-400 pl-5">暂无警告记录</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {detailData.warnings.map((w) => (
+                        <div key={w._id} className="p-3 bg-yellow-50 rounded-lg border border-yellow-100 text-sm">
+                          <div className="flex items-center justify-between">
+                            <p className="font-medium text-yellow-800">{w.title}</p>
+                            <span className="text-xs text-yellow-600">{new Date(w.createdAt).toLocaleDateString("zh-CN")}</span>
+                          </div>
+                          {w.content && <p className="text-xs text-yellow-700 mt-1">{w.content}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </>
+      )}
+
+      {/* ========== 发送警告模态框 ========== */}
       {showWarningModal && (
         <>
           <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowWarningModal(false)} />
