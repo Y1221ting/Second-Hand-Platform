@@ -330,7 +330,7 @@ const ProductDetails = ({ productId }) => {
             {userId === productDetails.uploadedBy?.id ? (
               <p className="mt-8 text-lg text-gray-500 italic">这是您的商品</p>
             ) : (
-              <div className="mt-8 flex gap-4 flex-wrap">
+              <div className="hidden md:flex mt-8 gap-4 flex-wrap">
                 <button
                   onClick={handleContactSeller}
                   disabled={contactLoading}
@@ -445,7 +445,8 @@ const ProductDetails = ({ productId }) => {
       />
     </div>
 
-      {/* 移动端底部固定操作栏 */}
+      {/* 移动端底部固定操作栏（非本人商品） */}
+      {userId !== productDetails.uploadedBy?.id && (
       <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.1)] md:hidden z-40 px-4 py-3">
         <div className="flex items-center gap-2 max-w-lg mx-auto">
           <button
@@ -488,6 +489,7 @@ const ProductDetails = ({ productId }) => {
           )}
         </div>
       </div>
+      )}
     </>
   );
 };
