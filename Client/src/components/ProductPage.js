@@ -1,20 +1,29 @@
 import React from "react";
-import { useParams } from "react-router-dom";
-import ProductDetails from "./Product_Details/ProductDetails"; // Import the product details component
+import { useParams, useNavigate } from "react-router-dom";
+import { FaArrowLeft } from "react-icons/fa";
+import ProductDetails from "./Product_Details/ProductDetails";
 import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 
 const ProductPage = () => {
-  const { id } = useParams(); // Get the product ID from the route parameter
+  const { id } = useParams();
+  const navigate = useNavigate();
   return (
     <div>
       <Navbar hideMobileTabBar />
       <main className="mx-auto w-full md:w-4/5 p-4 ">
-        <h1 className="text-3xl font-semibold text-gray-900">
-          商品详情
-        </h1>
-        {id && <ProductDetails productId={id} />}{" "}
-        {/* Render the product details component */}
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <FaArrowLeft size={20} />
+          </button>
+          <h1 className="text-3xl font-semibold text-gray-900">
+            商品详情
+          </h1>
+        </div>
+        {id && <ProductDetails productId={id} />}
       </main>
       <Footer />
     </div>

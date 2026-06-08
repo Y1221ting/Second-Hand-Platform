@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/authContext";
-import { FaBell, FaCheckCircle } from "react-icons/fa";
+import { FaBell, FaCheckCircle, FaArrowLeft } from "react-icons/fa";
 import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import Loading from "./Utility/Loading";
@@ -97,7 +97,15 @@ const Notifications = () => {
       <Navbar />
       <div className="max-w-3xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">系统通知</h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <FaArrowLeft size={20} />
+            </button>
+            <h1 className="text-2xl font-bold text-gray-900">系统通知</h1>
+          </div>
           {unreadCount > 0 && (
             <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
               {unreadCount} 条未读

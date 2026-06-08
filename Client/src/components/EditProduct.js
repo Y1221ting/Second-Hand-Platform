@@ -3,6 +3,7 @@ import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/authContext";
+import { FaArrowLeft } from "react-icons/fa";
 import ProductForm from "./Edit_Product/ProductForm";
 
 // 错误边界：捕获渲染崩溃并显示详情，而非白屏
@@ -262,9 +263,17 @@ const EditProduct = () => {
       <div className="min-h-screen">
         <Navbar />
         <div className="w-4/5 mx-auto py-4">
-          <h1 className="text-3xl font-semibold text-gray-900 mb-4">
-            编辑商品
-          </h1>
+          <div className="flex items-center gap-3 mb-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <FaArrowLeft size={20} />
+            </button>
+            <h1 className="text-3xl font-semibold text-gray-900 mb-0">
+              编辑商品
+            </h1>
+          </div>
           <ProductForm
             formData={formData}
             handleChange={handleChange}
