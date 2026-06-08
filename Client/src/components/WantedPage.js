@@ -46,6 +46,9 @@ const WantedPage = () => {
   const [publishSuccess, setPublishSuccess] = useState(false);
   const [publishedName, setPublishedName] = useState("");
 
+  // ── 联系弹窗 ──
+  const [contactTarget, setContactTarget] = useState(null);
+
   // ── 获取数据 ──
   const fetchWanteds = useCallback(async (p, append = false) => {
     if (!append) setLoading(true);
@@ -153,24 +156,16 @@ const WantedPage = () => {
     }
   };
 
-  // ── 一键联系（复制预设话术） ──
-  const handleContact = (w) => {
-    const msg = `同学你好，我在校园二手市场看到你求购「${w.name}」，我正好有，方便联系吗？${
-      w.contact ? `（我的联系方式：${w.contact}）` : ""
-    }`;
-    navigator.clipboard.writeText(msg).then(
-      () => alert("✅ 话术已复制到剪贴板，去微信/QQ粘贴联系TA吧！"),
-      () => {
-        // 降级：选中文本框让用户手动复制
-        const ta = document.createElement("textarea");
-        ta.value = msg;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand("copy");
-        document.body.removeChild(ta);
-        alert("✅ 话术已复制到剪贴板，去微信/QQ粘贴联系TA吧！");
-      }
-    );
+  // ── 复制工具（降级兼容） ──
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).catch(() => {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    });
   };
 
   return (
@@ -397,18 +392,23 @@ const WantedPage = () => {
                     <p className="text-xs text-gray-500 mb-2 line-clamp-2">{w.description}</p>
                   )}
 
-                  {/* 底部：发布人 + 联系按钮 */}
-                  <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-50">
-                    <span className="text-xs text-gray-400 truncate mr-2">
+                  {/* 底部：发布人 + 联系方式 + 联系按钮 */}
+                  <div className="flex flex-wrap items-center justify-between mt-3 pt-2 border-t border-gray-50 gap-1">
+                    <span className="text-xs text-gray-400 truncate max-w-[50%]">
                       {w.postedBy?.department || ""} · {w.postedBy?.name || "同学"}
                     </span>
                     {w.contact ? (
-                      <button
-                        onClick={() => handleContact(w)}
-                        className="text-xs px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shrink-0"
-                      >
-                        联系TA
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-gray-500 truncate max-w-[100px]">
+                          📱 {w.contact}
+                        </span>
+                        <button
+                          onClick={() => setContactTarget(w)}
+                          className="text-xs px-3 py-1.5 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors shrink-0"
+                        >
+                          联系TA
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-[10px] text-gray-300 shrink-0">暂无联系方式</span>
                     )}
@@ -436,6 +436,71 @@ const WantedPage = () => {
           </>
         )}
       </div>
+
+      {/* ── 联系弹窗 ── */}
+      {contactTarget && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setContactTarget(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl p-5 w-80 max-w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-gray-900 mb-1">联系发布者</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              求购「{contactTarget.name}」
+            </p>
+
+            {/* 对方联系方式 */}
+            <div className="mb-4">
+              <p className="text-xs text-gray-400 mb-1">📞 对方留下的联系方式：</p>
+              <div className="bg-gray-50 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-800 break-all">
+                {contactTarget.contact}
+              </div>
+            </div>
+
+            {/* 预设话术 */}
+            <div className="mb-4">
+              <p className="text-xs text-gray-400 mb-1">💬 复制以下话术加好友：</p>
+              <div className="bg-gray-50 rounded-lg px-3 py-2.5 text-sm text-gray-600 leading-relaxed">
+                同学你好，我在校园二手市场看到你求购「{contactTarget.name}」，
+                我正好有，方便通过一下吗？
+              </div>
+            </div>
+
+            {/* 按钮组 */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  copyToClipboard(contactTarget.contact);
+                  alert("✅ 联系方式已复制，去微信/QQ粘贴添加好友吧！");
+                }}
+                className="flex-1 py-2.5 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors"
+              >
+                📋 复制联系方式
+              </button>
+              <button
+                onClick={() => {
+                  const msg = `同学你好，我在校园二手市场看到你求购「${contactTarget.name}」，我正好有，方便通过一下吗？`;
+                  copyToClipboard(msg);
+                  alert("✅ 话术已复制，快去粘贴联系TA吧！");
+                }}
+                className="flex-1 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                💬 复制话术
+              </button>
+            </div>
+
+            <button
+              onClick={() => setContactTarget(null)}
+              className="w-full mt-3 py-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              关闭
+            </button>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
