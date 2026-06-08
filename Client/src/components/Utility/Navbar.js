@@ -327,6 +327,23 @@ const Navbar = () => {
       </div>
     </nav>
 
+      {/* 审核状态提示条 */}
+      {isAuthenticated && user?.status === "inactive" && !localStorage.getItem("audit_banner_dismissed") && (
+        <div className="relative bg-yellow-600 text-white text-center py-2 px-4 text-sm flex items-center justify-center gap-2">
+          <span>⏳ 账号审核中，审核通过后可正常使用</span>
+          <button
+            onClick={() => {
+              localStorage.setItem("audit_banner_dismissed", "1");
+              setSearchTerm((prev) => prev);
+            }}
+            className="text-white/80 hover:text-white shrink-0"
+            aria-label="关闭"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* 移动端底部 Tab 栏 */}
       <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 md:hidden z-50">
         <div className="flex justify-around items-center py-2 px-1">
