@@ -129,7 +129,7 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
 
         {isOwner ? (
           <button
-            className="w-full flex items-center justify-center gap-1 px-2 py-1.5 rounded bg-gray-600 text-gray-300 cursor-not-allowed text-xs"
+            className="w-full flex items-center justify-center gap-1 px-2 py-2.5 rounded bg-gray-600 text-gray-300 cursor-not-allowed text-xs"
             disabled
           >
             <FaShoppingCart />
@@ -138,7 +138,7 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
         ) : (
           <div className="grid grid-cols-2 gap-1.5">
             <button
-              className={`flex items-center justify-center gap-1 px-1 py-1.5 rounded text-xs border transition-colors duration-200 ${
+              className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded text-xs border transition-colors duration-200 ${
                 product.status === "sold_out" || product.quantity <= 0
                   ? "border-gray-500 text-gray-500 cursor-not-allowed"
                   : clickedButtonId === product._id
@@ -165,7 +165,7 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
             </button>
 
             <button
-              className={`flex items-center justify-center gap-1 px-1 py-1.5 rounded text-xs font-medium transition-colors duration-200 ${
+              className={`flex items-center justify-center gap-1 px-1 py-2.5 rounded text-xs font-medium transition-colors duration-200 ${
                 product.status === "sold_out" || product.quantity <= 0
                   ? "bg-gray-500 text-gray-300 cursor-not-allowed"
                   : "bg-yellow-500 text-gray-900 hover:bg-yellow-400"
