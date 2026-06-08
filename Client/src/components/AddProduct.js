@@ -51,6 +51,63 @@ const AddProduct = () => {
   const [priceError, setPriceError] = useState("");
   const [tab, setTab] = useState("sell"); // "sell" | "buy"
 
+  // ===== 草稿自动保存 =====
+  const PRODUCT_DRAFT_KEY = "product_draft";
+  const [hasDraft, setHasDraft] = useState(false);
+  const draftRestoredRef = useRef(false); // 防止恢复草稿后立即触发覆盖保存
+
+  // 进入页面时检测是否有草稿
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PRODUCT_DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.name || parsed.description || parsed.price) {
+          setHasDraft(true);
+        }
+      }
+    } catch { /* 静默 */ }
+  }, []);
+
+  // 表单内容变化时自动保存（防抖 500ms，仅出售表单，不存图片）
+  useEffect(() => {
+    if (draftRestoredRef.current) {
+      draftRestoredRef.current = false;
+      return;
+    }
+    const hasContent = formData.name || formData.description || formData.price || formData.specifications.length > 0;
+    if (!hasContent || tab !== "sell") return;
+    const timer = setTimeout(() => {
+      const draft = { ...formData, images: [] };
+      localStorage.setItem(PRODUCT_DRAFT_KEY, JSON.stringify(draft));
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [formData, tab]);
+
+  const handleRestoreDraft = () => {
+    try {
+      const saved = localStorage.getItem(PRODUCT_DRAFT_KEY);
+      if (!saved) return;
+      const draft = JSON.parse(saved);
+      setFormData({
+        name: draft.name || "",
+        category: draft.category || "其他",
+        description: draft.description || "",
+        price: draft.price || "",
+        images: [],
+        specifications: draft.specifications || [],
+      });
+      localStorage.removeItem(PRODUCT_DRAFT_KEY);
+      setHasDraft(false);
+      draftRestoredRef.current = true; // 跳过本次自动保存（刚恢复又存回去会死循环）
+    } catch { /* 静默 */ }
+  };
+
+  const handleDiscardDraft = () => {
+    localStorage.removeItem(PRODUCT_DRAFT_KEY);
+    setHasDraft(false);
+  };
+
   // 求购表单
   const [wantedForm, setWantedForm] = useState({
     name: "",
@@ -206,6 +263,7 @@ const AddProduct = () => {
 
       if (response.ok) {
         alert("商品发布成功！");
+        localStorage.removeItem(PRODUCT_DRAFT_KEY);
         navigate("/home");
       } else {
         const errorData = await response.json();
@@ -373,6 +431,30 @@ const AddProduct = () => {
           </form>
         ) : (
           /* 出售表单（原有） */
+
+        {/* 草稿提示条 */}
+        {hasDraft && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg flex items-center justify-between">
+            <span className="text-sm text-yellow-800">📝 找到未发布的草稿</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleRestoreDraft}
+                className="text-xs px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors"
+              >
+                恢复草稿
+              </button>
+              <button
+                type="button"
+                onClick={handleDiscardDraft}
+                className="text-xs px-3 py-1 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
+              >
+                放弃
+              </button>
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit}>
           {/* 快速模板 */}
           <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
