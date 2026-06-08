@@ -112,6 +112,12 @@ All notable changes to this project will be documented in this file.
 - **Dashboard 待办事项**（`Dashboard.js`）：数字卡片下方新增待办区块，待审核用户/待处理举报一键跳转，已处理显示 ✅
 - **用户详情抽屉**（`adminRoutes.js` + `Users.js`）：新增 `GET /api/admin/users/:id/detail` 聚合接口，「查看」按钮替代「警告」，右侧滑出面板（用户信息/商品/购买/警告记录/操作）
 
+### Mobile — 移动端体验优化（第一期）
+
+- **管理后台侧边栏移动端折叠**（`AdminLayout.js`）：固定侧边栏改为移动端汉堡菜单 + 滑出覆盖层 + 过渡动画
+- **购物车列表响应式**（`Cart.js`）：移动端商品行改为双行布局，触控区域加大（进行中）
+- **更多优化计划**：参见 `移动端体验优化方案.md`
+
 ### 文档同步
 
 - **CHANGELOG.md**：更新 v2.6.0 完整变更记录

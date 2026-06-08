@@ -877,6 +877,7 @@ docker exec second-hand-backend node scripts/seed.js  # 24条种子数据
 | 变更日志 | `CHANGELOG.md` | 版本历史 |
 | 项目执行公约 | `CLAUDE.md` | AI 开发工作流规范 |
 | 产品体验优化方案 | `产品体验优化方案.md` | 全量 UX 优化计划与排期 |
+| 移动端体验优化 | `移动端体验优化方案.md` | 移动端适配问题清单与修复计划 |
 
 ### 记忆目录
 
