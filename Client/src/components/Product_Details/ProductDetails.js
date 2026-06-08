@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { FaEdit, FaShoppingCart, FaChevronLeft, FaChevronRight, FaTimes, FaExpand } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
 import Dialog from "./Dialog";
 import Loading from "../Utility/Loading";
+import ErrorBanner from "../Utility/ErrorBanner";
 import Recommendations from "../Home/Recommendations";
 
 // 价格格式化：整数去 .0，非整数保留一位小数
@@ -18,10 +19,36 @@ const ProductDetails = ({ productId }) => {
   const userId = user ? user.id : null;
   const [clickedButtonId, setClickedButtonId] = useState(null);
   const [productDetails, setProductDetails] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
+  const [notFound, setNotFound] = useState(false);
   const [cartAdded, setCartAdded] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [isDialogOpen, setDialogOpen] = useState(false);
+
+  // 提取商品详情加载逻辑，useEffect 和重试按钮都能调用
+  const fetchProductDetails = useCallback(async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    setNotFound(false);
+    setProductDetails(null);
+    try {
+      const response = await fetch(`/api/products/${productId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setProductDetails(data);
+      } else if (response.status === 404) {
+        setNotFound(true);
+      } else {
+        setFetchError("服务器响应异常，请稍后重试");
+      }
+    } catch {
+      setFetchError("网络连接失败，请检查后重试");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [productId]);
 
   const handleConfirmPurchase = async (userData) => {
     try {
@@ -101,28 +128,27 @@ const ProductDetails = ({ productId }) => {
   };
 
   useEffect(() => {
-    // Fetch the product details from the API using the productID from the URL params
-    const fetchProductDetails = async () => {
-      try {
-        const response = await fetch(
-          `/api/products/${productId}`
-        ); // Replace with your API endpoint
-        if (response.ok) {
-          const data = await response.json();
-          setProductDetails(data);
-        } else {
-          console.error("Failed to fetch product details");
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
     fetchProductDetails();
-  }, [productId]);
+  }, [fetchProductDetails]);
 
-  if (!productDetails) {
+  if (isLoading) {
     return <Loading />;
+  }
+
+  if (notFound) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-gray-400">
+        <p className="text-5xl mb-4">😕</p>
+        <p className="text-xl text-gray-500 mb-2">商品不存在或已被删除</p>
+        <Link to="/home" className="text-yellow-500 hover:underline">
+          返回首页
+        </Link>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return <ErrorBanner message={fetchError} onRetry={fetchProductDetails} fullPage />;
   }
 
   return (
