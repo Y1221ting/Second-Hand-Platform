@@ -79,6 +79,46 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2.6.0] — 2026-06-08
+
+### Phase 1 — 快速修复
+
+- **商品卡片按钮语义修正**（`ProductCard.js`）：「购买」→「查看」，图标 `FaBolt` → `FaEye`，消除认知误导
+- **购物车结算补收货确认弹窗**（`Cart.js` + `cartController.js`）：`window.confirm` 替换为 Dialog 组件，`checkoutCart` 接受 body 覆盖字段（与 `purchaseProduct` 一致），两条购买路径统一
+- **页面 title + meta**（`index.html`）：`"React App"` → `"校园二手市场 - SecondHand"`，新增 `lang="zh-CN"` 和 meta description
+- **商品不存在 404 处理**（`ProductDetails.js`）：`notFound` 状态 + 😕 提示 + 返回首页链接
+
+### Phase 2 — 体验升级
+
+- **移动端底部 Tab 栏**（`Navbar.js`）：固定底部导航（首页/发布/购物车/通知/我的），`<body>` 加 `padding-bottom: 4rem` 防止内容被遮挡
+- **骨架屏替代 Loading**（`SkeletonCard.js` + `Home/index.js`）：8 张 `animate-pulse` 骨架卡片，展示商品卡片布局占位
+- **价格去 `.0`**（`ProductCard.js` + `ProductDetails.js`）：`formatPrice` 函数，整数去小数位，非整数保留一位
+- **审核状态提示条**（`Navbar.js`）：inactive 用户顶部黄色提示条「您的账号正在审核中」，可关闭（localStorage 缓存）
+- **图片上传预览**（`AddProduct.js`）：选择后显示缩略图网格 + 删除按钮，`URL.createObjectURL` + `useRef` 清理防内存泄漏
+- **API 请求失败 ErrorBanner**（`ErrorBanner.js`）：统一 ⚠️ 错误提示 + 重试按钮，应用于 Home 首页 / ProductDetails 详情页
+- **网络断连离线提示**（`App.js`）：`navigator.onLine` + `online`/`offline` 事件监听，红色固定提示条
+- **注册成功页面**（`Register.js`）：`alert()` → ✅ 注册成功页面，带「先去逛逛」和「回到登录」按钮
+- **登录页待审核出口**（`Login.js`）：错误包含「审核」时显示「先去逛逛 →」链接
+- **越权修复**（`productController.js` + `cartController.js`）：`purchaseProduct` 和 `checkoutCart` 加 inactive 用户检查
+
+### Phase 3 — 功能补全
+
+- **统一 Lightbox 组件**（`Lightbox.js` + `ProductDetails.js`）：抽取独立组件，支持单图/多图/键盘导航（ESC 关闭/左右切换），替换内联灯箱代码（-40行）
+- **Footer 死链接清理**（`Footer.js`）：「交易规则」补 /faq 链接，删除无对应页面的「联系客服」「平台介绍」「意见反馈」
+- **空规格引导文案**（`ProductDetails.js`）：卖家看到「编辑商品可添加规格参数」，买家看到「卖家暂未填写规格参数」
+- **空购物车推荐商品**（`Cart.js`）：空购物车时展示「猜你喜欢」推荐列表
+- **联系卖家功能**（`ContactSeller.js` + `productController.js` + `productRoutes.js`）：新增 `GET /api/products/:id/seller-contact` 接口（登录可见，手机号脱敏）+ 弹窗组件（一键复制，兼容 HTTP 环境）
+- **Dashboard 趋势图**（`adminRoutes.js` + `Dashboard.js`）：新增 `GET /api/admin/stats/trend` 接口，纯 CSS 柱状图显示近 7 天新增用户/商品/举报趋势
+- **Dashboard 待办事项**（`Dashboard.js`）：数字卡片下方新增待办区块，待审核用户/待处理举报一键跳转，已处理显示 ✅
+- **用户详情抽屉**（`adminRoutes.js` + `Users.js`）：新增 `GET /api/admin/users/:id/detail` 聚合接口，「查看」按钮替代「警告」，右侧滑出面板（用户信息/商品/购买/警告记录/操作）
+
+### 文档同步
+
+- **CHANGELOG.md**：更新 v2.6.0 完整变更记录
+- **CLAUDE.md**：项目执行公约持续遵守
+
+---
+
 ## [2.4.0] — 2026-06-01
 
 ### 全量安全审计 + 修复（14 漏洞 + 12 索引）

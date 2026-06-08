@@ -1,6 +1,6 @@
 # 校园二手交易平台 — 新手开发手册
 
-> 最后更新：2026-06-02 | 当前版本：v2.5.0（审计修复版）
+> 最后更新：2026-06-08 | 当前版本：v2.6.0（产品体验优化）
 
 ---
 
@@ -41,7 +41,7 @@
 | 交易系统 | 直接购买（原子减库存）、购物车批量结算 |
 | 订单系统 | 购买记录、售出记录、订单状态管理 |
 | 内容治理 | 举报处理、违禁词过滤（50+关键词）、管理员后台 |
-| 消息通知 | 系统通知、未读角标、管理员警告 |
+| 消息通知 | 系统通知、未读角标、管理员警告、站内私信（联系卖家） |
 | 求购广场 | 发布求购、浏览求购列表 |
 | 安全防护 | NoSQL 注入防护、PII 脱敏、CSP 安全头、文件 magic bytes 验证、防爆库 maxlength、tokenVersion 吊销 |
 
@@ -862,6 +862,12 @@ docker exec second-hand-backend node scripts/seed.js  # 24条种子数据
 | 改安全策略 | `Server/server.js`（CSP/CORS/限流） |
 | 改 Nginx 配置 | `Client/nginx.conf` |
 | 改密码规则 | `Server/models/User.js` + `Server/controllers/userController.js` |
+| 改商品卡片 | `Client/src/components/Utility/ProductCard.js` |
+| 改骨架屏 | `Client/src/components/Utility/SkeletonCard.js` |
+| 改灯箱 | `Client/src/components/Utility/Lightbox.js` |
+| 改错误提示 | `Client/src/components/Utility/ErrorBanner.js` |
+| 改联系卖家弹窗 | `Client/src/components/Product_Details/ContactSeller.js` |
+| 改管理后台 | `Client/src/components/Admin/` + `Server/routes/adminRoutes.js` |
 
 ### 参考文档
 
@@ -869,8 +875,8 @@ docker exec second-hand-backend node scripts/seed.js  # 24条种子数据
 |------|------|------|
 | 上线开发文档 | `上线开发文档.md` | 生产上线 9 模块清单（安全检查/HTTPS/备份/应急等） |
 | 变更日志 | `CHANGELOG.md` | 版本历史 |
-| 项目总结 | `PROJECT_SUMMARY.md` | 项目概述 |
-| 发展方向 | `development.md` | 下阶段规划 |
+| 项目执行公约 | `CLAUDE.md` | AI 开发工作流规范 |
+| 产品体验优化方案 | `产品体验优化方案.md` | 全量 UX 优化计划与排期 |
 
 ### 记忆目录
 
