@@ -447,19 +447,22 @@ const ProductDetails = ({ productId }) => {
 
       {/* 移动端底部固定操作栏（非本人商品） */}
       {userId !== productDetails.uploadedBy?.id && (
-      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.1)] md:hidden z-40 px-4 py-3">
+      <div className="fixed bottom-16 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 md:hidden z-40 px-3 py-2.5 animate-slide-up">
         <div className="flex items-center gap-2 max-w-lg mx-auto">
+          {/* 联系卖家 — 圆形图标 */}
           <button
             onClick={handleContactSeller}
             disabled={contactLoading}
-            className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-lg border border-blue-500 text-blue-600 text-sm font-medium hover:bg-blue-50 transition-colors disabled:opacity-60"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-800 hover:bg-gray-700 text-blue-400 transition-all active:scale-90 disabled:opacity-50 shrink-0"
+            title="联系卖家"
           >
-            <FaComment className="text-xs" />
-            {contactLoading ? "加载中..." : "联系卖家"}
+            <FaComment size={15} />
           </button>
+
+          {/* 加入购物车 */}
           {productDetails.status === "sold_out" || productDetails.quantity <= 0 ? (
             <button
-              className="flex-[2] py-2.5 rounded-lg bg-gray-400 text-white text-sm font-medium cursor-not-allowed flex items-center justify-center gap-1.5"
+              className="flex-[2] py-2.5 rounded-lg bg-gray-700 text-gray-400 text-sm font-medium cursor-not-allowed flex items-center justify-center gap-1.5"
               disabled
             >
               <FaShoppingCart className="text-xs" />
@@ -469,20 +472,20 @@ const ProductDetails = ({ productId }) => {
             <>
               <button
                 onClick={() => handleAddToCartOnly(productDetails._id)}
-                className={`flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all active:scale-[0.97] ${
                   cartAdded
-                    ? "bg-green-500 text-white"
-                    : "bg-gray-900 text-white hover:bg-gray-800"
+                    ? "bg-green-600 text-white"
+                    : "bg-gray-800 text-gray-200 border border-gray-600 hover:bg-gray-700"
                 }`}
               >
-                <FaShoppingCart className="text-xs" />
-                {cartAdded ? "已加入 ✓" : "加购"}
+                {cartAdded ? (
+                  <span className="flex items-center justify-center gap-1"><span className="text-xs">✓</span> 已加入</span>
+                ) : "加入购物车"}
               </button>
               <button
                 onClick={() => handleAddToCart(productDetails._id)}
-                className="flex items-center justify-center gap-1.5 flex-[1.3] py-2.5 rounded-lg bg-yellow-500 text-gray-900 text-sm font-medium hover:bg-yellow-400 transition-colors"
+                className="flex-[1.3] py-2.5 rounded-lg bg-yellow-500 text-gray-900 text-sm font-bold transition-all active:scale-[0.97] hover:bg-yellow-400"
               >
-                <FaShoppingCart className="text-xs" />
                 立即购买
               </button>
             </>
