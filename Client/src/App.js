@@ -18,6 +18,7 @@ const AddProduct = lazy(() => import("./components/AddProduct"));
 const EditProduct = lazy(() => import("./components/EditProduct"));
 const Cart = lazy(() => import("./components/Cart"));
 const Warnings = lazy(() => import("./components/Warnings"));
+const WantedPage = lazy(() => import("./components/WantedPage"));
 const Privacy = lazy(() => import("./components/Privacy"));
 const FAQ = lazy(() => import("./components/FAQ"));
 
@@ -101,6 +102,10 @@ const App = () => {
                 <Route
                   path="/add-product"
                   element={<ProtectedRoute><AddProduct /></ProtectedRoute>}
+                />
+                <Route
+                  path="/wanted"
+                  element={<ProtectedRoute><WantedPage /></ProtectedRoute>}
                 />
                 <Route
                   path="/product/:id/edit"

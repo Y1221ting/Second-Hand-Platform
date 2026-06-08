@@ -30,6 +30,11 @@ const Footer = () => {
                   </Link>
                 </li>
                 <li>
+                  <Link to="/wanted" className="hover:text-yellow-500 transition duration-300">
+                    同学求购
+                  </Link>
+                </li>
+                <li>
                   <Link to="/add-product" className="hover:text-yellow-500 transition duration-300">
                     发布商品
                   </Link>

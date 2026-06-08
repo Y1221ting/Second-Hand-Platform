@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import Filters from "./Filters";
 import ProductList from "./ProductList";
 import Pagination from "./Pagination";
@@ -9,7 +9,6 @@ import SkeletonCard from "../Utility/SkeletonCard";
 import ErrorBanner from "../Utility/ErrorBanner";
 import HomeBanner from "./HomeBanner";
 import Recommendations from "./Recommendations";
-import WantedList from "./WantedList";
 import Announcement from "./Announcement";
 import { useAuth } from "../../context/authContext";
 
@@ -23,6 +22,7 @@ const ProductsList = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const [filterCounts, setFilterCounts] = useState(null);
+  const [wantedsCount, setWantedsCount] = useState(0);
 
   // 学院-专业映射
   const [majorMap, setMajorMap] = useState({});
@@ -46,6 +46,14 @@ const ProductsList = () => {
       .then((res) => res.json())
       .then((data) => setFilterCounts(data))
       .catch(() => setFilterCounts(null)); // 静默失败
+  }, []);
+
+  // 获取求购总数（用于入口 banner）
+  useEffect(() => {
+    fetch("/api/wanted?page=1&limit=1")
+      .then((res) => res.json())
+      .then((data) => setWantedsCount(data.total || 0))
+      .catch(() => {});
   }, []);
 
   // 从 URL 读取所有筛选参数（唯一数据源）
@@ -209,7 +217,19 @@ const ProductsList = () => {
     <main className="lg:w-4/5 mx-4 md:mx-auto py-4">
       <Announcement />
       <HomeBanner departments={departments} />
-      <WantedList />
+      {wantedsCount > 0 && (
+        <Link
+          to="/wanted"
+          className="block mb-4 p-3 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-green-800">
+              📢 当前有 {wantedsCount} 位同学在求购商品
+            </span>
+            <span className="text-xs text-green-600 font-medium">去看看 →</span>
+          </div>
+        </Link>
+      )}
       {user?.department && (
         <Recommendations
           userId={user.id}

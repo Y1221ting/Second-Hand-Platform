@@ -251,6 +251,12 @@ const Navbar = ({ hideMobileTabBar = false }) => {
               首页
             </Link>
             <Link
+              to="/wanted"
+              className="hidden md:inline text-white hover:text-yellow-500 px-3 py-1 text-sm font-medium transition-colors whitespace-nowrap"
+            >
+              同学求购
+            </Link>
+            <Link
               to="/add-product"
               className="hidden md:inline text-white hover:text-yellow-500 px-3 py-1 text-sm font-medium transition-colors whitespace-nowrap"
             >
@@ -323,6 +329,13 @@ const Navbar = ({ hideMobileTabBar = false }) => {
                       onClick={() => setIsDropdownOpen(false)}
                     >
                       发布商品
+                    </Link>
+                    <Link
+                      to="/wanted"
+                      className="block px-4 py-2.5 text-gray-700 hover:bg-yellow-50 hover:text-yellow-600 transition-colors text-sm"
+                      onClick={() => setIsDropdownOpen(false)}
+                    >
+                      同学求购
                     </Link>
                     {isAdmin && (
                       <Link
