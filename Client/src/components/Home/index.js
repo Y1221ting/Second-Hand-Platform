@@ -6,6 +6,7 @@ import Pagination from "./Pagination";
 import ActiveFilterTags from "./ActiveFilterTags";
 import EmptyState from "./EmptyState";
 import Loading from "../Utility/Loading";
+import SkeletonCard from "../Utility/SkeletonCard";
 import HomeBanner from "./HomeBanner";
 import Recommendations from "./Recommendations";
 import WantedList from "./WantedList";
@@ -245,7 +246,13 @@ const ProductsList = () => {
           )}
           <div className="w-full flex flex-col items-center">
             {showFullLoading ? (
-              <Loading />
+              <div className="w-full p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <SkeletonCard key={i} />
+                  ))}
+                </div>
+              </div>
             ) : products.length === 0 ? (
               <EmptyState
                 search={filters.search}
