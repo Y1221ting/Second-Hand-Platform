@@ -5,12 +5,7 @@ import { FaArrowRight } from "react-icons/fa";
 const LandingPage = () => {
   return (
     <div
-      className="h-screen flex flex-col justify-center items-center text-white relative bg-cover bg-center"
-      style={{
-        backgroundImage: `url(https://images.pexels.com/photos/3184420/pexels-photo-3184420.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1)`,
-        backgroundBlendMode: "overlay",
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
-      }}
+      className="h-screen flex flex-col justify-center items-center text-white relative bg-gradient-to-br from-gray-900 via-gray-800 to-yellow-900"
     >
       <div
         className="text-yellow-500 text-[6vh] md:text-[12vh] font-bold animate__animated animate__bounceInDown hover:scale-125 hover:animate-bounce transition-all"
