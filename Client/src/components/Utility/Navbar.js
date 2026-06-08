@@ -15,7 +15,7 @@ const setStoredHistory = (arr) => {
   localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(arr));
 };
 
-const Navbar = () => {
+const Navbar = ({ hideMobileTabBar = false }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -50,6 +50,18 @@ const Navbar = () => {
     const params = new URLSearchParams(location.search);
     setSearchTerm(params.get("search") || "");
   }, [location.search]);
+
+  // 底部 Tab 栏的 body 内边距管理
+  useEffect(() => {
+    if (!hideMobileTabBar) {
+      document.body.style.paddingBottom = "4rem";
+    } else {
+      document.body.style.paddingBottom = "";
+    }
+    return () => {
+      document.body.style.paddingBottom = "";
+    };
+  }, [hideMobileTabBar]);
 
   const doSearch = (term) => {
     const trimmed = (term || searchTerm).trim();
@@ -345,6 +357,7 @@ const Navbar = () => {
       )}
 
       {/* 移动端底部 Tab 栏 */}
+      {!hideMobileTabBar && (
       <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 md:hidden z-50">
         <div className="flex justify-around items-center py-2 px-1">
           <Link to="/home" className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${location.pathname === "/home" ? "text-yellow-500" : "text-gray-400 hover:text-gray-200"}`}>
@@ -376,6 +389,7 @@ const Navbar = () => {
           </Link>
         </div>
       </div>
+      )}
     </>
   );
 };

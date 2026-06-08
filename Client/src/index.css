@@ -2,13 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 移动端底部导航栏预留间距 */
-@media (max-width: 767px) {
-  body {
-    padding-bottom: 4rem; /* 64px = 底部 Tab 栏高度 */
-  }
-}
-
 /* 搜索加载动画条 */
 @keyframes loading-slide {
   0%   { transform: translateX(-100%); }

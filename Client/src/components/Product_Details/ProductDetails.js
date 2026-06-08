@@ -447,7 +447,7 @@ const ProductDetails = ({ productId }) => {
 
       {/* 移动端底部固定操作栏（非本人商品） */}
       {userId !== productDetails.uploadedBy?.id && (
-      <div className="fixed bottom-16 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 md:hidden z-40 px-3 py-2.5 animate-slide-up">
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-sm border-t border-gray-700 md:hidden z-40 px-3 py-2.5 animate-slide-up">
         <div className="flex items-center gap-2 max-w-lg mx-auto">
           {/* 联系卖家 — 圆形图标 */}
           <button

@@ -8,7 +8,7 @@ const ProductPage = () => {
   const { id } = useParams(); // Get the product ID from the route parameter
   return (
     <div>
-      <Navbar />
+      <Navbar hideMobileTabBar />
       <main className="mx-auto w-full md:w-4/5 p-4 ">
         <h1 className="text-3xl font-semibold text-gray-900">
           商品详情
