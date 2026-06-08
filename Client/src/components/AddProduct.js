@@ -20,7 +20,7 @@ const SPEC_SUGGESTIONS = {
 };
 
 const AddProduct = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -62,6 +62,28 @@ const AddProduct = () => {
     const { name, value } = e.target;
     setWantedForm((prev) => ({ ...prev, [name]: value }));
   };
+
+  // 审核中用户看到提示，不显示发布表单
+  if (user?.status === "inactive") {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-gray-400">
+          <p className="text-5xl mb-4">⏳</p>
+          <p className="text-xl text-white mb-2">账号审核中</p>
+          <p className="text-sm text-gray-500 mb-6 text-center px-4">
+            你的账号正在等待管理员审核，审核通过后即可发布商品
+          </p>
+          <button
+            onClick={() => navigate("/home")}
+            className="px-6 py-2 bg-yellow-500 text-gray-900 rounded-lg font-medium hover:bg-yellow-400 transition-colors"
+          >
+            先去逛逛
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleWantedSubmit = async (e) => {
     e.preventDefault();
