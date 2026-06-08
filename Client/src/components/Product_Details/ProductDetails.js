@@ -189,7 +189,8 @@ const ProductDetails = ({ productId }) => {
   }
 
   return (
-    <div className="rounded-lg shadow-md m-4 transition duration-300 hover:shadow-lg bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200">
+    <>
+      <div className="rounded-lg shadow-md m-4 transition duration-300 hover:shadow-lg bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 pb-20 md:pb-0">
       {userId === productDetails.uploadedBy?.id && (
         <Link
           to={`/product/${productId}/edit`}
@@ -443,6 +444,51 @@ const ProductDetails = ({ productId }) => {
         department={productDetails.uploadedBy?.department}
       />
     </div>
+
+      {/* 移动端底部固定操作栏 */}
+      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.1)] md:hidden z-40 px-4 py-3">
+        <div className="flex items-center gap-2 max-w-lg mx-auto">
+          <button
+            onClick={handleContactSeller}
+            disabled={contactLoading}
+            className="flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-lg border border-blue-500 text-blue-600 text-sm font-medium hover:bg-blue-50 transition-colors disabled:opacity-60"
+          >
+            <FaComment className="text-xs" />
+            {contactLoading ? "加载中..." : "联系卖家"}
+          </button>
+          {productDetails.status === "sold_out" || productDetails.quantity <= 0 ? (
+            <button
+              className="flex-[2] py-2.5 rounded-lg bg-gray-400 text-white text-sm font-medium cursor-not-allowed flex items-center justify-center gap-1.5"
+              disabled
+            >
+              <FaShoppingCart className="text-xs" />
+              已售罄
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => handleAddToCartOnly(productDetails._id)}
+                className={`flex items-center justify-center gap-1.5 flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  cartAdded
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-900 text-white hover:bg-gray-800"
+                }`}
+              >
+                <FaShoppingCart className="text-xs" />
+                {cartAdded ? "已加入 ✓" : "加购"}
+              </button>
+              <button
+                onClick={() => handleAddToCart(productDetails._id)}
+                className="flex items-center justify-center gap-1.5 flex-[1.3] py-2.5 rounded-lg bg-yellow-500 text-gray-900 text-sm font-medium hover:bg-yellow-400 transition-colors"
+              >
+                <FaShoppingCart className="text-xs" />
+                立即购买
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </>
   );
 };
 
