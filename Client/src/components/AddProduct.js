@@ -81,7 +81,7 @@ const AddProduct = () => {
       localStorage.setItem(PRODUCT_DRAFT_KEY, JSON.stringify(draft));
     }, 500);
     return () => clearTimeout(timer);
-  }, [formData, tab]);
+  }, [formData]);
 
   const handleRestoreDraft = () => {
     try {
