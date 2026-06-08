@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { FaEdit, FaShoppingCart, FaChevronLeft, FaChevronRight, FaExpand } from "react-icons/fa";
+import { FaEdit, FaShoppingCart, FaChevronLeft, FaChevronRight, FaExpand, FaComment } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
 import Dialog from "./Dialog";
@@ -7,6 +7,7 @@ import Loading from "../Utility/Loading";
 import ErrorBanner from "../Utility/ErrorBanner";
 import Lightbox from "../Utility/Lightbox";
 import Recommendations from "../Home/Recommendations";
+import ContactSeller from "./ContactSeller";
 
 // 价格格式化：整数去 .0，非整数保留一位小数
 const formatPrice = (price) => {
@@ -27,6 +28,41 @@ const ProductDetails = ({ productId }) => {
   const [activeImage, setActiveImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [isDialogOpen, setDialogOpen] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+  const [sellerContact, setSellerContact] = useState(null);
+  const [contactLoading, setContactLoading] = useState(false);
+
+  // 获取卖家联系方式
+  const handleContactSeller = async () => {
+    if (!userId) {
+      alert("请先登录");
+      navigate("/login");
+      return;
+    }
+    if (sellerContact) {
+      setShowContact(true);
+      return;
+    }
+    setContactLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`/api/products/${productId}/seller-contact`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSellerContact(data);
+        setShowContact(true);
+      } else {
+        const err = await response.json();
+        alert(err.message || "获取联系方式失败");
+      }
+    } catch {
+      alert("网络错误，请稍后重试");
+    } finally {
+      setContactLoading(false);
+    }
+  };
 
   // 提取商品详情加载逻辑，useEffect 和重试按钮都能调用
   const fetchProductDetails = useCallback(async () => {
@@ -295,6 +331,14 @@ const ProductDetails = ({ productId }) => {
             ) : (
               <div className="mt-8 flex gap-4 flex-wrap">
                 <button
+                  onClick={handleContactSeller}
+                  disabled={contactLoading}
+                  className="flex items-center px-5 py-3 rounded text-lg bg-blue-500 hover:bg-blue-600 text-white transition duration-300 disabled:opacity-60"
+                >
+                  <FaComment className="mr-2" />
+                  {contactLoading ? "加载中..." : "联系卖家"}
+                </button>
+                <button
                   onClick={() => {
                     if (productDetails.status !== "sold_out" && productDetails.quantity > 0) {
                       handleAddToCartOnly(productDetails._id);
@@ -354,6 +398,12 @@ const ProductDetails = ({ productId }) => {
               onSave={handleConfirmPurchase}
               id={userId}
             />
+            {showContact && sellerContact && (
+              <ContactSeller
+                contact={sellerContact}
+                onClose={() => setShowContact(false)}
+              />
+            )}
           </div>
           <div className="mt-8">
             <h2 className="text-xl font-semibold">描述</h2>
