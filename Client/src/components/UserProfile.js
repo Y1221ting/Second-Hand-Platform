@@ -42,6 +42,7 @@ const UserProfile = () => {
   const [cartLoading, setCartLoading] = useState(false);
   const [buyOrders, setBuyOrders] = useState([]);
   const [sellOrders, setSellOrders] = useState([]);
+  const [userWanteds, setUserWanteds] = useState([]);
   const [activeTab, setActiveTab] = useState("selling");
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
@@ -120,6 +121,13 @@ const UserProfile = () => {
       })
         .then((res) => res.ok ? res.json() : null)
         .then((data) => { if (data) setSellOrders(data.orders || []); })
+        .catch(() => {});
+      // 获取求购记录
+      fetch("/api/wanted/mine", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.ok ? res.json() : [])
+        .then((data) => { if (Array.isArray(data)) setUserWanteds(data); })
         .catch(() => {});
     }
   }, [user, id]);
@@ -457,6 +465,19 @@ const UserProfile = () => {
           >
             购买记录 ({buyOrders.length || purchasedProducts.length})
           </button>
+          {/* 仅本人可见：求购记录 */}
+          {user && user.id === id && (
+            <button
+              onClick={() => setActiveTab("wanteds")}
+              className={`flex-shrink-0 px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
+                activeTab === "wanteds"
+                  ? "bg-yellow-500 text-white"
+                  : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
+              }`}
+            >
+              求购记录 ({userWanteds.length})
+            </button>
+          )}
         </div>
 
         {/* ===== Tab 内容区 ===== */}
@@ -612,6 +633,55 @@ const UserProfile = () => {
               <p className="text-gray-500 text-center py-12">暂无购买记录</p>
             )}
           </div>
+        )}
+
+        {/* 求购记录（仅本人） */}
+        {activeTab === "wanteds" && userWanteds.length > 0 && (
+          <div className="space-y-3">
+            {userWanteds.map((w) => (
+              <div key={w._id} className="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center text-green-600 text-xl shrink-0">
+                  📢
+                </div>
+                <div className="flex-grow min-w-0">
+                  <p className="font-semibold text-gray-900 truncate">{w.name}</p>
+                  <p className="text-sm text-gray-500">
+                    预算 ¥{Number(w.budget).toFixed(0)}
+                  </p>
+                  {w.description && (
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{w.description}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    {new Date(w.createdAt).toLocaleDateString("zh-CN")}
+                  </p>
+                </div>
+                <button
+                  onClick={async () => {
+                    if (!window.confirm(`确定取消求购「${w.name}」？`)) return;
+                    try {
+                      const token = localStorage.getItem("token");
+                      const res = await fetch(`/api/wanted/${w._id}`, {
+                        method: "DELETE",
+                        headers: { Authorization: `Bearer ${token}` },
+                      });
+                      if (res.ok) {
+                        setUserWanteds((prev) => prev.filter((x) => x._id !== w._id));
+                      } else {
+                        const d = await res.json();
+                        alert(d.message || "取消失败");
+                      }
+                    } catch { alert("网络错误"); }
+                  }}
+                  className="text-xs px-3 py-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors shrink-0"
+                >
+                  取消求购
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {activeTab === "wanteds" && userWanteds.length === 0 && (
+          <p className="text-gray-500 text-center py-12">暂无求购记录</p>
         )}
 
         {activeTab === "cart" && cartLoading && (
