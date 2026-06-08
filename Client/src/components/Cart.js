@@ -6,6 +6,7 @@ import Footer from "./Utility/Footer";
 import { useAuth } from "../context/authContext";
 import Loading from "./Utility/Loading";
 import Recommendations from "./Home/Recommendations";
+import Dialog from "./Product_Details/Dialog";
 
 const Cart = () => {
   const { user } = useAuth();
@@ -14,6 +15,7 @@ const Cart = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [checkingOut, setCheckingOut] = useState(false);
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
 
   const fetchCart = useCallback(async () => {
     setLoading(true);
@@ -93,8 +95,12 @@ const Cart = () => {
     }
   };
 
-  const handleCheckout = async () => {
-    if (!window.confirm(`共 ${cartItems.length} 件商品，确认结算？`)) return;
+  const handleCheckout = () => {
+    setCheckoutDialogOpen(true);
+  };
+
+  const handleCheckoutConfirm = async (formData) => {
+    setCheckoutDialogOpen(false);
     setCheckingOut(true);
     try {
       const token = localStorage.getItem("token");
@@ -104,6 +110,11 @@ const Cart = () => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          phoneNo: formData.phoneNo,
+          dormitory: formData.dormitory,
+        }),
       });
       const data = await response.json();
       if (response.ok) {
@@ -354,6 +365,12 @@ const Cart = () => {
                 {checkingOut ? "结算中..." : availableItems.length === 0 ? "没有可结算的商品" : "去结算"}
               </button>
             </div>
+            <Dialog
+              isOpen={checkoutDialogOpen}
+              onClose={() => setCheckoutDialogOpen(false)}
+              onSave={handleCheckoutConfirm}
+              id={user?.id}
+            />
           </>
         )}
       </div>
