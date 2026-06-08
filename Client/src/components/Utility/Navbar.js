@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FaUser, FaSearch, FaBell, FaShieldAlt } from "react-icons/fa";
+import { FaUser, FaSearch, FaBell, FaShieldAlt, FaHome, FaPlusCircle, FaShoppingCart } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { useNotifications } from "../../context/NotificationContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
@@ -84,7 +84,8 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="relative bg-gray-900 py-3 px-4 md:px-8 flex items-center justify-between z-10">
+    <>
+      <nav className="relative bg-gray-900 py-3 px-4 md:px-8 flex items-center justify-between z-10">
       {/* Logo */}
       <div className="flex items-center shrink-0">
         <Link to="/home" className="text-white text-2xl md:text-3xl font-bold whitespace-nowrap">
@@ -325,6 +326,40 @@ const Navbar = () => {
         )}
       </div>
     </nav>
+
+      {/* 移动端底部 Tab 栏 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 md:hidden z-50">
+        <div className="flex justify-around items-center py-2 px-1">
+          <Link to="/home" className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${location.pathname === "/home" ? "text-yellow-500" : "text-gray-400 hover:text-gray-200"}`}>
+            <FaHome className="text-lg" />
+            <span className="text-[10px]">首页</span>
+          </Link>
+          {isAuthenticated && (
+            <Link to="/add-product" className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${location.pathname === "/add-product" ? "text-yellow-500" : "text-gray-400 hover:text-gray-200"}`}>
+              <FaPlusCircle className="text-lg" />
+              <span className="text-[10px]">发布</span>
+            </Link>
+          )}
+          <Link to="/cart" className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${location.pathname === "/cart" ? "text-yellow-500" : "text-gray-400 hover:text-gray-200"}`}>
+            <FaShoppingCart className="text-lg" />
+            <span className="text-[10px]">购物车</span>
+          </Link>
+          <Link to="/warnings" className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors relative ${location.pathname === "/warnings" ? "text-yellow-500" : "text-gray-400 hover:text-gray-200"}`}>
+            <FaBell className="text-lg" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+            <span className="text-[10px]">通知</span>
+          </Link>
+          <Link to={isAuthenticated ? `/profile/${user?.id}` : "/login"} className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${isAuthenticated && location.pathname.startsWith("/profile/") ? "text-yellow-500" : "text-gray-400 hover:text-gray-200"}`}>
+            <FaUser className="text-lg" />
+            <span className="text-[10px]">我的</span>
+          </Link>
+        </div>
+      </div>
+    </>
   );
 };
 
