@@ -1,5 +1,5 @@
 // AddProduct.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import { useAuth } from "../context/authContext";
@@ -27,6 +27,11 @@ const AddProduct = () => {
     if (!isAuthenticated) {
       navigate("/login");
     }
+    // 组件卸载时释放预览 URL
+    return () => {
+      previewUrlsRef.current.forEach((u) => URL.revokeObjectURL(u));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, navigate]);
   const [formData, setFormData] = useState({
     name: "",
@@ -40,6 +45,8 @@ const AddProduct = () => {
     key: "",
     value: "",
   });
+  const [previewUrls, setPreviewUrls] = useState([]);
+  const previewUrlsRef = useRef([]); // 追踪最新预览 URL，供卸载时清理
   const [submitting, setSubmitting] = useState(false);
   const [priceError, setPriceError] = useState("");
   const [tab, setTab] = useState("sell"); // "sell" | "buy"
@@ -236,7 +243,23 @@ const AddProduct = () => {
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
     const compressed = await Promise.all(files.map(compressImage));
+    // 生成预览 URL
+    previewUrlsRef.current.forEach((u) => URL.revokeObjectURL(u)); // 释放旧的
+    const urls = compressed.map((file) => URL.createObjectURL(file));
+    previewUrlsRef.current = urls;
+    setPreviewUrls(urls);
     setFormData({ ...formData, images: compressed });
+  };
+
+  // 删除已选的某张图片
+  const removeImage = (index) => {
+    setFormData((prev) => {
+      const newImages = prev.images.filter((_, i) => i !== index);
+      return { ...prev, images: newImages };
+    });
+    URL.revokeObjectURL(previewUrlsRef.current[index]);
+    previewUrlsRef.current = previewUrlsRef.current.filter((_, i) => i !== index);
+    setPreviewUrls(previewUrlsRef.current);
   };
 
   return (
@@ -455,6 +478,28 @@ const AddProduct = () => {
               className="w-full border rounded-lg py-2 px-3"
               required
             />
+            {/* 图片预览缩略图 */}
+            {previewUrls.length > 0 && (
+              <div className="flex flex-wrap gap-3 mt-3">
+                {previewUrls.map((url, index) => (
+                  <div key={index} className="relative w-24 h-24 rounded-md overflow-hidden border border-gray-300 group">
+                    <img
+                      src={url}
+                      alt={`预览 ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-0.5 right-0.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                      aria-label="删除图片"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 规格参数 — 带说明和快捷建议 */}
