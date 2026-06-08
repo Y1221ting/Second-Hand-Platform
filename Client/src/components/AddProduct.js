@@ -431,6 +431,7 @@ const AddProduct = () => {
           </form>
         ) : (
           /* 出售表单（原有） */
+        <>
 
         {/* 草稿提示条 */}
         {hasDraft && (
@@ -725,6 +726,7 @@ const AddProduct = () => {
             </button>
           </div>
         </form>
+        </>
         )}
       </div>
       <Footer />
