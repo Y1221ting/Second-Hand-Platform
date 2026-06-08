@@ -26,7 +26,7 @@ const HOT_TAGS = ["高数课本", "二手手机", "台灯", "电动车", "四六
 const QUICK_DESCS = ["九成新就行", "急用", "想收个二手", "价格可议"];
 
 const WantedPage = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   // ── 全部求购 ──
@@ -48,6 +48,9 @@ const WantedPage = () => {
 
   // ── 联系弹窗 ──
   const [contactTarget, setContactTarget] = useState(null);
+
+  // ── 列表筛选 ──
+  const [listFilter, setListFilter] = useState("all"); // "all" | "mine"
 
   // ── 获取数据 ──
   const fetchWanteds = useCallback(async (p, append = false) => {
@@ -305,35 +308,6 @@ const WantedPage = () => {
           </div>
         )}
 
-        {/* ── 我的求购 ── */}
-        {isAuthenticated && myWanteds.length > 0 && (
-          <div className="mb-6">
-            <h2 className="text-base font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              📌 我的求购
-            </h2>
-            <div className="space-y-2">
-              {myWanteds.map((w) => (
-                <div
-                  key={w._id}
-                  className="bg-white rounded-lg border border-green-200 px-4 py-3 flex items-center justify-between"
-                >
-                  <div className="min-w-0 flex-1 flex items-center flex-wrap gap-x-3">
-                    <span className="font-medium text-gray-900">{w.name}</span>
-                    <span className="text-green-600 font-bold">¥{Number(w.budget).toFixed(1)}</span>
-                    <span className="text-xs text-gray-400">⏳ 等待联系</span>
-                  </div>
-                  <button
-                    onClick={() => handleDelete(w._id)}
-                    className="shrink-0 text-xs px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg hover:bg-green-100 hover:text-green-600 transition-colors"
-                  >
-                    已买到 ✓
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* ── 热门求购 ── */}
         <div className="mb-6">
           <h2 className="text-base font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -351,17 +325,52 @@ const WantedPage = () => {
           </div>
         </div>
 
-        {/* ── 全部求购 ── */}
-        <h2 className="text-base font-semibold text-gray-700 mb-3">全部求购</h2>
+        {/* ── 全部求购（带筛选） ── */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-base font-semibold text-gray-700">
+              {listFilter === "all" ? "全部求购" : "我的求购"}
+            </h2>
+            {/* 筛选 pill */}
+            {isAuthenticated && (
+              <div className="flex bg-gray-100 rounded-lg p-0.5">
+                <button
+                  onClick={() => setListFilter("all")}
+                  className={`text-xs px-2.5 py-1 rounded-md transition-colors ${
+                    listFilter === "all"
+                      ? "bg-white text-gray-800 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  全部
+                </button>
+                <button
+                  onClick={() => setListFilter("mine")}
+                  className={`text-xs px-2.5 py-1 rounded-md transition-colors ${
+                    listFilter === "mine"
+                      ? "bg-white text-gray-800 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  我发布的
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
 
         {loading ? (
           <Loading />
-        ) : wanteds.length === 0 ? (
+        ) : (listFilter === "mine" ? myWanteds : wanteds).length === 0 ? (
           /* 空状态 */
           <div className="text-center py-16">
-            <p className="text-4xl mb-3">📭</p>
-            <p className="text-gray-400 text-lg mb-2">还没有同学发布求购</p>
-            <p className="text-gray-400 text-sm mb-4">快来发布第一条吧！</p>
+            <p className="text-4xl mb-3">{listFilter === "mine" ? "📭" : "📭"}</p>
+            <p className="text-gray-400 text-lg mb-2">
+              {listFilter === "mine" ? "你还没有发布求购" : "还没有同学发布求购"}
+            </p>
+            <p className="text-gray-400 text-sm mb-4">
+              {listFilter === "mine" ? "发布后可以在这里管理" : "快来发布第一条吧！"}
+            </p>
             <button
               onClick={() => setShowForm(true)}
               className="px-6 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
@@ -373,15 +382,26 @@ const WantedPage = () => {
           <>
             {/* 求购卡片网格 */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {wanteds.map((w) => (
+              {(listFilter === "mine" ? myWanteds : wanteds).map((w) => {
+                const isMine = user?.id && w.postedBy?.id === user.id;
+                return (
                 <div
                   key={w._id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow"
+                  className={`bg-white rounded-xl shadow-sm border p-4 hover:shadow-md transition-shadow ${
+                    isMine ? "border-green-200" : "border-gray-100"
+                  }`}
                 >
-                  {/* 标题行：名称 + 时间 */}
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-gray-900 truncate flex-1">{w.name}</h3>
-                    <span className="text-xs text-gray-400 shrink-0 ml-2">{timeAgo(w.createdAt)}</span>
+                  {/* 标题行：标签 + 名称 + 时间 */}
+                  <div className="flex items-start justify-between mb-2 gap-1">
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      {isMine && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded font-medium shrink-0 leading-tight">
+                          👤 我
+                        </span>
+                      )}
+                      <h3 className="font-semibold text-gray-900 truncate">{w.name}</h3>
+                    </div>
+                    <span className="text-xs text-gray-400 shrink-0">{timeAgo(w.createdAt)}</span>
                   </div>
 
                   {/* 预算 */}
@@ -392,12 +412,19 @@ const WantedPage = () => {
                     <p className="text-xs text-gray-500 mb-2 line-clamp-2">{w.description}</p>
                   )}
 
-                  {/* 底部：发布人 + 联系方式 + 联系按钮 */}
+                  {/* 底部：发布人 + 联系方式 + 操作按钮 */}
                   <div className="flex flex-wrap items-center justify-between mt-3 pt-2 border-t border-gray-50 gap-1">
                     <span className="text-xs text-gray-400 truncate max-w-[50%]">
                       {w.postedBy?.department || ""} · {w.postedBy?.name || "同学"}
                     </span>
-                    {w.contact ? (
+                    {isMine ? (
+                      <button
+                        onClick={() => handleDelete(w._id)}
+                        className="text-xs px-3 py-1.5 bg-gray-100 text-gray-500 rounded-lg hover:bg-green-100 hover:text-green-600 transition-colors shrink-0"
+                      >
+                        下架 ✓
+                      </button>
+                    ) : w.contact ? (
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-xs text-gray-500 truncate max-w-[100px]">
                           📱 {w.contact}
@@ -414,11 +441,12 @@ const WantedPage = () => {
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
-            {/* 加载更多 */}
-            {page < totalPages && (
+            {/* 加载更多（仅「全部」列表显示） */}
+            {listFilter === "all" && page < totalPages && (
               <div className="text-center mt-6">
                 <button
                   onClick={handleLoadMore}
