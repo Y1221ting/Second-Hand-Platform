@@ -36,6 +36,10 @@ const WantedPage = () => {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // ── 搜索 ──
+  const [searchTerm, setSearchTerm] = useState("");
+  const SEARCH_DEBOUNCE_MS = 500;
+
   // ── 我的求购 ──
   const [myWanteds, setMyWanteds] = useState([]);
 
@@ -53,11 +57,15 @@ const WantedPage = () => {
   const [listFilter, setListFilter] = useState("all"); // "all" | "mine"
 
   // ── 获取数据 ──
-  const fetchWanteds = useCallback(async (p, append = false) => {
+  const fetchWanteds = useCallback(async (p, search = "", append = false) => {
     if (!append) setLoading(true);
     else setLoadingMore(true);
     try {
-      const res = await fetch(`/api/wanted?page=${p}&limit=20`);
+      const params = new URLSearchParams();
+      params.set("page", p);
+      params.set("limit", "20");
+      if (search.trim()) params.set("search", search.trim());
+      const res = await fetch(`/api/wanted?${params}`);
       if (res.ok) {
         const data = await res.json();
         setWanteds((prev) => (append ? [...prev, ...data.wanteds] : data.wanteds));
@@ -84,14 +92,25 @@ const WantedPage = () => {
     }
   }, [isAuthenticated]);
 
+  // 搜索防抖：停止输入 500ms 后重新拉取
   useEffect(() => {
-    fetchWanteds(1);
+    const timer = setTimeout(() => {
+      fetchWanteds(1, searchTerm);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm]);
+
+  // 首次加载
+  useEffect(() => {
+    fetchWanteds(1, searchTerm);
     fetchMyWanteds();
-  }, [fetchWanteds, fetchMyWanteds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── 加载更多 ──
   const handleLoadMore = () => {
-    if (page < totalPages) fetchWanteds(page + 1, true);
+    if (page < totalPages) fetchWanteds(page + 1, searchTerm, true);
   };
 
   // ── 发布求购 ──
@@ -126,7 +145,7 @@ const WantedPage = () => {
         setForm({ name: "", budget: "", contact: "", description: "" });
         setShowForm(false);
         setPublishSuccess(true);
-        fetchWanteds(1);
+        fetchWanteds(1, searchTerm);
         fetchMyWanteds();
         setTimeout(() => setPublishSuccess(false), 4000);
       } else {
@@ -196,7 +215,7 @@ const WantedPage = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/home")}
               className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               <FaArrowLeft size={20} />
@@ -345,7 +364,10 @@ const WantedPage = () => {
                   全部
                 </button>
                 <button
-                  onClick={() => setListFilter("mine")}
+                  onClick={() => {
+                    setListFilter("mine");
+                    setSearchTerm("");
+                  }}
                   className={`text-xs px-2.5 py-1 rounded-md transition-colors ${
                     listFilter === "mine"
                       ? "bg-white text-gray-800 shadow-sm"
@@ -358,6 +380,27 @@ const WantedPage = () => {
             )}
           </div>
         </div>
+
+        {/* 搜索框 */}
+        {listFilter === "all" && (
+          <div className="relative mb-4">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="🔍  搜索求购商品..."
+              className="w-full border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm px-2"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <Loading />

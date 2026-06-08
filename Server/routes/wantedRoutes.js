@@ -50,12 +50,17 @@ router.get("/", async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
+    const filter = {};
+    if (req.query.search) {
+      filter.name = { $regex: req.query.search, $options: "i" };
+    }
+
     const [wanteds, total] = await Promise.all([
-      Wanted.find()
+      Wanted.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
-      Wanted.countDocuments({}),
+      Wanted.countDocuments(filter),
     ]);
 
     const result = wanteds.map((w) => {
