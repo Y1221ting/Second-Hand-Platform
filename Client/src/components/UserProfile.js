@@ -380,11 +380,14 @@ const UserProfile = () => {
           </div>
         )}
 
-        {/* ===== Tab 导航 ===== */}
-        <div className="flex flex-wrap gap-2 mb-6">
+        {/* ===== Tab 导航（移动端横向滚动） ===== */}
+        <div
+          className="flex gap-2 mb-6 overflow-x-auto whitespace-nowrap scrollbar-hide"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
           <button
             onClick={() => setActiveTab("selling")}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
+            className={`flex-shrink-0 px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
               activeTab === "selling"
                 ? "bg-yellow-500 text-white"
                 : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
@@ -394,7 +397,7 @@ const UserProfile = () => {
           </button>
           <button
             onClick={() => setActiveTab("soldOut")}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
+            className={`flex-shrink-0 px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
               activeTab === "soldOut"
                 ? "bg-yellow-500 text-white"
                 : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
@@ -404,7 +407,7 @@ const UserProfile = () => {
           </button>
           <button
             onClick={() => setActiveTab("inactive")}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
+            className={`flex-shrink-0 px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
               activeTab === "inactive"
                 ? "bg-yellow-500 text-white"
                 : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
@@ -414,7 +417,7 @@ const UserProfile = () => {
           </button>
           <button
             onClick={() => setActiveTab("cart")}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
+            className={`flex-shrink-0 px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
               activeTab === "cart"
                 ? "bg-yellow-500 text-white"
                 : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
@@ -424,7 +427,7 @@ const UserProfile = () => {
           </button>
           <button
             onClick={() => setActiveTab("sold")}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
+            className={`flex-shrink-0 px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
               activeTab === "sold"
                 ? "bg-yellow-500 text-white"
                 : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
@@ -434,7 +437,7 @@ const UserProfile = () => {
           </button>
           <button
             onClick={() => setActiveTab("purchased")}
-            className={`px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
+            className={`flex-shrink-0 px-4 py-2 rounded-lg font-semibold text-sm transition duration-300 ${
               activeTab === "purchased"
                 ? "bg-yellow-500 text-white"
                 : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"

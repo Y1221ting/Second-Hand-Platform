@@ -17,3 +17,8 @@
 .animate-loading-bar {
   animation: loading-slide 1.2s ease-in-out infinite;
 }
+
+/* 隐藏滚动条（横向滚动容器用） */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
