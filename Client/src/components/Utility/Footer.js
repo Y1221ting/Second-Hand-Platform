@@ -6,7 +6,7 @@ const Footer = () => {
   const { user } = useAuth();
 
   return (
-    <footer className="bg-gray-900 text-white text-right p-12">
+    <footer className="bg-gray-900 text-white text-right p-6 md:p-12">
       <div className="max-w-screen-xl mx-auto px-4">
         <div className="flex flex-col md:flex-row md:justify-between align-middle">
           <div className="md:w-1/4 text-center md:text-left">
