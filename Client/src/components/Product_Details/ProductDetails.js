@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { FaEdit, FaShoppingCart, FaChevronLeft, FaChevronRight, FaTimes, FaExpand } from "react-icons/fa";
+import { FaEdit, FaShoppingCart, FaChevronLeft, FaChevronRight, FaExpand } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
 import Dialog from "./Dialog";
 import Loading from "../Utility/Loading";
 import ErrorBanner from "../Utility/ErrorBanner";
+import Lightbox from "../Utility/Lightbox";
 import Recommendations from "../Home/Recommendations";
 
 // 价格格式化：整数去 .0，非整数保留一位小数
@@ -223,52 +224,23 @@ const ProductDetails = ({ productId }) => {
               width={800}
               height={600}
               loading="lazy"
-              className="w-full h-auto"
+              className="w-full h-auto cursor-pointer"
               style={{ display: 'block' }}
+              onClick={() => { setActiveImage(0); setLightboxOpen(true); }}
             />
           )}
         </div>
 
-        {/* 灯箱全屏预览 */}
-        {lightboxOpen && productDetails.images && productDetails.images.length > 1 && (
-          <div className="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center" onClick={() => setLightboxOpen(false)}>
-            <button
-              onClick={() => setLightboxOpen(false)}
-              className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
-            >
-              <FaTimes className="text-lg" />
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); setActiveImage((prev) => prev === 0 ? productDetails.images.length - 1 : prev - 1); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
-            >
-              <FaChevronLeft className="text-lg" />
-            </button>
-            <img
-              src={productDetails.images[activeImage]}
-              alt={productDetails.name}
-              className="max-w-[90vw] max-h-[90vh] object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-            <button
-              onClick={(e) => { e.stopPropagation(); setActiveImage((prev) => prev === productDetails.images.length - 1 ? 0 : prev + 1); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center"
-            >
-              <FaChevronRight className="text-lg" />
-            </button>
-            {/* 灯箱缩略图 */}
-            <div className="absolute bottom-4 flex gap-1">
-              {productDetails.images.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => { e.stopPropagation(); setActiveImage(idx); }}
-                  className={`w-2 h-2 rounded-full transition-colors ${
-                    idx === activeImage ? "bg-yellow-500" : "bg-white/50 hover:bg-white/80"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
+        {/* 灯箱全屏预览 — 统一 Lightbox 组件，单图也支持点击放大 */}
+        {lightboxOpen && productDetails.images?.length > 0 && (
+          <Lightbox
+            images={productDetails.images}
+            activeIndex={activeImage}
+            onClose={() => setLightboxOpen(false)}
+            onPrev={() => setActiveImage((prev) => prev === 0 ? productDetails.images.length - 1 : prev - 1)}
+            onNext={() => setActiveImage((prev) => prev === productDetails.images.length - 1 ? 0 : prev + 1)}
+            onSelect={(idx) => setActiveImage(idx)}
+          />
         )}
         <div className="md:mt-0 flex-1 min-w-0">
           <h1 className="text-3xl font-semibold">{productDetails.name}</h1>
