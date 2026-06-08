@@ -6,6 +6,12 @@ import Dialog from "./Dialog";
 import Loading from "../Utility/Loading";
 import Recommendations from "../Home/Recommendations";
 
+// 价格格式化：整数去 .0，非整数保留一位小数
+const formatPrice = (price) => {
+  const num = Math.min(Number(price ?? 0), 9999.9);
+  return num % 1 === 0 ? num.toFixed(0) : num.toFixed(1);
+};
+
 const ProductDetails = ({ productId }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -280,7 +286,7 @@ const ProductDetails = ({ productId }) => {
           )}
 
           <p className="text-2xl font-semibold mt-4">
-            ¥{Math.min(Number(productDetails.price ?? 0), 9999.9).toFixed(1)}
+            ¥{formatPrice(productDetails.price)}
           </p>
           <p className="text-gray-600 mt-2">
             库存: {productDetails.quantity || 0}
