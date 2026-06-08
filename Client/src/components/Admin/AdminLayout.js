@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
-import { FaTachometerAlt, FaFlag, FaBox, FaUsers, FaHome } from "react-icons/fa";
+import { FaTachometerAlt, FaFlag, FaBox, FaUsers, FaHome, FaBars, FaTimes } from "react-icons/fa";
 
 const AdminLayout = () => {
   const { isAdmin, user } = useAuth();
   const location = useLocation();
   const [badges, setBadges] = useState({ pendingReports: 0, pendingUsers: 0 });
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // 切换页面时关闭侧边栏（移动端）
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   // 获取待处理事项数量
   useEffect(() => {
@@ -25,7 +31,7 @@ const AdminLayout = () => {
         }
       })
       .catch(() => {});
-  }, [location.pathname]); // 切换页面时刷新角标
+  }, [location.pathname]);
 
   if (!isAdmin) {
     return <Navigate to="/home" replace />;
@@ -40,13 +46,52 @@ const AdminLayout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* 移动端顶部导航栏 */}
+      <div className="fixed top-0 left-0 right-0 bg-gray-900 text-white flex items-center justify-between px-4 py-3 md:hidden z-30">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="text-gray-300 hover:text-white p-1"
+          aria-label="打开菜单"
+        >
+          <FaBars className="text-lg" />
+        </button>
+        <h2 className="text-lg font-bold">
+          <span className="text-yellow-500">管理</span>后台
+        </h2>
+        <div className="w-7" /> {/* 占位保持标题居中 */}
+      </div>
+
+      {/* 侧边栏遮罩（移动端） */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* 侧边栏 */}
-      <aside className="w-56 bg-gray-900 text-white flex-shrink-0 min-h-screen flex flex-col">
-        <div className="p-4 border-b border-gray-700">
-          <h2 className="text-lg font-bold">
-            <span className="text-yellow-500">管理</span>后台
-          </h2>
-          <p className="text-gray-400 text-xs mt-1 truncate">{user?.fullName || user?.name}</p>
+      <aside
+        className={`
+          fixed md:static inset-y-0 left-0 z-50
+          w-56 bg-gray-900 text-white flex-shrink-0 min-h-screen flex flex-col
+          transition-transform duration-300
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+        `}
+      >
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold">
+              <span className="text-yellow-500">管理</span>后台
+            </h2>
+            <p className="text-gray-400 text-xs mt-1 truncate">{user?.fullName || user?.name}</p>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden text-gray-400 hover:text-white p-1"
+            aria-label="关闭菜单"
+          >
+            <FaTimes />
+          </button>
         </div>
         <nav className="py-2 flex-1">
           {navItems.map((item) => (
@@ -86,7 +131,7 @@ const AdminLayout = () => {
       </aside>
 
       {/* 内容区 */}
-      <main className="flex-1 p-6 overflow-auto">
+      <main className="flex-1 p-4 md:p-6 overflow-auto pt-14 md:pt-6">
         <Outlet />
       </main>
     </div>
