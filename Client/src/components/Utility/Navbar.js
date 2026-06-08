@@ -46,10 +46,15 @@ const Navbar = ({ hideMobileTabBar = false }) => {
     localStorage.removeItem(SEARCH_HISTORY_KEY);
   };
 
-  // 搜索框同步 URL 中的 search 参数（刷新页面、重置全部等场景）
+  // 搜索框同步 URL 参数（首页搜 ?search=，求购页搜 ?q=）
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    setSearchTerm(params.get("search") || "");
+    if (location.pathname === "/wanted") {
+      setSearchTerm(params.get("q") || "");
+    } else {
+      setSearchTerm(params.get("search") || "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
 
   // 底部 Tab 栏的 body 内边距管理
@@ -91,7 +96,19 @@ const Navbar = ({ hideMobileTabBar = false }) => {
   const doSearch = (term) => {
     const trimmed = (term || searchTerm).trim();
     const params = new URLSearchParams();
-    // 保留当前页面已有的筛选条件（仅首页）
+
+    // 在求购页面 → 搜求购
+    if (location.pathname === "/wanted") {
+      if (trimmed) {
+        params.set("q", trimmed);
+        saveSearch(trimmed);
+      }
+      setShowHistory(false);
+      navigate(`/wanted${trimmed ? `?${params}` : ""}`);
+      return;
+    }
+
+    // 在首页 → 搜商品（保留现有筛选条件）
     if (location.pathname === "/home") {
       const current = new URLSearchParams(location.search);
       for (const [k, v] of current) {
