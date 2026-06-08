@@ -17,6 +17,10 @@ const wantedSchema = new mongoose.Schema({
     default: "",
     maxlength: [2000, "描述不能超过2000个字符"],
   },
+  contact: {
+    type: String,
+    default: "",
+  },
   postedBy: {
     id:         String,
     name:       String,
