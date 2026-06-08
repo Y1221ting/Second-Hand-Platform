@@ -149,7 +149,7 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
           )}
         </div>
 
-        {/* 举报 — 极小化入口 */}
+        {/* 举报 — 极小化入口：弹窗模式，不撑开卡片 */}
         {user && !isOwner && (
           <div className="mt-0.5">
             {!showReportPanel ? (
@@ -160,44 +160,55 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
                 <FaFlag className="text-[8px]" />
                 {reportMsg || "举报"}
               </button>
-            ) : (
-              <div className="bg-gray-800 rounded p-1.5 space-y-1">
-                <p className="text-gray-300 text-[10px]">举报原因</p>
-                <select
-                  value={reportReason}
-                  onChange={(e) => setReportReason(e.target.value)}
-                  className="w-full bg-gray-700 text-white rounded py-0.5 px-1 text-[10px] border border-gray-600"
+            ) : null}
+          </div>
+        )}
+
+        {/* 举报弹窗（fixed 层，不影响卡片布局） */}
+        {showReportPanel && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+            onClick={() => { setShowReportPanel(false); setReportDetail(""); }}
+          >
+            <div
+              className="bg-gray-800 rounded-lg p-3 space-y-2 w-72 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-white text-sm font-medium">举报商品</p>
+              <select
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                className="w-full bg-gray-700 text-white rounded py-1.5 px-2 text-xs border border-gray-600"
+              >
+                <option value="信息不实">信息不实</option>
+                <option value="违禁品">违禁品</option>
+                <option value="重复发布">重复发布</option>
+                <option value="人身攻击/骚扰">人身攻击/骚扰</option>
+                <option value="其他">其他</option>
+              </select>
+              <textarea
+                value={reportDetail}
+                onChange={(e) => setReportDetail(e.target.value)}
+                placeholder="补充说明（选填）"
+                className="w-full bg-gray-700 text-white rounded py-1 px-2 text-xs border border-gray-600 resize-none"
+                rows="2"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleReport}
+                  disabled={reportSubmitting}
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded py-1.5 text-xs font-medium disabled:opacity-50 transition-colors"
                 >
-                  <option value="信息不实">信息不实</option>
-                  <option value="违禁品">违禁品</option>
-                  <option value="重复发布">重复发布</option>
-                  <option value="人身攻击/骚扰">人身攻击/骚扰</option>
-                  <option value="其他">其他</option>
-                </select>
-                <textarea
-                  value={reportDetail}
-                  onChange={(e) => setReportDetail(e.target.value)}
-                  placeholder="补充说明（选填）"
-                  className="w-full bg-gray-700 text-white rounded py-0.5 px-1 text-[10px] border border-gray-600 resize-none"
-                  rows="1"
-                />
-                <div className="flex gap-1">
-                  <button
-                    onClick={handleReport}
-                    disabled={reportSubmitting}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded py-0.5 text-[10px] disabled:opacity-50"
-                  >
-                    {reportSubmitting ? "..." : "确认"}
-                  </button>
-                  <button
-                    onClick={() => setShowReportPanel(false)}
-                    className="flex-1 bg-gray-600 hover:bg-gray-500 text-white rounded py-0.5 text-[10px]"
-                  >
-                    取消
-                  </button>
-                </div>
+                  {reportSubmitting ? "提交中..." : "确认举报"}
+                </button>
+                <button
+                  onClick={() => { setShowReportPanel(false); setReportDetail(""); }}
+                  className="flex-1 bg-gray-600 hover:bg-gray-500 text-white rounded py-1.5 text-xs transition-colors"
+                >
+                  取消
+                </button>
               </div>
-            )}
+            </div>
           </div>
         )}
       </div>

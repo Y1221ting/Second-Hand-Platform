@@ -17,6 +17,7 @@ const setStoredHistory = (arr) => {
 
 const Navbar = ({ hideMobileTabBar = false }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchHistory, setSearchHistory] = useState(getStoredHistory);
@@ -53,7 +54,7 @@ const Navbar = ({ hideMobileTabBar = false }) => {
 
   // 底部 Tab 栏的 body 内边距管理
   useEffect(() => {
-    if (!hideMobileTabBar) {
+    if (!hideMobileTabBar && !isInputFocused) {
       document.body.style.paddingBottom = "4rem";
     } else {
       document.body.style.paddingBottom = "";
@@ -61,7 +62,31 @@ const Navbar = ({ hideMobileTabBar = false }) => {
     return () => {
       document.body.style.paddingBottom = "";
     };
-  }, [hideMobileTabBar]);
+  }, [hideMobileTabBar, isInputFocused]);
+
+  // 移动端输入框聚焦时自动隐藏底部 Tab 栏（防止键盘顶起）
+  useEffect(() => {
+    const onFocusIn = (e) => {
+      if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
+        setIsInputFocused(true);
+      }
+    };
+    const onFocusOut = () => {
+      // 延迟检查：聚焦可能正在切换到另一个输入框
+      setTimeout(() => {
+        const tag = document.activeElement?.tagName;
+        if (tag !== "INPUT" && tag !== "TEXTAREA") {
+          setIsInputFocused(false);
+        }
+      }, 100);
+    };
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+    };
+  }, []);
 
   const doSearch = (term) => {
     const trimmed = (term || searchTerm).trim();
@@ -356,8 +381,8 @@ const Navbar = ({ hideMobileTabBar = false }) => {
         </div>
       )}
 
-      {/* 移动端底部 Tab 栏 */}
-      {!hideMobileTabBar && (
+      {/* 移动端底部 Tab 栏 — 输入框聚焦时隐藏（防键盘顶起） */}
+      {!hideMobileTabBar && !isInputFocused && (
       <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 md:hidden z-50">
         <div className="flex justify-around items-center py-2 px-1">
           <Link to="/home" className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${location.pathname === "/home" ? "text-yellow-500" : "text-gray-400 hover:text-gray-200"}`}>

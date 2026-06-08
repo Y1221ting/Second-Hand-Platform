@@ -1,7 +1,8 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { FaTimes, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 const Lightbox = ({ images, activeIndex = 0, onClose, onPrev, onNext, onSelect }) => {
+  const touchStartX = useRef(0);
   // 禁止背景滚动
   useEffect(() => {
     document.body.style.overflow = "hidden";
@@ -20,8 +21,18 @@ const Lightbox = ({ images, activeIndex = 0, onClose, onPrev, onNext, onSelect }
   }, [onClose, onPrev, onNext]);
 
   return (
-    <div className="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center"
+    <div className="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center select-none"
          onClick={onClose}
+         onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+         onTouchEnd={(e) => {
+           if (images.length <= 1) return;
+           const diff = touchStartX.current - e.changedTouches[0].clientX;
+           if (Math.abs(diff) > 40) {
+             e.preventDefault();
+             if (diff > 0) onNext?.();
+             else onPrev?.();
+           }
+         }}
          style={{ overscrollBehavior: "contain", touchAction: "none" }}>
       {/* 关闭按钮 */}
       <button onClick={onClose}
