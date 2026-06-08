@@ -4,14 +4,24 @@ import { FaTimes, FaCopy, FaWeixin, FaQq, FaPhone } from "react-icons/fa";
 const ContactSeller = ({ contact, onClose }) => {
   const [copied, setCopied] = useState(null);
 
-  const handleCopy = async (label, value) => {
+  const handleCopy = (label, value) => {
+    // 创建临时 textarea（兼容 HTTP 非安全上下文，无需 HTTPS）
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    textarea.style.pointerEvents = "none";
+    document.body.appendChild(textarea);
+    textarea.select();
     try {
-      await navigator.clipboard.writeText(value);
+      document.execCommand("copy");
       setCopied(label);
       setTimeout(() => setCopied(null), 2000);
     } catch {
-      // fallback：选中提示手动复制
-      alert("复制失败，请长按手动复制");
+      // 极端兜底：提示用户手动复制
+      alert(`复制失败，请手动复制：${value}`);
+    } finally {
+      document.body.removeChild(textarea);
     }
   };
 

@@ -55,7 +55,7 @@ const ProductDetails = ({ productId }) => {
         setShowContact(true);
       } else {
         const err = await response.json();
-        alert(err.message || "获取联系方式失败");
+        alert(err.message || `获取联系方式失败（${response.status}）`);
       }
     } catch {
       alert("网络错误，请稍后重试");
