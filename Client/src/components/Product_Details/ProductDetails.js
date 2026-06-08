@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { FaEdit, FaShoppingCart, FaChevronLeft, FaChevronRight, FaExpand, FaComment } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -31,6 +31,7 @@ const ProductDetails = ({ productId }) => {
   const [showContact, setShowContact] = useState(false);
   const [sellerContact, setSellerContact] = useState(null);
   const [contactLoading, setContactLoading] = useState(false);
+  const touchStartX = useRef(0); // 图片滑动切换用
 
   // 获取卖家联系方式
   const handleContactSeller = async () => {
@@ -207,8 +208,21 @@ const ProductDetails = ({ productId }) => {
         <div className="w-full md:w-1/2 rounded-lg overflow-hidden bg-gray-200">
           {productDetails.images && productDetails.images.length > 1 ? (
             <>
-              {/* 主图 */}
-              <div className="relative group">
+              {/* 主图 — 支持触摸滑动切换 */}
+              <div
+                className="relative group select-none"
+                onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+                onTouchEnd={(e) => {
+                  const diff = touchStartX.current - e.changedTouches[0].clientX;
+                  if (Math.abs(diff) > 50) {
+                    if (diff > 0) {
+                      setActiveImage((prev) => prev === productDetails.images.length - 1 ? 0 : prev + 1);
+                    } else {
+                      setActiveImage((prev) => prev === 0 ? productDetails.images.length - 1 : prev - 1);
+                    }
+                  }
+                }}
+              >
                 <img
                   src={productDetails.images[activeImage]}
                   alt={productDetails.name}
