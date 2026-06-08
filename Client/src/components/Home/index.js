@@ -6,6 +6,7 @@ import Pagination from "./Pagination";
 import ActiveFilterTags from "./ActiveFilterTags";
 import EmptyState from "./EmptyState";
 import SkeletonCard from "../Utility/SkeletonCard";
+import ErrorBanner from "../Utility/ErrorBanner";
 import HomeBanner from "./HomeBanner";
 import Recommendations from "./Recommendations";
 import WantedList from "./WantedList";
@@ -20,6 +21,7 @@ const ProductsList = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [filterCounts, setFilterCounts] = useState(null);
 
   // 学院-专业映射
@@ -134,6 +136,7 @@ const ProductsList = () => {
     const { search, category, department, major, sort, minPrice, maxPrice, page } = readUrlParams();
     setCurrentPage(page);
     setIsLoading(true);
+    setFetchError(null);
     try {
       const params = new URLSearchParams();
       params.append("page", page);
@@ -155,10 +158,10 @@ const ProductsList = () => {
         setProducts(data.products);
         setTotalPages(data.totalPages);
       } else {
-        console.error("Failed to fetch products");
+        setFetchError("服务器响应异常，请稍后重试");
       }
     } catch (error) {
-      console.error(error);
+      setFetchError("网络连接失败，请检查后重试");
     } finally {
       setIsLoading(false);
     }
@@ -252,6 +255,8 @@ const ProductsList = () => {
                   ))}
                 </div>
               </div>
+            ) : fetchError ? (
+              <ErrorBanner message={fetchError} onRetry={fetchProducts} fullPage />
             ) : products.length === 0 ? (
               <EmptyState
                 search={filters.search}
