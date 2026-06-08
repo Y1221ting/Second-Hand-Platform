@@ -21,7 +21,8 @@ const Lightbox = ({ images, activeIndex = 0, onClose, onPrev, onNext, onSelect }
 
   return (
     <div className="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center"
-         onClick={onClose}>
+         onClick={onClose}
+         style={{ overscrollBehavior: "contain", touchAction: "none" }}>
       {/* 关闭按钮 */}
       <button onClick={onClose}
         className="absolute top-4 right-4 w-10 h-10 bg-white/20 hover:bg-white/30 text-white rounded-full flex items-center justify-center z-10">
@@ -44,12 +45,12 @@ const Lightbox = ({ images, activeIndex = 0, onClose, onPrev, onNext, onSelect }
         </button>
       )}
 
-      {/* 图片 */}
+      {/* 图片 — 点击关闭 */}
       <img
         src={images[activeIndex]}
         alt="预览"
-        className="max-w-[90vw] max-h-[90vh] object-contain select-none"
-        onClick={(e) => e.stopPropagation()}
+        className="max-w-[90vw] max-h-[90vh] object-contain select-none cursor-pointer"
+        onClick={onClose}
       />
 
       {/* 底部圆点（多图时显示） */}
