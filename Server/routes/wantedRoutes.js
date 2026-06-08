@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const Wanted = require("../models/Wanted");
 const { checkBanned } = require("../config/bannedKeywords");
+const logger = require("../config/logger");
 
 // 发布求购
 router.post("/", authMiddleware, async (req, res) => {
@@ -34,11 +35,16 @@ router.post("/", authMiddleware, async (req, res) => {
       },
     });
     await wanted.save();
-    res.status(201).json({ message: "求购发布成功", wanted });
+    logger.info("发布求购", { userId: req.user._id.toString(), wantedId: wanted._id.toString(), name: wanted.name });
+    // 响应脱敏：不返回 postedBy.phone
+    const safeWanted = wanted.toObject();
+    if (safeWanted.postedBy) delete safeWanted.postedBy.phone;
+    res.status(201).json({ message: "求购发布成功", wanted: safeWanted });
   } catch (error) {
     if (error.name === "ValidationError") {
       return res.status(400).json({ message: "输入数据格式不正确" });
     }
+    logger.error("发布求购失败", { userId: req.user?._id?.toString(), message: error.message });
     res.status(500).json({ message: "服务器内部错误" });
   }
 });
@@ -100,12 +106,15 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     if (!wanted) {
       return res.status(404).json({ message: "求购不存在" });
     }
-    if (wanted.postedBy.id !== req.user._id.toString()) {
+    // 防御：postedBy 为空时也视为无权限（防脏数据）
+    if (!wanted.postedBy || wanted.postedBy.id !== req.user._id.toString()) {
       return res.status(403).json({ message: "只能删除自己的求购" });
     }
     await Wanted.deleteOne({ _id: req.params.id });
+    logger.info("删除求购", { userId: req.user._id.toString(), wantedId: req.params.id, name: wanted.name });
     res.json({ message: "删除成功" });
   } catch (error) {
+    logger.error("删除求购失败", { userId: req.user?._id?.toString(), wantedId: req.params.id, message: error.message });
     res.status(500).json({ message: "服务器内部错误" });
   }
 });
