@@ -567,6 +567,10 @@ exports.updateProductStatus = async (req, res) => {
 // Purchase a product (atomic operation, prevents race condition / 防竞态)
 exports.purchaseProduct = async (req, res) => {
   try {
+    // 未激活用户不能购买
+    if (req.user.status === "inactive") {
+      return res.status(403).json({ message: "您的账号正在等待管理员审核，审核通过后即可购买" });
+    }
     // 原子操作：findOneAndUpdate + $inc 确保并发下不会超卖
     const product = await Product.findOneAndUpdate(
       {

@@ -217,6 +217,11 @@ exports.clearCart = async (req, res) => {
 // 6. 批量结算
 exports.checkoutCart = async (req, res) => {
   try {
+    // 未激活用户不能结算
+    if (req.user.status === "inactive") {
+      return res.status(403).json({ message: "您的账号正在等待管理员审核，审核通过后即可购买" });
+    }
+
     const user = await User.findById(req.user._id);
     if (!user.cart || user.cart.length === 0) {
       return res.status(400).json({ message: "购物车为空" });
