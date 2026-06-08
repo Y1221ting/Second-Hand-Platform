@@ -116,6 +116,9 @@ All notable changes to this project will be documented in this file.
 
 - **管理后台侧边栏移动端折叠**（`AdminLayout.js`）：固定侧边栏改为移动端汉堡菜单 + 滑出覆盖层 + 过渡动画
 - **购物车列表响应式**（`Cart.js`）：移动端商品行改为双行布局（第一行图片+名称+删除，第二行数量按钮+金额），触控按钮 w-8 → w-9
+- **商品卡片按钮触控区域**（`ProductCard.js`）：`py-1.5` → `py-2.5`，触控高度 28px→36px
+- **用户主页 Tab 横向滚动**（`UserProfile.js`）：6 个 Tab 在手机上横向滑动不折行，加 `.scrollbar-hide` 全局类
+- **筛选面板过渡动画**（`Filters.js`）：`hidden/block` → `max-h`+`opacity` 过渡，展开收起平滑动画
 - **更多优化计划**：参见 `移动端体验优化方案.md`
 
 ### 文档同步
