@@ -72,6 +72,10 @@ const ProductSchema = new mongoose.Schema({
     type: SellerSchema,
     default: null,
   },
+  views: {
+    type: Number,
+    default: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

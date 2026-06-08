@@ -202,7 +202,11 @@ exports.getAllProducts = async (req, res) => {
 // Get a single product by ID
 exports.getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { views: 1 } },
+      { new: true }
+    );
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -483,23 +487,23 @@ exports.getRecommendations = async (req, res) => {
         _id: { $nin: usedIds },
         "uploadedBy.department": department,
       })
-        .sort({ createdAt: -1 })
+        .sort({ views: -1, createdAt: -1 })
         .limit(remaining)
-        .select("name images price uploadedBy category status quantity createdAt");
+        .select("name images price uploadedBy category status quantity createdAt views");
       usedIds.push(...departmentProducts.map(p => p._id));
       remaining = limit - departmentProducts.length;
     }
 
-    // 第 2 层：最新商品兜底
+    // 第 2 层：热门兜底（按浏览量）
     let fillProducts = [];
     if (remaining > 0) {
       fillProducts = await Product.find({
         ...baseFilter,
         _id: { $nin: usedIds },
       })
-        .sort({ createdAt: -1 })
+        .sort({ views: -1, createdAt: -1 })
         .limit(remaining)
-        .select("name images price uploadedBy category status quantity createdAt");
+        .select("name images price uploadedBy category status quantity createdAt views");
     }
 
     const combined = [

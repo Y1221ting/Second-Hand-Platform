@@ -48,11 +48,9 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
         </span>
         同学院热卖 · 为你精选
       </h2>
-      <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-thin scrollbar-thumb-gray-300">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {products.map(product => (
-          <div key={product._id} className="flex-shrink-0 w-64">
-            <ProductCard product={product} isRecommended={true} />
-          </div>
+          <ProductCard key={product._id} product={product} isRecommended={true} />
         ))}
       </div>
     </div>
