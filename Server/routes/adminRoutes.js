@@ -47,6 +47,41 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+// ========== 趋势数据 ==========
+router.get("/stats/trend", async (req, res) => {
+  try {
+    const days = Math.min(parseInt(req.query.days) || 7, 30);
+    const result = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+      const start = new Date();
+      start.setDate(start.getDate() - i);
+      start.setHours(0, 0, 0, 0);
+
+      const end = new Date(start);
+      end.setDate(end.getDate() + 1);
+
+      const [newUsers, newProducts, newReports] = await Promise.all([
+        User.countDocuments({ createdAt: { $gte: start, $lt: end } }),
+        Product.countDocuments({ createdAt: { $gte: start, $lt: end } }),
+        Report.countDocuments({ createdAt: { $gte: start, $lt: end } }),
+      ]);
+
+      result.push({
+        date: `${start.getMonth() + 1}/${start.getDate()}`,
+        newUsers,
+        newProducts,
+        newReports,
+      });
+    }
+
+    res.json(result);
+  } catch (error) {
+    logger.error("获取趋势数据失败", { message: error.message, userId: req.user?._id?.toString() });
+    res.status(500).json({ message: "获取趋势数据失败" });
+  }
+});
+
 // ========== 举报管理 ==========
 
 // 获取举报列表（关联商品信息）
