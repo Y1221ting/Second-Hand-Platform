@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FaUsers, FaBox, FaUserPlus, FaBoxOpen, FaFlag, FaUserClock } from "react-icons/fa";
 import Loading from "../Utility/Loading";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,6 +30,12 @@ const Dashboard = () => {
     fetchStats();
   }, []);
 
+  // 可点击跳转的统计卡片
+  const linkMap = {
+    "待审核用户": "/admin/users",
+    "待处理举报": "/admin/reports",
+  };
+
   if (loading) return <Loading />;
 
   const cards = [
@@ -52,7 +60,13 @@ const Dashboard = () => {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {cards.map((card) => (
-          <div key={card.label} className="bg-white rounded-xl shadow-sm p-6 flex items-center gap-4">
+          <div
+            key={card.label}
+            className={`bg-white rounded-xl shadow-sm p-6 flex items-center gap-4 ${
+              linkMap[card.label] ? "cursor-pointer hover:shadow-md transition-shadow" : ""
+            }`}
+            onClick={linkMap[card.label] ? () => navigate(linkMap[card.label]) : undefined}
+          >
             <div className={`w-12 h-12 ${card.color} rounded-lg flex items-center justify-center`}>
               <card.icon className="text-white text-lg" />
             </div>

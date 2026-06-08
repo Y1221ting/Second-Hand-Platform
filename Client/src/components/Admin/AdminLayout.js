@@ -1,10 +1,31 @@
-import React from "react";
-import { NavLink, Outlet, Navigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
 import { FaTachometerAlt, FaFlag, FaBox, FaUsers, FaHome } from "react-icons/fa";
 
 const AdminLayout = () => {
   const { isAdmin, user } = useAuth();
+  const location = useLocation();
+  const [badges, setBadges] = useState({ pendingReports: 0, pendingUsers: 0 });
+
+  // 获取待处理事项数量
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    fetch("/api/admin/stats", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setBadges({
+            pendingReports: data.pendingReports || 0,
+            pendingUsers: data.pendingUsers || 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, [location.pathname]); // 切换页面时刷新角标
 
   if (!isAdmin) {
     return <Navigate to="/home" replace />;
@@ -12,9 +33,9 @@ const AdminLayout = () => {
 
   const navItems = [
     { to: "/admin/dashboard", icon: FaTachometerAlt, label: "仪表盘" },
-    { to: "/admin/reports", icon: FaFlag, label: "举报管理" },
+    { to: "/admin/reports", icon: FaFlag, label: "举报管理", badge: badges.pendingReports },
     { to: "/admin/products", icon: FaBox, label: "商品管理" },
-    { to: "/admin/users", icon: FaUsers, label: "用户管理" },
+    { to: "/admin/users", icon: FaUsers, label: "用户管理", badge: badges.pendingUsers },
   ];
 
   return (
@@ -42,7 +63,12 @@ const AdminLayout = () => {
               }
             >
               <item.icon className="text-xs" />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.badge > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                  {item.badge > 99 ? "99+" : item.badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
