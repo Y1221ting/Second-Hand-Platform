@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { NavLink, Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
-import { FaTachometerAlt, FaFlag, FaBox, FaUsers, FaHome, FaBars, FaTimes } from "react-icons/fa";
+import { FaTachometerAlt, FaFlag, FaBox, FaUsers, FaHome, FaBars, FaTimes, FaShoppingBag } from "react-icons/fa";
 
 const AdminLayout = () => {
   const { isAdmin, user } = useAuth();
@@ -41,6 +41,7 @@ const AdminLayout = () => {
     { to: "/admin/dashboard", icon: FaTachometerAlt, label: "仪表盘" },
     { to: "/admin/reports", icon: FaFlag, label: "举报管理", badge: badges.pendingReports },
     { to: "/admin/products", icon: FaBox, label: "商品管理" },
+    { to: "/admin/wanteds", icon: FaShoppingBag, label: "求购管理" },
     { to: "/admin/users", icon: FaUsers, label: "用户管理", badge: badges.pendingUsers },
   ];
 

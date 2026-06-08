@@ -5,6 +5,7 @@ const User = require("../models/User");
 const Product = require("../models/Product");
 const Report = require("../models/Report");
 const Message = require("../models/Message");
+const Wanted = require("../models/Wanted");
 const logger = require("../config/logger");
 
 // 所有接口：先认证，再检查管理员角色
@@ -23,7 +24,7 @@ router.get("/stats", async (req, res) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const [userCount, productCount, todayUsers, todayProducts, pendingReports, pendingUsers] =
+    const [userCount, productCount, todayUsers, todayProducts, pendingReports, pendingUsers, wantedCount, todayWanteds] =
       await Promise.all([
         User.countDocuments(),
         Product.countDocuments({ status: { $nin: ["sold_out", "inactive"] } }),
@@ -31,6 +32,8 @@ router.get("/stats", async (req, res) => {
         Product.countDocuments({ createdAt: { $gte: today } }),
         Report.countDocuments({ status: "pending" }),
         User.countDocuments({ status: "inactive" }),
+        Wanted.countDocuments(),
+        Wanted.countDocuments({ createdAt: { $gte: today } }),
       ]);
 
     res.json({
@@ -40,6 +43,8 @@ router.get("/stats", async (req, res) => {
       todayProducts,
       pendingReports,
       pendingUsers,
+      wantedCount,
+      todayWanteds,
     });
   } catch (error) {
     logger.error("管理员统计失败", { message: error.message, userId: req.user?._id?.toString() });
@@ -61,10 +66,11 @@ router.get("/stats/trend", async (req, res) => {
       const end = new Date(start);
       end.setDate(end.getDate() + 1);
 
-      const [newUsers, newProducts, newReports] = await Promise.all([
+      const [newUsers, newProducts, newReports, newWanteds] = await Promise.all([
         User.countDocuments({ createdAt: { $gte: start, $lt: end } }),
         Product.countDocuments({ createdAt: { $gte: start, $lt: end } }),
         Report.countDocuments({ createdAt: { $gte: start, $lt: end } }),
+        Wanted.countDocuments({ createdAt: { $gte: start, $lt: end } }),
       ]);
 
       result.push({
@@ -72,6 +78,7 @@ router.get("/stats/trend", async (req, res) => {
         newUsers,
         newProducts,
         newReports,
+        newWanteds,
       });
     }
 
@@ -151,6 +158,62 @@ router.put("/reports/:id", async (req, res) => {
     res.json({ message: "处理成功", report });
   } catch (error) {
     res.status(500).json({ message: "处理举报失败" });
+  }
+});
+
+// ========== 求购管理 ==========
+
+// 获取全部求购
+router.get("/wanteds", async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const search = typeof req.query.search === "string" ? req.query.search : "";
+
+    const query = {};
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.$or = [
+        { name: { $regex: escaped, $options: "i" } },
+        { "postedBy.name": { $regex: escaped, $options: "i" } },
+      ];
+    }
+
+    const [wanteds, total] = await Promise.all([
+      Wanted.find(query)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit),
+      Wanted.countDocuments(query),
+    ]);
+
+    // 脱敏：不暴露 phone
+    const safe = wanteds.map((w) => {
+      const obj = w.toObject();
+      if (obj.postedBy) delete obj.postedBy.phone;
+      return obj;
+    });
+
+    res.json({ wanteds: safe, total, page, totalPages: Math.ceil(total / limit) });
+  } catch (error) {
+    logger.error("管理员获取求购列表失败", { message: error.message });
+    res.status(500).json({ message: "获取求购列表失败" });
+  }
+});
+
+// 管理员删除求购（不走 postedBy 校验）
+router.delete("/wanteds/:id", async (req, res) => {
+  try {
+    const wanted = await Wanted.findById(req.params.id);
+    if (!wanted) {
+      return res.status(404).json({ message: "求购不存在" });
+    }
+    await Wanted.deleteOne({ _id: req.params.id });
+    logger.info("管理员删除求购", { admin: req.user._id.toString(), wantedId: req.params.id, name: wanted.name });
+    res.json({ message: "删除成功" });
+  } catch (error) {
+    logger.error("管理员删除求购失败", { message: error.message });
+    res.status(500).json({ message: "删除失败" });
   }
 });
 
@@ -347,11 +410,12 @@ router.put("/users/:id", async (req, res) => {
 // ========== 用户详情（聚合）==========
 router.get("/users/:id/detail", async (req, res) => {
   try {
-    const [user, products, purchased, warnings] = await Promise.all([
+    const [user, products, purchased, warnings, wanteds] = await Promise.all([
       User.findById(req.params.id).select("-password"),
       Product.find({ "uploadedBy.id": req.params.id }).sort({ createdAt: -1 }).limit(20),
       Product.find({ "purchasedBy.id": req.params.id }).sort({ createdAt: -1 }).limit(10),
       Message.find({ userId: req.params.id }).sort({ createdAt: -1 }).limit(10),
+      Wanted.find({ "postedBy.id": req.params.id }).sort({ createdAt: -1 }).limit(20),
     ]);
 
     if (!user) {
@@ -365,6 +429,8 @@ router.get("/users/:id/detail", async (req, res) => {
       purchasedCount: purchased.length,
       purchased,
       warnings,
+      wantedCount: wanteds.length,
+      wanteds,
     });
   } catch (error) {
     logger.error("获取用户详情失败", { message: error.message, userId: req.params?.id });

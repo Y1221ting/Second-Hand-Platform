@@ -28,6 +28,7 @@ const Dashboard = lazy(() => import("./components/Admin/Dashboard"));
 const AdminReports = lazy(() => import("./components/Admin/Reports"));
 const AdminProducts = lazy(() => import("./components/Admin/Products"));
 const AdminUsers = lazy(() => import("./components/Admin/Users"));
+const AdminWanteds = lazy(() => import("./components/Admin/Wanteds"));
 
 const PageLoading = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-900">
@@ -133,6 +134,7 @@ const App = () => {
                   <Route path="dashboard" element={<Dashboard />} />
                   <Route path="reports" element={<AdminReports />} />
                   <Route path="products" element={<AdminProducts />} />
+                  <Route path="wanteds" element={<AdminWanteds />} />
                   <Route path="users" element={<AdminUsers />} />
                 </Route>
               </Routes>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaUsers, FaBox, FaUserPlus, FaBoxOpen, FaFlag, FaUserClock } from "react-icons/fa";
+import { FaUsers, FaBox, FaUserPlus, FaBoxOpen, FaFlag, FaUserClock, FaShoppingBag, FaPen } from "react-icons/fa";
 import Loading from "../Utility/Loading";
 
 const Dashboard = () => {
@@ -44,15 +44,17 @@ const Dashboard = () => {
   const cards = [
     { label: "用户总数", value: stats?.userCount ?? "-", icon: FaUsers, color: "bg-blue-500" },
     { label: "在售商品", value: stats?.productCount ?? "-", icon: FaBox, color: "bg-green-500" },
+    { label: "求购总数", value: stats?.wantedCount ?? "-", icon: FaShoppingBag, color: "bg-teal-500" },
     { label: "今日新增用户", value: stats?.todayUsers ?? "-", icon: FaUserPlus, color: "bg-purple-500" },
     { label: "今日新增商品", value: stats?.todayProducts ?? "-", icon: FaBoxOpen, color: "bg-orange-500" },
+    { label: "今日新增求购", value: stats?.todayWanteds ?? "-", icon: FaPen, color: "bg-cyan-500" },
     { label: "待审核用户", value: stats?.pendingUsers ?? "-", icon: FaUserClock, color: "bg-yellow-500" },
     { label: "待处理举报", value: stats?.pendingReports ?? "-", icon: FaFlag, color: "bg-red-500" },
   ];
 
   // 计算柱状图的最大值（用于统一缩放）
   const maxVal = trend.length > 0
-    ? Math.max(...trend.flatMap((d) => [d.newUsers, d.newProducts, d.newReports]), 1)
+    ? Math.max(...trend.flatMap((d) => [d.newUsers, d.newProducts, d.newReports, d.newWanteds]), 1)
     : 1;
 
   return (
@@ -161,6 +163,31 @@ const Dashboard = () => {
                           d.newReports > 0 ? "bg-red-400 hover:bg-red-500" : "bg-gray-200"
                         }`}
                         style={{ height: `${(d.newReports / maxVal) * 100}%`, minHeight: d.newReports > 0 ? "4px" : "0" }}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-1 mt-1">
+                  {trend.map((d, i) => (
+                    <div key={i} className="flex-1 text-center text-[10px] text-gray-400">
+                      {d.date}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 新增求购 */}
+              <div>
+                <p className="text-sm text-gray-500 mb-2">新增求购</p>
+                <div className="flex items-end gap-1 h-16">
+                  {trend.map((d, i) => (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <span className="text-[10px] text-gray-400 font-medium">
+                        {d.newWanteds || ""}
+                      </span>
+                      <div
+                        className="w-full bg-teal-400 rounded-t transition-all hover:bg-teal-500"
+                        style={{ height: `${(d.newWanteds / maxVal) * 100}%`, minHeight: d.newWanteds > 0 ? "4px" : "0" }}
                       />
                     </div>
                   ))}
