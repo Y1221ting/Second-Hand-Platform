@@ -215,7 +215,17 @@ const WantedPage = () => {
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate("/home")}
+              onClick={() => {
+                if (showForm) {
+                  setShowForm(false);
+                  return;
+                }
+                if (window.history.length > 1) {
+                  navigate(-1);
+                } else {
+                  navigate("/home");
+                }
+              }}
               className="text-gray-600 hover:text-gray-900 transition-colors"
             >
               <FaArrowLeft size={20} />
