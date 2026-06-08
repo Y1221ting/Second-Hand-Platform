@@ -1,8 +1,14 @@
 import React, { useState, memo } from "react";
-import { FaShoppingCart, FaBolt, FaFlag } from "react-icons/fa";
+import { FaShoppingCart, FaEye, FaFlag } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link, useNavigate } from "react-router-dom";
 import Highlight from "./Highlight";
+
+// 价格格式化：整数去 .0，非整数保留一位小数
+const formatPrice = (price) => {
+  const num = Math.min(Number(price ?? 0), 9999.9);
+  return num % 1 === 0 ? num.toFixed(0) : num.toFixed(1);
+};
 
 const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
   const { user } = useAuth();
@@ -118,7 +124,7 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
 
       <div className="mt-1.5">
         <p className="text-center text-lg font-semibold text-yellow-400 mb-1.5">
-          ¥{Math.min(Number(product.price ?? 0), 9999.9).toFixed(1)}
+          ¥{formatPrice(product.price)}
         </p>
 
         {isOwner ? (
@@ -173,8 +179,8 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
               }}
               disabled={product.status === "sold_out" || product.quantity <= 0}
             >
-              <FaBolt className="shrink-0" />
-              <span className="truncate">购买</span>
+              <FaEye className="shrink-0" />
+              <span className="truncate">查看</span>
             </button>
           </div>
         )}
