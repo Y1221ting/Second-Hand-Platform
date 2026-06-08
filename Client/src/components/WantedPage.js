@@ -25,15 +25,6 @@ const timeAgo = (dateStr) => {
 const HOT_TAGS = ["高数课本", "二手手机", "台灯", "电动车", "四六级资料", "电风扇", "收纳箱", "考研资料"];
 const QUICK_DESCS = ["九成新就行", "急用", "想收个二手", "价格可议"];
 
-const WANTED_SEARCH_HISTORY_KEY = "wanted_search_history";
-const MAX_WANTED_HISTORY = 10;
-const getWantedHistory = () => {
-  try { return JSON.parse(localStorage.getItem(WANTED_SEARCH_HISTORY_KEY)) || []; }
-  catch { return []; }
-};
-const setWantedHistory = (arr) => {
-  localStorage.setItem(WANTED_SEARCH_HISTORY_KEY, JSON.stringify(arr));
-};
 
 const WantedPage = () => {
   const { isAuthenticated, user } = useAuth();
@@ -49,25 +40,7 @@ const WantedPage = () => {
 
   // ── 搜索 ──
   const [searchTerm, setSearchTerm] = useState("");
-  const [showWantedHistory, setShowWantedHistory] = useState(false);
-  const [wantedHistory, setWantedHistoryState] = useState(getWantedHistory);
   const SEARCH_DEBOUNCE_MS = 500;
-  const saveWantedSearch = (term) => {
-    const t = term.trim();
-    if (!t) return;
-    const updated = [t, ...wantedHistory.filter((h) => h !== t)].slice(0, MAX_WANTED_HISTORY);
-    setWantedHistoryState(updated);
-    setWantedHistory(updated);
-  };
-  const removeWantedSearch = (term) => {
-    const updated = wantedHistory.filter((h) => h !== term);
-    setWantedHistoryState(updated);
-    setWantedHistory(updated);
-  };
-  const clearWantedSearches = () => {
-    setWantedHistoryState([]);
-    localStorage.removeItem(WANTED_SEARCH_HISTORY_KEY);
-  };
 
   // ── 我的求购 ──
   const [myWanteds, setMyWanteds] = useState([]);
@@ -131,7 +104,7 @@ const WantedPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
 
-  // 搜索防抖：停止输入 500ms 后写 URL + 拉取 + 存历史
+  // 搜索防抖：停止输入 500ms 后写 URL + 拉取
   useEffect(() => {
     const timer = setTimeout(() => {
       // 写 URL（仅当搜索词与 URL 不一致时才写，防止死循环）
@@ -145,10 +118,6 @@ const WantedPage = () => {
         }
         const qs = params.toString();
         navigate(`/wanted${qs ? `?${qs}` : ""}`, { replace: true });
-      }
-      // 存历史
-      if (searchTerm.trim()) {
-        saveWantedSearch(searchTerm);
       }
       fetchWanteds(1, searchTerm);
     }, SEARCH_DEBOUNCE_MS);
@@ -449,69 +418,6 @@ const WantedPage = () => {
           </div>
         </div>
 
-        {/* 搜索框 */}
-        {listFilter === "all" && (
-          <div className="relative mb-4">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onFocus={() => setShowWantedHistory(true)}
-              onBlur={() => setTimeout(() => setShowWantedHistory(false), 150)}
-              placeholder="🔍  搜索求购商品..."
-              className="w-full border border-gray-300 rounded-lg py-2 px-3 pr-8 text-sm focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm px-2"
-              >
-                ✕
-              </button>
-            )}
-
-            {/* 搜索历史下拉 */}
-            {showWantedHistory && wantedHistory.length > 0 && !searchTerm.trim() && (
-              <div
-                className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-2"
-                onMouseDown={(e) => e.preventDefault()}
-              >
-                {wantedHistory.map((term, idx) => (
-                  <div
-                    key={idx}
-                    className="w-full flex items-center justify-between px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-                  >
-                    <button
-                      className="flex items-center gap-2 min-w-0 flex-1 text-left"
-                      onClick={() => {
-                        setSearchTerm(term);
-                        setShowWantedHistory(false);
-                      }}
-                    >
-                      <span className="text-gray-400 text-xs shrink-0">🕐</span>
-                      <span className="truncate">{term}</span>
-                    </button>
-                    <button
-                      className="text-gray-400 hover:text-red-500 ml-2 shrink-0 text-xs px-1"
-                      onClick={() => removeWantedSearch(term)}
-                      aria-label="删除历史记录"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-                <div className="border-t border-gray-100 mt-1 pt-1">
-                  <button
-                    className="w-full text-center py-1.5 text-xs text-gray-400 hover:text-red-500 transition-colors"
-                    onClick={clearWantedSearches}
-                  >
-                    🗑 清除全部搜索历史
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {loading ? (
           <Loading />
