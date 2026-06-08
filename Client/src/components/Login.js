@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/authContext";
 
 const Login = () => {
@@ -80,8 +80,16 @@ const Login = () => {
           </div>
         )}
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
-            {error}
+          <div className="mb-4 p-3 bg-red-100 border border-red-400 rounded-lg">
+            <p className="text-red-700 text-sm">{error}</p>
+            {error.includes("审核") && (
+              <Link
+                to="/home"
+                className="mt-2 inline-block text-sm text-yellow-600 hover:text-yellow-700 font-medium"
+              >
+                先去逛逛 →
+              </Link>
+            )}
           </div>
         )}
         <form onSubmit={handleSubmit}>
