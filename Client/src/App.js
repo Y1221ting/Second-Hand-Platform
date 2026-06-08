@@ -1,5 +1,5 @@
 // 路由级代码分割 + ErrorBoundary 兜底
-import React, { lazy, Suspense } from "react";
+import React, { lazy, Suspense, useState, useEffect } from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/authContext";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -63,10 +63,28 @@ class ErrorBoundary extends React.Component {
 }
 
 const App = () => {
+  const [online, setOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
+
   return (
     <AuthProvider>
       <NotificationProvider>
         <Router>
+          {!online && (
+            <div className="fixed top-0 left-0 right-0 bg-red-500 text-white text-center py-2 text-sm z-[100] shadow-lg">
+              当前无网络连接，部分功能不可用
+            </div>
+          )}
           <ErrorBoundary>
             <Suspense fallback={<PageLoading />}>
               <Routes>
