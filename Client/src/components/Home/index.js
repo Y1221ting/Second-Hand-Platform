@@ -5,7 +5,6 @@ import ProductList from "./ProductList";
 import Pagination from "./Pagination";
 import ActiveFilterTags from "./ActiveFilterTags";
 import EmptyState from "./EmptyState";
-import Loading from "../Utility/Loading";
 import SkeletonCard from "../Utility/SkeletonCard";
 import HomeBanner from "./HomeBanner";
 import Recommendations from "./Recommendations";
