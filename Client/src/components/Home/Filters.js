@@ -45,7 +45,9 @@ const Filters = ({
     handlePriceRangeChange(0, 10000);
   };
 
-  const filtersClass = `${showFilters ? "block" : "hidden"} md:block`;
+  const filtersClass = `overflow-hidden transition-all duration-300 ease-in-out ${
+    showFilters ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"
+  } md:max-h-none md:opacity-100`;
 
   return (
     <div className="md:w-1/3 lg:w-1/4 p-4 ">
