@@ -1,4 +1,5 @@
 import React, { useState, memo } from "react";
+import { createPortal } from "react-dom";
 import { FaShoppingCart, FaFlag } from "react-icons/fa";
 import { useAuth } from "../../context/authContext";
 import { Link } from "react-router-dom";
@@ -164,8 +165,8 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
           </div>
         )}
 
-        {/* 举报弹窗（fixed 层，不影响卡片布局） */}
-        {showReportPanel && (
+        {/* 举报弹窗（Portal 到 body，避免被卡片 hover:scale 影响 fixed 定位） */}
+        {showReportPanel && createPortal(
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
             onClick={() => { setShowReportPanel(false); setReportDetail(""); }}
@@ -209,7 +210,8 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>
