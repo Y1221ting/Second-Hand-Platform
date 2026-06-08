@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { FaArrowLeft } from "react-icons/fa";
 import UserDetails from "./Profile/UserDetails";
 import { useAuth } from "../context/authContext";
 import Navbar from "./Utility/Navbar";
@@ -285,6 +286,17 @@ const UserProfile = () => {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="max-w-5xl mx-auto px-4 py-6">
+        {/* 返回按钮 */}
+        <div className="mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <FaArrowLeft size={18} />
+            <span className="text-sm">返回</span>
+          </button>
+        </div>
+
         {/* ===== 用户信息区域 ===== */}
         {editMode ? (
           /* 编辑模式：显示原有的 UserDetails 表单 */
