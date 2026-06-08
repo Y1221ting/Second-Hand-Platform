@@ -121,9 +121,19 @@ All notable changes to this project will be documented in this file.
 - **筛选面板过渡动画**（`Filters.js`）：`hidden/block` → `max-h`+`opacity` 过渡，展开收起平滑动画
 - **更多优化计划**：参见 `移动端体验优化方案.md`
 
+### Mobile — 移动端体验优化（第二期 — 竞品对齐）
+
+- **商品卡片重构**（`ProductCard.js` + `ProductList.js`）：仿京东淘宝移动端——`aspect-square` 方形图片、删卖家信息/院系/库存、简化标题两行、加购改为图片右下角圆形图标、`grid-cols-1` → `grid-cols-2` 双列
+- **详情页底部固定操作栏**（`ProductDetails.js` + `Navbar.js` + `index.css`）：深色半透明底 `backdrop-blur-sm`、联系卖家(圆形图标)+加购(描边)+购买(黄色加粗)、按压 `active:scale` 反馈、`animate-slide-up` 入场动画、隐藏底部 Tab 栏无干扰
+- **图片触摸滑动切换**（`ProductDetails.js`）：`touchStart/touchEnd` 监听，左滑/右滑 >50px 翻页
+- **弹窗背景滚动锁定**（`Dialog.js` + `ContactSeller.js` + `Lightbox.js`）：`body.style.overflow="hidden"` 防止弹窗下层滑动
+- **灯箱点击关闭**（`Lightbox.js`）：图片区域也可关闭（不限于 X 按钮）+ `overscrollBehavior:contain` 阻止左滑返回
+- **推荐系统优化**（`Recommendations.js` + `productController.js` + `Product.js`）：横向滚动→`grid-cols-2` 双列；Product 新增 `views` 字段；浏览商品自动 `$inc: views`；推荐按浏览量降序
+- **更多优化计划**：参见 `移动端体验优化方案.md`
+
 ### 文档同步
 
-- **CHANGELOG.md**：更新 v2.6.0 完整变更记录
+- **CHANGELOG.md**：更新 v2.6.0 第二期移动端优化
 - **CLAUDE.md**：项目执行公约持续遵守
 
 ---
