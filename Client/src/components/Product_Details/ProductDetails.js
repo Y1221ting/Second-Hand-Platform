@@ -377,7 +377,11 @@ const ProductDetails = ({ productId }) => {
               ))}
             </dl>
           ) : (
-            <p className="text-gray-500 py-4">暂无规格参数</p>
+            <p className="text-gray-500 py-4">
+              {userId === productDetails.uploadedBy?.id
+                ? "你还没有填写规格参数，编辑商品即可添加"
+                : "卖家暂未填写规格参数"}
+            </p>
           )}
         </div>
       </div>
