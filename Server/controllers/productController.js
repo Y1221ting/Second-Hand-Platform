@@ -682,3 +682,40 @@ exports.getFilterCounts = async (req, res) => {
     res.status(200).json({ byCategory: {}, byDepartment: {}, total: 0 });
   }
 };
+
+// 获取卖家联系方式（仅限登录用户查看，不暴露完整手机号）
+exports.getSellerContact = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id).populate("uploadedBy.id", "wechat qq phoneNo fullName department");
+    if (!product) {
+      return res.status(404).json({ message: "商品不存在" });
+    }
+
+    const seller = product.uploadedBy;
+    if (!seller) {
+      return res.status(404).json({ message: "卖家信息不存在" });
+    }
+
+    // 自己不能查自己的联系方式（看自己商品不需要这个接口）
+    if (seller._id.toString() === req.user._id.toString()) {
+      return res.status(400).json({ message: "不能查看自己的联系方式" });
+    }
+
+    // 手机号脱敏
+    const phone = seller.phoneNo
+      ? seller.phoneNo.replace(/(\d{3})\d{4}(\d{4})/, "$1****$2")
+      : null;
+
+    logger.info("获取卖家联系方式", { userId: req.user._id.toString(), productId: req.params.id });
+    res.json({
+      wechat: seller.wechat || null,
+      qq: seller.qq || null,
+      phone,
+      sellerName: seller.fullName,
+      sellerDepartment: seller.department,
+    });
+  } catch (error) {
+    logger.error("获取卖家联系方式失败", { message: error.message, productId: req.params?.id });
+    res.status(500).json({ message: "服务器内部错误" });
+  }
+};

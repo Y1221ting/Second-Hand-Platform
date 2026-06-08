@@ -18,6 +18,7 @@ router.put("/:id", authMiddleware, productController.updateProductById);
 router.delete("/:id", authMiddleware, productController.deleteProductById);
 router.put("/:id/update-status", authMiddleware, productController.updateProductStatus);
 router.post("/:id/purchase", authMiddleware, productController.purchaseProduct);
+router.get("/:id/seller-contact", authMiddleware, productController.getSellerContact);
 
 router.post("/:id/images", authMiddleware, productController.addImageToProduct);
 router.delete(
