@@ -244,12 +244,12 @@ exports.checkoutCart = async (req, res) => {
             $set: {
               purchasedBy: {
                 id:         req.user._id.toString(),
-                name:       req.user.fullName,
+                name:       req.body.fullName || req.user.fullName,
                 college:    "南昌师范学院",
                 department: req.user.department || "",
                 major:      req.user.major || "",
-                dormitory:  req.user.dormitory || "",
-                phone:      req.user.phoneNo || "",
+                dormitory:  req.body.dormitory || req.user.dormitory || "",
+                phone:      req.body.phoneNo || req.user.phoneNo || "",
               },
             },
           },
@@ -266,9 +266,9 @@ exports.checkoutCart = async (req, res) => {
               product,
               quantity: item.quantity,
               buyerInfo: {
-                name: req.user.fullName,
-                phone: req.user.phoneNo || "",
-                dormitory: req.user.dormitory || "",
+                name: req.body.fullName || req.user.fullName,
+                phone: req.body.phoneNo || req.user.phoneNo || "",
+                dormitory: req.body.dormitory || req.user.dormitory || "",
                 department: req.user.department || "",
               },
             });
