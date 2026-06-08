@@ -153,7 +153,7 @@ const Navbar = ({ hideMobileTabBar = false }) => {
 
   return (
     <>
-      <nav className="relative bg-gray-900 py-3 px-4 md:px-8 flex items-center justify-between z-10">
+      <nav className="sticky top-0 bg-gray-900 py-3 px-4 md:px-8 flex items-center justify-between z-30">
       {/* Logo */}
       <div className="flex items-center shrink-0">
         <Link to="/home" className="text-white text-2xl md:text-3xl font-bold whitespace-nowrap">
@@ -219,7 +219,7 @@ const Navbar = ({ hideMobileTabBar = false }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => {
                 handleSearch(e);
-                if (e.key === "Enter") setIsMobileSearchOpen(false);
+                if (e.key === "Enter") setTimeout(() => setIsMobileSearchOpen(false), 600);
               }}
               onFocus={() => setShowHistory(true)}
               onBlur={() => setTimeout(() => setShowHistory(false), 150)}

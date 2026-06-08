@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import Filters from "./Filters";
 import ProductList from "./ProductList";
@@ -23,6 +23,7 @@ const ProductsList = () => {
   const [fetchError, setFetchError] = useState(null);
   const [filterCounts, setFilterCounts] = useState(null);
   const [wantedsCount, setWantedsCount] = useState(0);
+  const productListRef = useRef(null);
 
   // 学院-专业映射
   const [majorMap, setMajorMap] = useState({});
@@ -180,6 +181,19 @@ const ProductsList = () => {
     fetchProducts();
   }, [fetchProducts]);
 
+  // 搜索/筛选变化时自动滚动到商品列表
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const hasActiveSearch = params.has("search") || params.has("category") || params.has("department") || params.has("major");
+    if (hasActiveSearch && productListRef.current) {
+      // 延迟等待数据渲染
+      const timer = setTimeout(() => {
+        productListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [location.search]);
+
   // 页面可见性恢复时刷新
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -237,7 +251,7 @@ const ProductsList = () => {
           limit={4}
         />
       )}
-      <h1 className="text-2xl font-semibold mb-4">最近上新</h1>
+      <h1 ref={productListRef} className="text-2xl font-semibold mb-4">最近上新</h1>
       {!showFullLoading && (
         <ActiveFilterTags
           filters={filters}

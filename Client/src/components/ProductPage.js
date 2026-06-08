@@ -14,7 +14,7 @@ const ProductPage = () => {
       <main className="mx-auto w-full md:w-4/5 p-4 ">
         <div className="flex items-center gap-3 mb-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate("/home"); } }}
             className="text-gray-600 hover:text-gray-900 transition-colors"
           >
             <FaArrowLeft size={20} />

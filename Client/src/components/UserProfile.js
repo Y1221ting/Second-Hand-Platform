@@ -289,7 +289,7 @@ const UserProfile = () => {
         {/* 返回按钮 */}
         <div className="mb-4">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => { if (window.history.length > 1) { navigate(-1); } else { navigate("/home"); } }}
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
           >
             <FaArrowLeft size={18} />
