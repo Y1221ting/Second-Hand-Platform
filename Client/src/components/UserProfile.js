@@ -445,7 +445,7 @@ const UserProfile = () => {
                 : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
             }`}
           >
-            出售记录 ({soldProducts.length})
+            出售记录 ({sellOrders.length || soldProducts.length})
           </button>
           <button
             onClick={() => setActiveTab("purchased")}
@@ -455,7 +455,7 @@ const UserProfile = () => {
                 : "bg-white text-gray-600 hover:bg-gray-100 shadow-sm"
             }`}
           >
-            购买记录 ({purchasedProducts.length})
+            购买记录 ({buyOrders.length || purchasedProducts.length})
           </button>
         </div>
 
