@@ -236,60 +236,121 @@ const Cart = () => {
                 return (
                   <div
                     key={product._id}
-                    className="bg-white rounded-lg shadow p-4 flex gap-4 items-center"
+                    className="bg-white rounded-lg shadow p-4"
                   >
-                    <Link to={`/product/${product._id}`} className="flex-shrink-0">
-                      <div
-                        className="w-20 h-20 rounded-lg bg-gray-200 bg-cover bg-center"
-                        style={{
-                          backgroundImage: product.images?.[0]
-                            ? `url(${product.images[0]})`
-                            : "none",
-                        }}
-                      />
-                    </Link>
-                    <div className="flex-grow min-w-0">
-                      <Link
-                        to={`/product/${product._id}`}
-                        className="text-lg font-semibold text-gray-900 hover:text-yellow-600 transition-colors truncate block"
-                      >
-                        {product.name}
+                    {/* 移动端布局（<sm）：双行 */}
+                    <div className="sm:hidden">
+                      <div className="flex items-center gap-4">
+                        <Link to={`/product/${product._id}`} className="flex-shrink-0">
+                          <div
+                            className="w-20 h-20 rounded-lg bg-gray-200 bg-cover bg-center"
+                            style={{
+                              backgroundImage: product.images?.[0]
+                                ? `url(${product.images[0]})`
+                                : "none",
+                            }}
+                          />
+                        </Link>
+                        <div className="flex-grow min-w-0">
+                          <Link
+                            to={`/product/${product._id}`}
+                            className="text-lg font-semibold text-gray-900 hover:text-yellow-600 transition-colors truncate block"
+                          >
+                            {product.name}
+                          </Link>
+                          <p className="text-sm text-gray-500 mt-1">
+                            单价：¥{price.toFixed(2)}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveItem(product._id)}
+                          className="text-gray-400 hover:text-red-500 transition-colors p-2"
+                          title="移除"
+                        >
+                          <FaTrash size={16} />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between mt-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleUpdateQuantity(product._id, item.quantity - 1)}
+                            disabled={item.quantity <= 1}
+                            className="w-9 h-9 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <FaMinus size={12} />
+                          </button>
+                          <span className="w-10 text-center font-semibold text-gray-900">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() => handleUpdateQuantity(product._id, item.quantity + 1)}
+                            disabled={item.quantity >= product.quantity}
+                            className="w-9 h-9 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <FaPlus size={12} />
+                          </button>
+                        </div>
+                        <p className="text-lg font-semibold text-gray-900">
+                          ¥{(price * item.quantity).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* 桌面端布局（sm+）：单行 */}
+                    <div className="hidden sm:flex items-center gap-4">
+                      <Link to={`/product/${product._id}`} className="flex-shrink-0">
+                        <div
+                          className="w-20 h-20 rounded-lg bg-gray-200 bg-cover bg-center"
+                          style={{
+                            backgroundImage: product.images?.[0]
+                              ? `url(${product.images[0]})`
+                              : "none",
+                          }}
+                        />
                       </Link>
-                      <p className="text-sm text-gray-500 mt-1">
-                        单价：¥{price.toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
+                      <div className="flex-grow min-w-0">
+                        <Link
+                          to={`/product/${product._id}`}
+                          className="text-lg font-semibold text-gray-900 hover:text-yellow-600 transition-colors truncate block"
+                        >
+                          {product.name}
+                        </Link>
+                        <p className="text-sm text-gray-500 mt-1">
+                          单价：¥{price.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleUpdateQuantity(product._id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                          className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <FaMinus size={12} />
+                        </button>
+                        <span className="w-10 text-center font-semibold text-gray-900">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => handleUpdateQuantity(product._id, item.quantity + 1)}
+                          disabled={item.quantity >= product.quantity}
+                          className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <FaPlus size={12} />
+                        </button>
+                      </div>
+                      <div className="text-right min-w-[80px]">
+                        <p className="text-lg font-semibold text-gray-900">
+                          ¥{(price * item.quantity).toFixed(2)}
+                        </p>
+                      </div>
                       <button
-                        onClick={() => handleUpdateQuantity(product._id, item.quantity - 1)}
-                        disabled={item.quantity <= 1}
-                        className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        onClick={() => handleRemoveItem(product._id)}
+                        className="text-gray-400 hover:text-red-500 transition-colors p-2"
+                        title="移除"
                       >
-                        <FaMinus size={12} />
-                      </button>
-                      <span className="w-10 text-center font-semibold text-gray-900">
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => handleUpdateQuantity(product._id, item.quantity + 1)}
-                        disabled={item.quantity >= product.quantity}
-                        className="w-8 h-8 rounded border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <FaPlus size={12} />
+                        <FaTrash size={16} />
                       </button>
                     </div>
-                    <div className="text-right min-w-[80px]">
-                      <p className="text-lg font-semibold text-gray-900">
-                        ¥{(price * item.quantity).toFixed(2)}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleRemoveItem(product._id)}
-                      className="text-gray-400 hover:text-red-500 transition-colors p-2"
-                      title="移除"
-                    >
-                      <FaTrash size={16} />
-                    </button>
                   </div>
                 );
               })}
