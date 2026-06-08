@@ -1,8 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaTimes, FaCopy, FaWeixin, FaQq, FaPhone } from "react-icons/fa";
 
 const ContactSeller = ({ contact, onClose }) => {
   const [copied, setCopied] = useState(null);
+
+  // 弹窗打开时锁定背景滚动
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
 
   const handleCopy = (label, value) => {
     // 创建临时 textarea（兼容 HTTP 非安全上下文，无需 HTTPS）

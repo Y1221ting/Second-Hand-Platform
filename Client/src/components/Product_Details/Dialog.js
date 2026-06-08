@@ -47,6 +47,18 @@ const Dialog = ({ isOpen, onClose, onSave, id }) => {
     onSave(formData);
   };
 
+  // 弹窗打开时锁定背景滚动
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   useEffect(() => {
     const fetchUserDetails = async () => {
       if (!id) {
