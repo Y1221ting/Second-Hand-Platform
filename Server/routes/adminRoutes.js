@@ -344,6 +344,34 @@ router.put("/users/:id", async (req, res) => {
   }
 });
 
+// ========== 用户详情（聚合）==========
+router.get("/users/:id/detail", async (req, res) => {
+  try {
+    const [user, products, purchased, warnings] = await Promise.all([
+      User.findById(req.params.id).select("-password"),
+      Product.find({ "uploadedBy.id": req.params.id }).sort({ createdAt: -1 }).limit(20),
+      Product.find({ "purchasedBy.id": req.params.id }).sort({ createdAt: -1 }).limit(10),
+      Message.find({ userId: req.params.id }).sort({ createdAt: -1 }).limit(10),
+    ]);
+
+    if (!user) {
+      return res.status(404).json({ message: "用户不存在" });
+    }
+
+    res.json({
+      user,
+      productCount: products.length,
+      products,
+      purchasedCount: purchased.length,
+      purchased,
+      warnings,
+    });
+  } catch (error) {
+    logger.error("获取用户详情失败", { message: error.message, userId: req.params?.id });
+    res.status(500).json({ message: "获取用户详情失败" });
+  }
+});
+
 // ========== 警告管理 ==========
 
 // 给用户发送警告
