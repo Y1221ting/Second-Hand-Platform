@@ -5,14 +5,15 @@ import { useNotifications } from "../../context/NotificationContext";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 
 const SEARCH_HISTORY_KEY = "search_history";
+const WANTED_SEARCH_KEY = "wanted_search_history";
 const MAX_HISTORY = 10;
 
-const getStoredHistory = () => {
-  try { return JSON.parse(localStorage.getItem(SEARCH_HISTORY_KEY)) || []; }
+const getHistory = (key) => {
+  try { return JSON.parse(localStorage.getItem(key)) || []; }
   catch { return []; }
 };
-const setStoredHistory = (arr) => {
-  localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(arr));
+const setHistory = (key, arr) => {
+  localStorage.setItem(key, JSON.stringify(arr));
 };
 
 const Navbar = ({ hideMobileTabBar = false }) => {
@@ -20,30 +21,43 @@ const Navbar = ({ hideMobileTabBar = false }) => {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchHistory, setSearchHistory] = useState(getStoredHistory);
+  const [searchHistory, setSearchHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
   const { isAuthenticated, user, logout, isAdmin } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
 
+  // 当前上下文的历史 key（首页=商品，求购页=求购）
+  const historyKey = location.pathname === "/wanted" ? WANTED_SEARCH_KEY : SEARCH_HISTORY_KEY;
+
+  // 页面切换时加载对应历史
+  useEffect(() => {
+    setSearchHistory(getHistory(historyKey));
+  }, [historyKey]);
+
   const saveSearch = (term) => {
     const t = term.trim();
     if (!t) return;
-    const updated = [t, ...searchHistory.filter((h) => h !== t)].slice(0, MAX_HISTORY);
+    const key = location.pathname === "/wanted" ? WANTED_SEARCH_KEY : SEARCH_HISTORY_KEY;
+    const current = getHistory(key);
+    const updated = [t, ...current.filter((h) => h !== t)].slice(0, MAX_HISTORY);
     setSearchHistory(updated);
-    setStoredHistory(updated);
+    setHistory(key, updated);
   };
 
   const removeSearch = (term) => {
-    const updated = searchHistory.filter((h) => h !== term);
+    const key = location.pathname === "/wanted" ? WANTED_SEARCH_KEY : SEARCH_HISTORY_KEY;
+    const current = getHistory(key);
+    const updated = current.filter((h) => h !== term);
     setSearchHistory(updated);
-    setStoredHistory(updated);
+    setHistory(key, updated);
   };
 
   const clearSearches = () => {
+    const key = location.pathname === "/wanted" ? WANTED_SEARCH_KEY : SEARCH_HISTORY_KEY;
     setSearchHistory([]);
-    localStorage.removeItem(SEARCH_HISTORY_KEY);
+    localStorage.removeItem(key);
   };
 
   // 搜索框同步 URL 参数（首页搜 ?search=，求购页搜 ?q=）
