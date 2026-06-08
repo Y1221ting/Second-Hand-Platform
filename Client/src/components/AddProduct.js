@@ -4,7 +4,7 @@ import Navbar from "./Utility/Navbar";
 import Footer from "./Utility/Footer";
 import { useAuth } from "../context/authContext";
 import { useNavigate } from "react-router-dom";
-import { FaInfoCircle, FaPlus } from "react-icons/fa";
+import { FaInfoCircle, FaPlus, FaArrowLeft } from "react-icons/fa";
 
 // 按分类的常用规格建议
 const SPEC_SUGGESTIONS = {
@@ -289,6 +289,12 @@ const AddProduct = () => {
       <Navbar />
       <div className="w-4/5 mx-auto py-4">
         <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <FaArrowLeft size={20} />
+          </button>
           <h1 className="text-3xl font-semibold text-gray-900">发布</h1>
           <div className="flex rounded-lg overflow-hidden border border-gray-300">
             <button
