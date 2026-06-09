@@ -138,6 +138,8 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
   };
 
   const handlePointerMove = (e) => {
+    // 没按左键 → 纯 hover，不处理拖拽（对齐行业标准）
+    if (e.buttons !== 1) return;
     if (!trackRef.current) return;
 
     const deltaX = e.clientX - dragStartXRef.current;
