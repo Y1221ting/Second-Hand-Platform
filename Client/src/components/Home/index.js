@@ -272,6 +272,7 @@ const ProductsList = () => {
             departments={departments}
             majors={majors}
             majorDisabled={majorDisabled}
+            majorMap={majorMap}
             sortBy={filters.sort}
             handleSortChange={handleSortChange}
             priceRange={stablePriceRange}
