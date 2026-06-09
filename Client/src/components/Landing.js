@@ -4,22 +4,15 @@ import { FaArrowRight } from "react-icons/fa";
 
 const LandingPage = () => {
   return (
-    <div className="h-screen flex flex-col justify-center items-center text-white relative overflow-hidden">
-      {/* 多层渐变背景：基础深色渐变 + 左上/右下金色光晕 */}
-      <div className="absolute inset-0" style={{
-        background: `
-          radial-gradient(ellipse at 20% 20%, rgba(251, 191, 36, 0.12) 0%, transparent 50%),
-          radial-gradient(ellipse at 80% 80%, rgba(180, 120, 30, 0.08) 0%, transparent 50%),
-          linear-gradient(135deg, #111827 0%, #1f2937 50%, #78350f 100%)
-        `,
-      }} />
-      {/* 极淡噪点纹理 — 纯 CSS，无图片请求 */}
-      <div className="absolute inset-0 opacity-[0.035]" style={{
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-        backgroundSize: '200px 200px',
-      }} />
-
-      <div className="relative z-10 flex flex-col items-center">
+    <div
+      className="h-screen flex flex-col justify-center items-center text-white relative overflow-hidden bg-cover bg-center"
+      style={{
+        backgroundImage: `url(/uploads/landing-bg.jpg)`,
+        backgroundBlendMode: "overlay",
+        backgroundColor: "rgba(0, 0, 0, 0.55)",
+      }}
+    >
+      <div className="flex flex-col items-center">
         <div
           className="text-yellow-500 text-[6vh] md:text-[12vh] font-bold animate__animated animate__bounceInDown hover:scale-125 hover:animate-bounce transition-all"
           style={{ textShadow: "2px 2px 4px #000000" }}
