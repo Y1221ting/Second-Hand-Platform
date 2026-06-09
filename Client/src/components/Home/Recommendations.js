@@ -268,7 +268,10 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
         pause();
 
         if (wheelAccumRef.current > 0) {
-          // 向右滑 → 上一张（边缘回绕）
+          // deltaX > 0 → 手指向左滑 → 下一张
+          setCurrent((prev) => prev + 1);
+        } else {
+          // deltaX < 0 → 手指向右滑 → 上一张（到头回绕）
           if (currentRef.current === 0) {
             setAnimating(false);
             setCurrent(total);
@@ -281,9 +284,6 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
           } else {
             setCurrent((prev) => prev - 1);
           }
-        } else {
-          // 向左滑 → 下一张
-          setCurrent((prev) => prev + 1);
         }
 
         wheelAccumRef.current = 0;
