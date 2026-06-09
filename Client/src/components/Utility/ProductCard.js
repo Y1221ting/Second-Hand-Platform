@@ -15,7 +15,6 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
   const [clickedButtonId, setClickedButtonId] = useState(null);
   const isOwner = user && user.id === product.uploadedBy?.id;
 
-
   const handleAddToCart = async () => {
     if (!user) {
       alert("请先登录");
@@ -46,7 +45,7 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
   };
 
   return (
-    <div className="flex flex-col w-full bg-gray-900 text-white rounded-md overflow-hidden hover:scale-105 transition-transform duration-200">
+    <div className="flex flex-col w-full bg-gray-900 text-white rounded-md overflow-hidden hover:scale-105 transition-transform duration-200 group">
       {/* 图片区域 — 点击进详情 */}
       <Link to={`/product/${product._id}`} className="relative block">
         <div className="aspect-square bg-gray-700 overflow-hidden">
@@ -66,11 +65,19 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
             推荐
           </span>
         )}
-        {product.status === "sold_out" || product.quantity <= 0 ? (
-          <span className="absolute top-1.5 right-1.5 bg-red-500/90 text-white text-[10px] px-2 py-0.5 rounded-sm z-10">
-            已售罄
-          </span>
-        ) : null}
+        {/* 右上角徽标组 */}
+        <div className="absolute top-1.5 right-1.5 flex gap-1 z-10">
+          {isOwner && (
+            <span className="bg-gray-900/80 text-white text-[10px] px-1.5 py-0.5 rounded-sm">
+              我的
+            </span>
+          )}
+          {(product.status === "sold_out" || product.quantity <= 0) && (
+            <span className="bg-red-500/90 text-white text-[10px] px-2 py-0.5 rounded-sm">
+              已售罄
+            </span>
+          )}
+        </div>
 
         {/* 加购按钮 — 覆盖在图片右下角 */}
         {!isOwner && (
@@ -82,7 +89,7 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
               handleAddToCart();
             }}
             disabled={product.status === "sold_out" || product.quantity <= 0}
-            className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 ${
+            className={`absolute bottom-2 right-2 w-8 h-8 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 md:opacity-0 md:group-hover:opacity-100 ${
               product.status === "sold_out" || product.quantity <= 0
                 ? "bg-gray-600 text-gray-400 cursor-not-allowed"
                 : clickedButtonId === product._id
@@ -101,21 +108,14 @@ const ProductCard = memo(({ product, isRecommended, searchTerm }) => {
       </Link>
 
       {/* 内容区域 */}
-      <div className="p-2.5 flex flex-col gap-1.5">
+      <div className="p-2 flex flex-col gap-1">
         <h3 className="text-sm font-medium leading-tight line-clamp-2" title={product.name}>
           <Highlight text={product.name} keyword={searchTerm} />
         </h3>
 
-        <div className="flex items-center justify-between">
-          <p className="text-base font-bold text-yellow-400">
-            ¥{formatPrice(product.price)}
-          </p>
-          {isOwner && (
-            <span className="text-[10px] text-gray-500 bg-gray-800 px-1.5 py-0.5 rounded">
-              我的
-            </span>
-          )}
-        </div>
+        <p className="text-base font-bold text-yellow-400">
+          ¥{formatPrice(product.price)}
+        </p>
 
       </div>
     </div>
