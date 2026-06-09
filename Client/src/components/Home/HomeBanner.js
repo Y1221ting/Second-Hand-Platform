@@ -117,8 +117,8 @@ const HomeBanner = ({ departments }) => {
           </div>
         </div>
 
-        {/* === 学院标签区（最多 8 个，点击跳转筛选） === */}
-        <div className="flex flex-wrap gap-1.5 sm:gap-2">
+        {/* === 学院标签区 — 移动端横滚 / 桌面端折行，毛玻璃质感 === */}
+        <div className="flex flex-nowrap sm:flex-wrap gap-1.5 sm:gap-2 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0 pb-1 sm:pb-0">
           {departments.slice(0, 8).map((dept) => {
             const isActive = activeDept === dept;
             return (
@@ -126,17 +126,19 @@ const HomeBanner = ({ departments }) => {
                 key={dept}
                 to={`/home?department=${encodeURIComponent(dept)}`}
                 className={[
-                  "px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full",
-                  "text-xs sm:text-sm transition-all duration-200",
-                  "flex items-center gap-1 border-2",
+                  "flex-shrink-0 px-2.5 sm:px-3 py-1.5 rounded-full",
+                  "text-xs sm:text-sm transition-all duration-250",
+                  "flex items-center gap-1 border whitespace-nowrap",
                   "cursor-pointer select-none",
+                  /* 毛玻璃核心 */
+                  "backdrop-blur-md",
                   isActive
-                    ? "bg-white text-amber-800 font-semibold shadow-md border-yellow-400 hover:brightness-95"
-                    : "bg-white/35 hover:bg-white/70 hover:scale-105 hover:shadow-sm text-gray-800 border-transparent",
+                    ? "bg-white/95 text-amber-900 font-semibold shadow-sm border-amber-400/50"
+                    : "bg-white/25 text-gray-800 border-white/60 hover:bg-white/50",
                 ].join(" ")}
               >
                 <span className="text-xs sm:text-sm">{getDeptEmoji(dept)}</span>
-                <span className="truncate max-w-[80px] sm:max-w-none">{dept}</span>
+                <span>{dept}</span>
               </Link>
             );
           })}
