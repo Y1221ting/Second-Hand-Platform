@@ -127,11 +127,17 @@ app.get("/api/stats", cache(60), async (req, res) => {
   try {
     const User = require("./models/User");
     const Product = require("./models/Product");
-    const [userCount, productCount] = await Promise.all([
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const [userCount, productCount, todayCount] = await Promise.all([
       User.countDocuments(),
       Product.countDocuments({ status: { $nin: ["sold_out", "inactive"] } }),
+      Product.countDocuments({
+        status: { $nin: ["sold_out", "inactive"] },
+        createdAt: { $gte: todayStart },
+      }),
     ]);
-    res.json({ userCount, productCount });
+    res.json({ userCount, productCount, todayCount });
   } catch (err) {
     res.status(500).json({ message: "获取统计数据失败" });
   }
