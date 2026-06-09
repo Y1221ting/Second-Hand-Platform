@@ -205,16 +205,22 @@ const WantedPage = () => {
     }
   };
 
-  // ── 复制工具（降级兼容） ──
+  // ── 复制工具（HTTP 安全兼容：跳过 navigator.clipboard） ──
   const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text).catch(() => {
-      const ta = document.createElement("textarea");
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    });
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    ta.style.top = "0";
+    ta.style.opacity = "0";
+    ta.readOnly = false;
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch {}
+    document.body.removeChild(ta);
+    return ok;
   };
 
   return (
@@ -548,12 +554,16 @@ const WantedPage = () => {
               求购「{contactTarget.name}」
             </p>
 
-            {/* 对方联系方式 */}
+            {/* 对方联系方式 — 自动聚焦选中 */}
             <div className="mb-4">
               <p className="text-xs text-gray-400 mb-1">📞 对方留下的联系方式：</p>
-              <div className="bg-gray-50 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-800 break-all">
-                {contactTarget.contact}
-              </div>
+              <input
+                ref={(el) => el && (el.focus(), el.select())}
+                readOnly
+                value={contactTarget.contact}
+                className="w-full bg-gray-50 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-800 outline-none border border-gray-200 cursor-default"
+              />
+              <p className="text-xs text-gray-400 mt-1">已自动选中，可直接 Ctrl+C 复制</p>
             </div>
 
             {/* 预设话术 */}
@@ -569,8 +579,10 @@ const WantedPage = () => {
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  copyToClipboard(contactTarget.contact);
-                  alert("✅ 联系方式已复制，去微信/QQ粘贴添加好友吧！");
+                  const ok = copyToClipboard(contactTarget.contact);
+                  alert(ok
+                    ? "✅ 联系方式已复制，去微信/QQ粘贴添加好友吧！"
+                    : "❌ 复制失败，请手动 Ctrl+C 复制上方联系方式");
                 }}
                 className="flex-1 py-2.5 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 transition-colors"
               >
@@ -579,8 +591,10 @@ const WantedPage = () => {
               <button
                 onClick={() => {
                   const msg = `同学你好，我在校园二手市场看到你求购「${contactTarget.name}」，我正好有，方便通过一下吗？`;
-                  copyToClipboard(msg);
-                  alert("✅ 话术已复制，快去粘贴联系TA吧！");
+                  const ok = copyToClipboard(msg);
+                  alert(ok
+                    ? "✅ 话术已复制，快去粘贴联系TA吧！"
+                    : "❌ 复制失败，请手动复制话术");
                 }}
                 className="flex-1 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
               >
