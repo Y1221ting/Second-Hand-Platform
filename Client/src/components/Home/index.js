@@ -239,7 +239,7 @@ const ProductsList = () => {
   const isRefreshing = isLoading && products.length > 0;
 
   return (
-    <main className="lg:w-4/5 mx-4 md:mx-auto py-4">
+    <main className="max-w-7xl mx-auto px-4 md:px-6 py-4">
       <Announcement />
       <HomeBanner departments={departments} />
       {wantedsCount > 0 && (
@@ -262,6 +262,27 @@ const ProductsList = () => {
           limit={4}
         />
       )}
+      {!showFullLoading && (
+        <div className="w-full mb-4">
+          <Filters
+            departmentFilter={filters.department}
+            handleDepartmentChange={handleDepartmentChange}
+            majorFilter={filters.major}
+            handleMajorChange={handleMajorChange}
+            departments={departments}
+            majors={majors}
+            majorDisabled={majorDisabled}
+            sortBy={filters.sort}
+            handleSortChange={handleSortChange}
+            priceRange={stablePriceRange}
+            handlePriceRangeChange={handlePriceRangeChange}
+            categoryFilter={filters.category}
+            handleCategoryFilterChange={handleCategoryFilterChange}
+            handleResetAll={() => navigate("/home")}
+            counts={filterCounts}
+          />
+        </div>
+      )}
       <h1 ref={productListRef} className="text-2xl font-semibold mb-4">最近上新</h1>
       {!showFullLoading && (
         <ActiveFilterTags
@@ -270,69 +291,46 @@ const ProductsList = () => {
           onResetAll={() => navigate("/home")}
         />
       )}
-      <div>
-        <div className="flex flex-col md:flex-row">
-          {!showFullLoading && (
-            <Filters
-              departmentFilter={filters.department}
-              handleDepartmentChange={handleDepartmentChange}
-              majorFilter={filters.major}
-              handleMajorChange={handleMajorChange}
-              departments={departments}
-              majors={majors}
-              majorDisabled={majorDisabled}
-              sortBy={filters.sort}
-              handleSortChange={handleSortChange}
-              priceRange={stablePriceRange}
-              handlePriceRangeChange={handlePriceRangeChange}
-              categoryFilter={filters.category}
-              handleCategoryFilterChange={handleCategoryFilterChange}
-              handleResetAll={() => navigate("/home")}
-              counts={filterCounts}
-            />
-          )}
-          <div className="w-full flex flex-col items-center">
-            {showFullLoading ? (
-              <div className="w-full p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <SkeletonCard key={i} />
-                  ))}
+      <div className="w-full">
+        {showFullLoading ? (
+          <div className="w-full">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 lg:gap-5">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))}
+            </div>
+          </div>
+        ) : fetchError ? (
+          <ErrorBanner message={fetchError} onRetry={fetchProducts} fullPage />
+        ) : products.length === 0 ? (
+          <EmptyState
+            search={filters.search}
+            category={filters.category}
+            department={filters.department}
+            major={filters.major}
+            minPrice={filters.minPrice}
+            maxPrice={filters.maxPrice}
+            onResetAll={() => navigate("/home")}
+          />
+        ) : (
+          <>
+            {isRefreshing && (
+              <div className="w-full px-4">
+                <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div className="h-1.5 w-1/4 bg-yellow-500 rounded-full animate-loading-bar" />
                 </div>
               </div>
-            ) : fetchError ? (
-              <ErrorBanner message={fetchError} onRetry={fetchProducts} fullPage />
-            ) : products.length === 0 ? (
-              <EmptyState
-                search={filters.search}
-                category={filters.category}
-                department={filters.department}
-                major={filters.major}
-                minPrice={filters.minPrice}
-                maxPrice={filters.maxPrice}
-                onResetAll={() => navigate("/home")}
-              />
-            ) : (
-              <>
-                {isRefreshing && (
-                  <div className="w-full px-4">
-                    <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden">
-                      <div className="h-1.5 w-1/4 bg-yellow-500 rounded-full animate-loading-bar" />
-                    </div>
-                  </div>
-                )}
-                <ProductList currentProducts={products} searchTerm={filters.search} />
-              </>
             )}
-            {!showFullLoading && products.length > 0 && (
-              <Pagination
-                totalPages={totalPages}
-                currentPage={currentPage}
-                paginate={paginate}
-              />
-            )}
-          </div>
-        </div>
+            <ProductList currentProducts={products} searchTerm={filters.search} />
+          </>
+        )}
+        {!showFullLoading && products.length > 0 && (
+          <Pagination
+            totalPages={totalPages}
+            currentPage={currentPage}
+            paginate={paginate}
+          />
+        )}
       </div>
       {/* 回到顶部按钮 */}
       {showBackToTop && (
