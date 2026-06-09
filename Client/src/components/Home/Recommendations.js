@@ -348,7 +348,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     <div className="mb-6 mt-4 select-none">
       {/* ─── 共用标题栏 ─── */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-100">
+        <h2 className="text-lg font-semibold flex items-center gap-2 text-white">
           <span className="bg-gradient-to-r from-green-500 to-teal-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
             推荐
           </span>
