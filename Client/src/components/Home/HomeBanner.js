@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 // 学院 → emoji 映射（支持模糊匹配）
@@ -31,7 +31,7 @@ const getDeptEmoji = (dept) => {
 const HomeBanner = ({ departments }) => {
   const [stats, setStats] = useState({ userCount: 0, productCount: 0, todayCount: 0 });
   const [showHint, setShowHint] = useState(true);
-  const numsRef = useRef({});
+  const [animTick, setAnimTick] = useState(0);
   const location = useLocation();
 
   // 从 URL 读取当前选中的学院
@@ -45,36 +45,21 @@ const HomeBanner = ({ departments }) => {
         .then((res) => res.json())
         .then((data) => {
           setStats(data);
-          setTimeout(() => bounceNumbers(), 50);
+          // key +1 → 数字组件重新挂载 → @keyframes 自然重新播放
+          setAnimTick((t) => t + 1);
         })
         .catch(() => {});
     };
     fetchStats();
-    // 每 60 秒轮询刷新
+    // 每 60 秒轮询刷新（同时重新弹跳数字）
     const interval = setInterval(fetchStats, 60000);
     return () => clearInterval(interval);
   }, []);
 
-  // 数字弹跳动效
-  const bounceNumbers = () => {
-    Object.values(numsRef.current).forEach((el) => {
-      if (el) {
-        el.style.animation = "none";
-        void el.offsetHeight;
-        el.style.animation = "numPop 0.4s ease";
-      }
-    });
-  };
-
-  // 选中学院后隐藏提示文字（不想看可以关掉）
+  // 选中学院后隐藏提示文字
   useEffect(() => {
     if (activeDept) setShowHint(false);
   }, [activeDept]);
-
-  // 给每个数字一个稳定的 key，避免多次渲染覆盖 ref
-  const setNumRef = (key) => (el) => {
-    numsRef.current[key] = el;
-  };
 
   return (
     <div
@@ -111,24 +96,23 @@ const HomeBanner = ({ departments }) => {
           <div className="flex items-center flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 text-xs sm:text-sm">
             <span className="flex items-center gap-1 whitespace-nowrap">
               👥 <strong
-                ref={setNumRef("user")}
-                className="text-sm sm:text-lg inline-block"
-                style={{ animation: "numPop 0.4s ease" }}
+                key={"user-" + animTick}
+                className="text-sm sm:text-lg inline-block animate-numPop"
               >{stats.userCount}</strong>
             </span>
             <span className="flex items-center gap-1 whitespace-nowrap">
               📦 <strong
-                ref={setNumRef("product")}
-                className="text-sm sm:text-lg inline-block"
-                style={{ animation: "numPop 0.4s ease 0.08s" }}
+                key={"prod-" + animTick}
+                className="text-sm sm:text-lg inline-block animate-numPop"
+                style={{ animationDelay: "0.08s" }}
               >{stats.productCount}</strong>
             </span>
             {stats.todayCount > 0 && (
               <span className="text-amber-800/60 flex items-center gap-1 whitespace-nowrap">
                 📌 今日+<strong
-                  ref={setNumRef("today")}
-                  className="text-sm sm:text-lg inline-block"
-                  style={{ animation: "numPop 0.4s ease 0.16s" }}
+                  key={"today-" + animTick}
+                  className="text-sm sm:text-lg inline-block animate-numPop"
+                  style={{ animationDelay: "0.16s" }}
                 >{stats.todayCount}</strong>
               </span>
             )}
