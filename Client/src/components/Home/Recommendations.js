@@ -12,7 +12,14 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
   const intervalRef = useRef(null);
   const resumeTimerRef = useRef(null);
 
-  // 1. 获取推荐数据（不变）
+  // 拖拽状态 refs（不触发渲染）
+  const isDraggingRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragStartYRef = useRef(0);
+  const dragStartTimeRef = useRef(0);
+  const baseTranslateRef = useRef(0);
+
+  // ─────────── 1. 获取推荐数据 ───────────
   useEffect(() => {
     let mounted = true;
     const fetchRecommendations = async () => {
@@ -42,7 +49,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     return () => { mounted = false; };
   }, [userId, excludeId, category, department, major, sellerId]);
 
-  // 2. 测量卡片实际宽度（含 gap-3 = 12px），响应断点变化
+  // ─────────── 2. 测量卡片宽度（响应断点） ───────────
   useEffect(() => {
     if (!trackRef.current || products.length === 0) return;
     const firstCard = trackRef.current.children[0];
@@ -58,7 +65,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
 
   const total = products.length;
 
-  // 3. 自动轮播 — 3.5 秒滑一张
+  // ─────────── 3. 自动轮播 ───────────
   const startAutoPlay = useCallback(() => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     intervalRef.current = setInterval(() => {
@@ -72,7 +79,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     return () => clearInterval(intervalRef.current);
   }, [total, startAutoPlay]);
 
-  // 4. 暂停/恢复（桌面 hover / 移动 touch）
+  // ─────────── 4. 暂停/恢复 ───────────
   const pause = useCallback(() => {
     clearTimeout(resumeTimerRef.current);
     if (intervalRef.current) {
@@ -88,9 +95,8 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     }, 2000);
   }, [startAutoPlay]);
 
-  // 5. 无缝循环：滑到克隆区后瞬移回原位
+  // ─────────── 5. 无缝循环回跳 ───────────
   const handleTransitionEnd = (e) => {
-    // 只追踪轨道自身的 transform 变化，忽略子卡片 hover 过渡
     if (e.target !== e.currentTarget) return;
     if (e.propertyName !== "transform") return;
     if (current >= total) {
@@ -99,7 +105,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     }
   };
 
-  // 双 RAF：回跳后重新启用 CSS 过渡
+  // 双 RAF：回跳后重新启用过渡
   useEffect(() => {
     if (animating) return;
     const raf = requestAnimationFrame(() => {
@@ -108,7 +114,108 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     return () => cancelAnimationFrame(raf);
   }, [animating]);
 
-  // 6. 组件卸载清理
+  // ─────────── 6. 拖拽滑动 ───────────
+  const handlePointerDown = (e) => {
+    // 只响应主鼠标键（左键）
+    if (e.button !== 0) return;
+
+    const track = trackRef.current;
+    if (!track) return;
+
+    isDraggingRef.current = false;
+    dragStartXRef.current = e.clientX;
+    dragStartYRef.current = e.clientY;
+    dragStartTimeRef.current = Date.now();
+    baseTranslateRef.current = -(current * cardStep);
+
+    // 暂停自动轮播
+    pause();
+
+    // 关闭过渡，拖拽过程中丝滑跟随指针
+    track.style.transition = "none";
+    track.style.cursor = "grabbing";
+    track.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (!trackRef.current) return;
+
+    const deltaX = e.clientX - dragStartXRef.current;
+    const deltaY = Math.abs(e.clientY - dragStartYRef.current);
+
+    // 垂直滑动（超过 45°）→ 不拦截，留给页面滚动
+    if (deltaY > Math.abs(deltaX) * 0.75 && isDraggingRef.current) {
+      // 正在拖拽但变成垂直 → 终止拖拽
+      handlePointerCancel(e);
+      return;
+    }
+
+    // 超过 5px 才激活拖拽，避免误触
+    if (Math.abs(deltaX) > 5) {
+      isDraggingRef.current = true;
+    }
+
+    if (isDraggingRef.current) {
+      e.preventDefault();
+      const newTranslate = baseTranslateRef.current + deltaX;
+      trackRef.current.style.transform = `translateX(${newTranslate}px)`;
+    }
+  };
+
+  const handlePointerUp = (e) => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    track.style.cursor = "";
+    track.releasePointerCapture(e.pointerId);
+
+    // 纯点击（无拖拽）→ 不做任何事，让卡片自身的 Link 处理点击
+    if (!isDraggingRef.current) return;
+
+    isDraggingRef.current = false;
+
+    const deltaX = e.clientX - dragStartXRef.current;
+    const elapsed = Date.now() - dragStartTimeRef.current;
+    const velocity = Math.abs(deltaX) / (elapsed || 1);
+
+    // 计算目标位置
+    const indexDelta = -Math.round(deltaX / cardStep);
+
+    // 快速滑动（flick）检测：速度快 + 距离够 → 多滑一张
+    let flickExtra = 0;
+    if (velocity > 0.3 && Math.abs(deltaX) > cardStep * 0.3) {
+      flickExtra = deltaX < 0 ? 1 : -1;
+    }
+
+    const items = [...products, ...products];
+    const targetIndex = Math.max(0, Math.min(items.length - 1, current + indexDelta + flickExtra));
+
+    // React 状态更新 → 带动画 snap 到目标
+    setAnimating(true);
+    setCurrent(targetIndex);
+
+    // 防止拖拽松手后触发卡片内部的 Link 导航
+    track.style.pointerEvents = "none";
+    requestAnimationFrame(() => {
+      if (trackRef.current) trackRef.current.style.pointerEvents = "";
+    });
+
+    // 恢复自动轮播（延迟）
+    resume();
+  };
+
+  const handlePointerCancel = (e) => {
+    isDraggingRef.current = false;
+    const track = trackRef.current;
+    if (!track) return;
+    track.style.cursor = "";
+    // 回弹到当前 React 状态位置
+    setAnimating(true);
+    setCurrent(current); // 触发重新渲染，回弹到原位
+    resume();
+  };
+
+  // ─────────── 7. 组件卸载清理 ───────────
   useEffect(() => {
     return () => {
       clearInterval(intervalRef.current);
@@ -116,23 +223,15 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     };
   }, []);
 
-  // 7. 空/加载态 → 不渲染
+  // ─────────── 8. 空/加载态 ───────────
   if (loading || total === 0) return null;
 
   // 克隆全部商品，实现无限循环
   const items = [...products, ...products];
-
-  // 安全限幅（仅兜底，正常不会超）
   const safeCurrent = Math.min(current, items.length - 1);
 
   return (
-    <div
-      className="mb-6 mt-4 select-none"
-      onMouseEnter={pause}
-      onMouseLeave={resume}
-      onTouchStart={pause}
-      onTouchEnd={resume}
-    >
+    <div className="mb-6 mt-4 select-none">
       {/* 标题栏 */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-100">
@@ -142,7 +241,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
           为你精选
         </h2>
 
-        {/* 进度指示器：6 个圆点 */}
+        {/* 进度指示器 */}
         <div className="flex items-center gap-1.5">
           {products.map((_, i) => (
             <div
@@ -157,8 +256,15 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
         </div>
       </div>
 
-      {/* 轮播轨道容器 */}
-      <div className="overflow-hidden rounded-lg">
+      {/* 轮播容器 */}
+      <div
+        className="overflow-hidden rounded-lg"
+        style={{ touchAction: "pan-y pinch-zoom" }}
+        onMouseEnter={pause}
+        onMouseLeave={resume}
+        onTouchStart={pause}
+        onTouchEnd={resume}
+      >
         <div
           ref={trackRef}
           className="flex gap-3"
@@ -167,6 +273,10 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
             transition: animating ? "transform 0.5s ease" : "none",
           }}
           onTransitionEnd={handleTransitionEnd}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
         >
           {items.map((product, idx) => (
             <div
