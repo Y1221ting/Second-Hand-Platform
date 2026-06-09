@@ -337,7 +337,7 @@ const ProductsList = () => {
       {showBackToTop && (
         <button
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-6 z-50 w-10 h-10 rounded-full bg-gray-900/80 hover:bg-yellow-500 text-white hover:text-gray-900 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
+          className="fixed bottom-20 right-6 z-50 w-11 h-11 rounded-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 flex items-center justify-center shadow-lg shadow-yellow-500/30 transition-all duration-200 hover:scale-110"
           aria-label="回到顶部"
         >
           <FaArrowUp size={16} />
