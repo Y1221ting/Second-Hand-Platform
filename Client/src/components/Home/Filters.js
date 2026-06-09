@@ -176,7 +176,6 @@ const Filters = ({
   const handleAreaEnter = () => clearTimeout(closeTimer.current);
 
   const handleAreaLeave = () => {
-    if (isLocked) return;
     closeTimer.current = setTimeout(() => closeFilter(), 200);
   };
 
