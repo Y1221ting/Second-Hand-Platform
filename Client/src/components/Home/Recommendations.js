@@ -8,7 +8,9 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cardStep, setCardStep] = useState(188);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(
+    () => window.matchMedia("(pointer: coarse)").matches
+  );
   const [dotIndex, setDotIndex] = useState(0);
   const [current, setCurrent] = useState(0); // desktop only
   const [animating, setAnimating] = useState(true); // desktop only
@@ -214,6 +216,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
 
   const handlePointerCancel = () => {
     isDraggingRef.current = false;
+    wasDraggedRef.current = false;
     const track = desktopTrackRef.current;
     if (!track) return;
     track.style.cursor = "";
@@ -370,7 +373,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
         <div
           ref={mobileContainerRef}
           className="overflow-x-auto overflow-y-hidden snap-x snap-mandatory scrollbar-hide rounded-lg"
-          style={{ touchAction: "pan-y pinch-zoom" }}
+          style={{ touchAction: "manipulation" }}
           onScroll={handleMobileScroll}
           onTouchStart={pause}
           onTouchEnd={resume}
