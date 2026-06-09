@@ -101,14 +101,16 @@ const Filters = ({
 }) => {
   // ── 状态 ──
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [activeFilter, setActiveFilter] = useState(null); // 'department'|'category'|'sort'|'price'|null
+  const [activeFilter, setActiveFilter] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
   const [hoverDept, setHoverDept] = useState(null);
   const [priceMin, setPriceMin] = useState("");
   const [priceMax, setPriceMax] = useState("");
+  const [flyoutPos, setFlyoutPos] = useState({ left: 0, top: 0 });
 
   const containerRef = useRef(null);
   const closeTimer = useRef(null);
+  const btnRefs = useRef({ department: null, category: null, sort: null, price: null });
 
   // ── 衍生值 ──
   const currentDept = departmentFilter || "";
@@ -122,11 +124,25 @@ const Filters = ({
   const sortLabel = SORT_LABELS[currentSort] || "最新发布";
   const priceLabel = hasPrice ? `¥${priceRange[0]} - ¥${priceRange[1]}` : "价格";
 
+  // ── 浮层定位辅助 ──
+  const positionFlyout = (name) => {
+    const btn = btnRefs.current[name];
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      let left = rect.left;
+      // 估算浮层宽度并约束到视口内
+      const estWidth = { department: 400, category: 180, sort: 200, price: 260 }[name] || 260;
+      if (left + estWidth > window.innerWidth - 16) {
+        left = window.innerWidth - estWidth - 16;
+      }
+      setFlyoutPos({ left: Math.max(8, left), top: rect.bottom + 4 });
+    }
+  };
+
   // ── 浮层控制 ──
   const openFilter = (name, lock) => {
     clearTimeout(closeTimer.current);
     if (activeFilter === name && isLocked) {
-      // 点击已打开的锁定浮层 → 关闭
       setActiveFilter(null);
       setIsLocked(false);
       setHoverDept(null);
@@ -135,6 +151,7 @@ const Filters = ({
     setActiveFilter(name);
     setIsLocked(lock);
     if (name !== "department") setHoverDept(null);
+    positionFlyout(name);
   };
 
   const closeFilter = () => {
@@ -143,14 +160,7 @@ const Filters = ({
     setHoverDept(null);
   };
 
-  // 浮层 hover 延迟关闭
-  const handleFlyoutEnter = () => clearTimeout(closeTimer.current);
-  const handleFlyoutLeave = () => {
-    if (isLocked) return;
-    closeTimer.current = setTimeout(() => closeFilter(), 200);
-  };
-
-  // 按钮 hover（仅非锁定状态下生效）
+  // 按钮 hover（仅非锁定状态下切换浮层）
   const handleFilterHover = (name) => {
     if (activeFilter !== null && isLocked) return;
     clearTimeout(closeTimer.current);
@@ -158,7 +168,16 @@ const Filters = ({
       setActiveFilter(name);
       setIsLocked(false);
       if (name !== "department") setHoverDept(null);
+      positionFlyout(name);
     }
+  };
+
+  // ── 鼠标离开/进入操作区域（操作栏 + 浮层）──
+  const handleAreaEnter = () => clearTimeout(closeTimer.current);
+
+  const handleAreaLeave = () => {
+    if (isLocked) return;
+    closeTimer.current = setTimeout(() => closeFilter(), 200);
   };
 
   // ── 外部点击 + ESC 关闭 ──
@@ -201,9 +220,7 @@ const Filters = ({
   // ── 筛选操作 ──
   const selectDepartment = (dept) => {
     handleDepartmentChange({ target: { value: dept } });
-    // 清专业
     handleMajorChange({ target: { value: "" } });
-    // 没有二级专业时直接关闭
     if (!dept || !majorMap[dept]?.length) closeFilter();
   };
 
@@ -236,168 +253,189 @@ const Filters = ({
     closeFilter();
   };
 
-  // ── 检查是否有活跃筛选（控制重置按钮显示） ──
   const hasActiveFilter = !!(currentDept || currentMajor || currentCat || currentSort !== "latest" || hasPrice);
 
-  // ── 价格 Enter 快捷确认 ──
   const handlePriceKeyDown = (e) => {
     if (e.key === "Enter") confirmPrice();
   };
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef}>
       {/* ════════════════ 桌面端 ════════════════ */}
-      <div className="hidden md:flex items-center gap-1.5 bg-gray-900/50 rounded-lg px-3 py-2">
-        <FilterButton
-          icon="🏫"
-          label={deptLabel}
-          isActive={activeFilter === "department"}
-          isSelected={!!currentDept}
-          onClick={() => openFilter("department", true)}
-          onHover={() => handleFilterHover("department")}
-        />
-        <FilterButton
-          icon="📦"
-          label={catLabel}
-          isActive={activeFilter === "category"}
-          isSelected={!!currentCat}
-          onClick={() => openFilter("category", true)}
-          onHover={() => handleFilterHover("category")}
-        />
-        <FilterButton
-          icon="↕️"
-          label={sortLabel}
-          isActive={activeFilter === "sort"}
-          isSelected={currentSort !== "latest"}
-          onClick={() => openFilter("sort", true)}
-          onHover={() => handleFilterHover("sort")}
-        />
-        <FilterButton
-          icon="💰"
-          label={priceLabel}
-          isActive={activeFilter === "price"}
-          isSelected={hasPrice}
-          onClick={() => openFilter("price", true)}
-          clickOnly
-        />
-
-        {/* 重置 */}
-        {hasActiveFilter && (
-          <button
-            onClick={handleResetAll}
-            className="ml-auto text-xs text-gray-500 hover:text-red-400 transition-colors px-2 py-1"
-          >
-            重置
-          </button>
-        )}
-      </div>
-
-      {/* ─── 浮层区域 ─── */}
-      <div onMouseEnter={handleFlyoutEnter} onMouseLeave={handleFlyoutLeave}>
-        {/* 学院级联浮层 */}
-        {activeFilter === "department" && (
-          <div className="absolute top-full left-0 mt-1 z-40 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
-            <div className="flex">
-              <div className="w-44 py-1 max-h-80 overflow-y-auto">
-                <DeptItem
-                  name="全部学院"
-                  selected={!currentDept}
-                  onHover={() => { setHoverDept(null); clearTimeout(closeTimer.current); }}
-                  onClick={() => selectDepartment("")}
-                />
-                {departments.map((dept) => (
-                  <DeptItem
-                    key={dept}
-                    name={dept}
-                    selected={currentDept === dept}
-                    hasChildren={majorMap[dept]?.length > 0}
-                    onHover={() => { setHoverDept(dept); clearTimeout(closeTimer.current); }}
-                    onClick={() => selectDepartment(dept)}
-                  />
-                ))}
-              </div>
-              {/* 第二级：专业 */}
-              {hoverDept && majorMap[hoverDept]?.length > 0 && (
-                <div className="w-52 py-1 max-h-80 overflow-y-auto border-l border-gray-700">
-                  {majorMap[hoverDept].map((major) => (
-                    <MajorItem
-                      key={major}
-                      name={major}
-                      selected={currentMajor === major}
-                      onClick={() => selectMajor(major)}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* 分类浮层 */}
-        {activeFilter === "category" && (
-          <div className="absolute top-full left-0 mt-1 z-40 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1 w-44">
-            <ListItem name="全部分类" selected={!currentCat} onClick={() => selectCategory("")} />
-            {ALL_CATEGORIES.map((cat) => (
-              <ListItem key={cat} name={cat} selected={currentCat === cat} onClick={() => selectCategory(cat)} />
-            ))}
-          </div>
-        )}
-
-        {/* 排序浮层 */}
-        {activeFilter === "sort" && (
-          <div className="absolute top-full left-0 mt-1 z-40 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1 w-48">
-            {Object.entries(SORT_LABELS).map(([value, label]) => (
-              <ListItem key={value} name={label} selected={currentSort === value} onClick={() => selectSort(value)} />
-            ))}
-          </div>
-        )}
-
-        {/* 价格弹窗 — click only */}
-        {activeFilter === "price" && (
-          <div className="absolute top-full left-0 mt-1 z-40 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-4 w-64">
-            <p className="text-xs text-gray-400 mb-3">价格范围</p>
-            <div className="flex items-center gap-2 mb-3">
-              <input
-                type="number"
-                min="0"
-                max="10000"
-                placeholder="0"
-                value={priceMin}
-                onChange={(e) => setPriceMin(e.target.value)}
-                onKeyDown={handlePriceKeyDown}
-                className="w-full bg-gray-800 text-white text-center rounded-lg py-2 text-sm border border-gray-600 focus:outline-none focus:border-yellow-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              <span className="text-gray-500 text-sm shrink-0">—</span>
-              <input
-                type="number"
-                min="0"
-                max="10000"
-                placeholder="10000"
-                value={priceMax}
-                onChange={(e) => setPriceMax(e.target.value)}
-                onKeyDown={handlePriceKeyDown}
-                className="w-full bg-gray-800 text-white text-center rounded-lg py-2 text-sm border border-gray-600 focus:outline-none focus:border-yellow-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+      {/* 整个操作区域用一个容器包裹，鼠标离开时自动关闭（非锁定态） */}
+      <div className="hidden md:block relative">
+        {/* 操作栏 */}
+        <div onMouseEnter={handleAreaEnter} onMouseLeave={handleAreaLeave}>
+          <div className="flex items-center gap-1.5 bg-gray-900/50 rounded-lg px-3 py-2">
+            {/* 学院 */}
+            <div ref={(el) => { btnRefs.current.department = el; }}>
+              <FilterButton
+                icon="🏫"
+                label={deptLabel}
+                isActive={activeFilter === "department"}
+                isSelected={!!currentDept}
+                onClick={() => openFilter("department", true)}
+                onHover={() => handleFilterHover("department")}
               />
             </div>
-            <div className="flex gap-2">
+            {/* 分类 */}
+            <div ref={(el) => { btnRefs.current.category = el; }}>
+              <FilterButton
+                icon="📦"
+                label={catLabel}
+                isActive={activeFilter === "category"}
+                isSelected={!!currentCat}
+                onClick={() => openFilter("category", true)}
+                onHover={() => handleFilterHover("category")}
+              />
+            </div>
+            {/* 排序 */}
+            <div ref={(el) => { btnRefs.current.sort = el; }}>
+              <FilterButton
+                icon="↕️"
+                label={sortLabel}
+                isActive={activeFilter === "sort"}
+                isSelected={currentSort !== "latest"}
+                onClick={() => openFilter("sort", true)}
+                onHover={() => handleFilterHover("sort")}
+              />
+            </div>
+            {/* 价格 — click only */}
+            <div ref={(el) => { btnRefs.current.price = el; }}>
+              <FilterButton
+                icon="💰"
+                label={priceLabel}
+                isActive={activeFilter === "price"}
+                isSelected={hasPrice}
+                onClick={() => openFilter("price", true)}
+                clickOnly
+              />
+            </div>
+
+            {/* 重置 */}
+            {hasActiveFilter && (
               <button
-                onClick={confirmPrice}
-                className="flex-1 bg-yellow-500 text-gray-900 py-1.5 rounded-lg text-sm font-medium hover:bg-yellow-400 transition-colors"
-              >
-                确认
-              </button>
-              <button
-                onClick={resetPrice}
-                className="flex-1 bg-gray-700 text-gray-300 py-1.5 rounded-lg text-sm hover:bg-gray-600 transition-colors"
+                onClick={handleResetAll}
+                className="ml-auto text-xs text-gray-500 hover:text-red-400 transition-colors px-2 py-1"
               >
                 重置
               </button>
-            </div>
+            )}
+          </div>
+        </div>
+
+        {/* 浮层 — fixed 定位，出现在对应按钮下方 */}
+        {activeFilter && (
+          <div
+            style={{ position: "fixed", left: flyoutPos.left, top: flyoutPos.top, zIndex: 40 }}
+            onMouseEnter={handleAreaEnter}
+            onMouseLeave={handleAreaLeave}
+          >
+            {/* 学院级联浮层 */}
+            {activeFilter === "department" && (
+              <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl overflow-hidden">
+                <div className="flex">
+                  <div className="w-44 py-1 max-h-80 overflow-y-auto">
+                    <DeptItem
+                      name="全部学院"
+                      selected={!currentDept}
+                      onHover={() => { setHoverDept(null); clearTimeout(closeTimer.current); }}
+                      onClick={() => selectDepartment("")}
+                    />
+                    {departments.map((dept) => (
+                      <DeptItem
+                        key={dept}
+                        name={dept}
+                        selected={currentDept === dept}
+                        hasChildren={majorMap[dept]?.length > 0}
+                        onHover={() => { setHoverDept(dept); clearTimeout(closeTimer.current); }}
+                        onClick={() => selectDepartment(dept)}
+                      />
+                    ))}
+                  </div>
+                  {hoverDept && majorMap[hoverDept]?.length > 0 && (
+                    <div className="w-52 py-1 max-h-80 overflow-y-auto border-l border-gray-700">
+                      {majorMap[hoverDept].map((major) => (
+                        <MajorItem
+                          key={major}
+                          name={major}
+                          selected={currentMajor === major}
+                          onClick={() => selectMajor(major)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 分类浮层 */}
+            {activeFilter === "category" && (
+              <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1 w-44">
+                <ListItem name="全部分类" selected={!currentCat} onClick={() => selectCategory("")} />
+                {ALL_CATEGORIES.map((cat) => (
+                  <ListItem key={cat} name={cat} selected={currentCat === cat} onClick={() => selectCategory(cat)} />
+                ))}
+              </div>
+            )}
+
+            {/* 排序浮层 */}
+            {activeFilter === "sort" && (
+              <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl py-1 w-48">
+                {Object.entries(SORT_LABELS).map(([value, label]) => (
+                  <ListItem key={value} name={label} selected={currentSort === value} onClick={() => selectSort(value)} />
+                ))}
+              </div>
+            )}
+
+            {/* 价格弹窗 */}
+            {activeFilter === "price" && (
+              <div className="bg-gray-900 border border-gray-700 rounded-xl shadow-2xl p-4 w-64">
+                <p className="text-xs text-gray-400 mb-3">价格范围</p>
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    type="number"
+                    min="0"
+                    max="10000"
+                    placeholder="0"
+                    value={priceMin}
+                    onChange={(e) => setPriceMin(e.target.value)}
+                    onKeyDown={handlePriceKeyDown}
+                    className="w-full bg-gray-800 text-white text-center rounded-lg py-2 text-sm border border-gray-600 focus:outline-none focus:border-yellow-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span className="text-gray-500 text-sm shrink-0">—</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="10000"
+                    placeholder="10000"
+                    value={priceMax}
+                    onChange={(e) => setPriceMax(e.target.value)}
+                    onKeyDown={handlePriceKeyDown}
+                    className="w-full bg-gray-800 text-white text-center rounded-lg py-2 text-sm border border-gray-600 focus:outline-none focus:border-yellow-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={confirmPrice}
+                    className="flex-1 bg-yellow-500 text-gray-900 py-1.5 rounded-lg text-sm font-medium hover:bg-yellow-400 transition-colors"
+                  >
+                    确认
+                  </button>
+                  <button
+                    onClick={resetPrice}
+                    className="flex-1 bg-gray-700 text-gray-300 py-1.5 rounded-lg text-sm hover:bg-gray-600 transition-colors"
+                  >
+                    重置
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* ════════════════ 移动端 = sheet 底部弹窗 ════════════════ */}
+      {/* ════════════════ 移动端 ════════════════ */}
       <div className="md:hidden">
         <button
           onClick={() => setShowMobileFilters(true)}
@@ -416,32 +454,18 @@ const Filters = ({
 
         {showMobileFilters && (
           <>
-            {/* 遮罩 */}
-            <div
-              className="fixed inset-0 bg-black/50 z-50"
-              onClick={() => setShowMobileFilters(false)}
-            />
-            {/* 底部 sheet */}
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowMobileFilters(false)} />
             <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 rounded-t-2xl max-h-[85vh] overflow-y-auto shadow-2xl animate-slide-up">
-              {/* 拖拽指示条 */}
               <div className="flex justify-center pt-2 pb-1 sticky top-0 bg-gray-900 z-10">
                 <div className="w-8 h-1 bg-gray-600 rounded-full" />
               </div>
 
-              {/* 标题栏 */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-gray-700">
                 <h3 className="text-white font-medium text-base">筛选</h3>
-                <button
-                  onClick={() => setShowMobileFilters(false)}
-                  className="text-gray-400 hover:text-white p-1"
-                >
-                  ✕
-                </button>
+                <button onClick={() => setShowMobileFilters(false)} className="text-gray-400 hover:text-white p-1">✕</button>
               </div>
 
-              {/* 筛选内容 */}
               <div className="p-5 space-y-5">
-                {/* 学院 */}
                 <div>
                   <label className="text-gray-300 text-sm font-medium block mb-2">学院</label>
                   <select
@@ -455,7 +479,6 @@ const Filters = ({
                     ))}
                   </select>
                 </div>
-                {/* 专业 */}
                 <div>
                   <label className="text-gray-300 text-sm font-medium block mb-2">专业</label>
                   <select
@@ -470,7 +493,6 @@ const Filters = ({
                     ))}
                   </select>
                 </div>
-                {/* 分类 */}
                 <div>
                   <label className="text-gray-300 text-sm font-medium block mb-2">分类</label>
                   <select
@@ -484,7 +506,6 @@ const Filters = ({
                     ))}
                   </select>
                 </div>
-                {/* 排序 */}
                 <div>
                   <label className="text-gray-300 text-sm font-medium block mb-2">排序</label>
                   <select
@@ -497,7 +518,6 @@ const Filters = ({
                     ))}
                   </select>
                 </div>
-                {/* 价格 */}
                 <div>
                   <label className="text-gray-300 text-sm font-medium block mb-2">价格范围</label>
                   <div className="flex items-center gap-2">
@@ -526,7 +546,6 @@ const Filters = ({
                 </div>
               </div>
 
-              {/* 底部操作栏 */}
               <div className="sticky bottom-0 p-4 bg-gray-900 border-t border-gray-700">
                 <div className="flex gap-3">
                   <button
