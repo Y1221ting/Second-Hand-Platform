@@ -19,16 +19,16 @@ html { scroll-behavior: smooth; }
   display: none;
 }
 
-/* 数字弹跳动效 — 每 4 秒循环一次，清晰感知动态 */
+/* 数字脉动效果 — 每 2 秒轻柔弹跳一次，像心脏跳动 */
 @keyframes numPop {
   0%   { transform: scale(1); }
-  6%   { transform: scale(1.3); }   /* ≈0.24s 弹起 */
-  10%  { transform: scale(0.95); }  /* ≈0.4s 微回弹 */
-  14%  { transform: scale(1); }     /* ≈0.56s 复位 */
-  100% { transform: scale(1); }     /* 保持到 4s */
+  5%   { transform: scale(1.12); }  /* ≈0.1s 轻起 */
+  10%  { transform: scale(0.98); }  /* ≈0.2s 微回弹 */
+  15%  { transform: scale(1); }     /* ≈0.3s 复位 */
+  100% { transform: scale(1); }     /* 保持到 2s */
 }
 .animate-numPop {
-  animation: numPop 4s ease infinite;
+  animation: numPop 2s ease-in-out infinite;
 }
 
 /* 底部操作栏滑入动画 */
