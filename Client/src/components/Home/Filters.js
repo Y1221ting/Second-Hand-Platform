@@ -206,15 +206,12 @@ const Filters = ({
     }
   }, [activeFilter, priceRange]);
 
-  // ── 移动端底部 sheet 打开时锁定 body 滚动 ──
+  // ── 浮层/底部 sheet 打开时锁定 body 滚动 ──
   useEffect(() => {
-    if (showMobileFilters) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    const shouldLock = activeFilter !== null || showMobileFilters;
+    document.body.style.overflow = shouldLock ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [showMobileFilters]);
+  }, [activeFilter, showMobileFilters]);
 
   // ── 筛选操作 ──
   const selectDepartment = (dept) => {
