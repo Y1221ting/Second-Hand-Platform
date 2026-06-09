@@ -11,6 +11,7 @@ import HomeBanner from "./HomeBanner";
 import Recommendations from "./Recommendations";
 import Announcement from "./Announcement";
 import { useAuth } from "../../context/authContext";
+import { FaArrowUp } from "react-icons/fa";
 
 const ProductsList = () => {
   const location = useLocation();
@@ -23,6 +24,7 @@ const ProductsList = () => {
   const [fetchError, setFetchError] = useState(null);
   const [filterCounts, setFilterCounts] = useState(null);
   const [wantedsCount, setWantedsCount] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const productListRef = useRef(null);
 
   // 学院-专业映射
@@ -207,6 +209,15 @@ const ProductsList = () => {
     };
   }, [fetchProducts]);
 
+  // 滚动监听 — 显示/隐藏回到顶部按钮
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const paginate = (pageNumber) => {
     applyFilters({ page: pageNumber });
   };
@@ -323,6 +334,16 @@ const ProductsList = () => {
           </div>
         </div>
       </div>
+      {/* 回到顶部按钮 */}
+      {showBackToTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-6 right-6 z-50 w-10 h-10 rounded-full bg-gray-900/80 hover:bg-yellow-500 text-white hover:text-gray-900 flex items-center justify-center shadow-lg transition-all duration-200 hover:scale-110"
+          aria-label="回到顶部"
+        >
+          <FaArrowUp size={16} />
+        </button>
+      )}
     </main>
   );
 };
