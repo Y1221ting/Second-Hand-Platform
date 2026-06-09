@@ -25,6 +25,12 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
   const dragStartTimeRef = useRef(0);
   const baseTranslateRef = useRef(0);
 
+  // ─── 桌面触控板 refs ───
+  const desktopContainerRef = useRef(null);
+  const currentRef = useRef(0);
+  const wheelAccumRef = useRef(0);
+  const lastWheelAdvanceRef = useRef(0);
+
   // ─── Mobile refs ───
   const mobileContainerRef = useRef(null);
   const isJumpingBackRef = useRef(false);
@@ -71,6 +77,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
   const total = products.length;
   const items = [...products, ...products]; // 克隆 12 件 → 无缝循环
   const safeCurrent = Math.min(current, items.length - 1);
+  currentRef.current = current;
 
   // ─── 测量卡片实际宽度（含 gap-3 = 12px）───
   useEffect(() => {
@@ -241,6 +248,54 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     resume();
   };
 
+  // ─── 桌面端：触控板双指滑动 / 鼠标横滚轮 ───
+  useEffect(() => {
+    const el = desktopContainerRef.current;
+    if (!el || isTouchDevice) return;
+
+    const handler = (e) => {
+      // 只拦截水平方向（双指左右 / 滚轮横滚）
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      e.preventDefault();
+
+      const now = Date.now();
+      if (now - lastWheelAdvanceRef.current < 300) return;
+
+      wheelAccumRef.current += e.deltaX;
+      const threshold = cardStep * 0.35;
+
+      if (Math.abs(wheelAccumRef.current) >= threshold) {
+        pause();
+
+        if (wheelAccumRef.current > 0) {
+          // 向右滑 → 上一张（边缘回绕）
+          if (currentRef.current === 0) {
+            setAnimating(false);
+            setCurrent(total);
+            requestAnimationFrame(() => {
+              requestAnimationFrame(() => {
+                setAnimating(true);
+                setCurrent(total - 1);
+              });
+            });
+          } else {
+            setCurrent((prev) => prev - 1);
+          }
+        } else {
+          // 向左滑 → 下一张
+          setCurrent((prev) => prev + 1);
+        }
+
+        wheelAccumRef.current = 0;
+        lastWheelAdvanceRef.current = now;
+        resume();
+      }
+    };
+
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [isTouchDevice, cardStep, total, pause, resume, setAnimating, setCurrent]);
+
   // ═══════════════════════════════════════════
   //  移动端：scroll-snap 原生滚动
   // ═══════════════════════════════════════════
@@ -326,6 +381,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
       ) : (
         /* ─── 桌面端：translateX + 箭头按钮 ─── */
         <div
+          ref={desktopContainerRef}
           className="relative group"
           onMouseEnter={pause}
           onMouseLeave={resume}
