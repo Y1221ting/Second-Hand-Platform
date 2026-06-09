@@ -45,15 +45,20 @@ const HomeBanner = ({ departments }) => {
         .then((res) => res.json())
         .then((data) => {
           setStats(data);
-          // key +1 → 数字组件重新挂载 → @keyframes 自然重新播放
           setAnimTick((t) => t + 1);
         })
         .catch(() => {});
     };
     fetchStats();
-    // 每 60 秒轮询刷新（同时重新弹跳数字）
-    const interval = setInterval(fetchStats, 60000);
-    return () => clearInterval(interval);
+    const pollInterval = setInterval(fetchStats, 60000);
+    // 独立定时器：每 8 秒弹跳一次数字，让页面有"活跃"感
+    const bounceInterval = setInterval(() => {
+      setAnimTick((t) => t + 1);
+    }, 8000);
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(bounceInterval);
+    };
   }, []);
 
   // 选中学院后隐藏提示文字
@@ -131,9 +136,10 @@ const HomeBanner = ({ departments }) => {
                   "px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full",
                   "text-xs sm:text-sm transition-all duration-200",
                   "flex items-center gap-1 border-2",
+                  "cursor-pointer select-none",
                   isActive
-                    ? "bg-white text-amber-800 font-semibold shadow-md border-yellow-400"
-                    : "bg-white/35 hover:bg-white/55 text-gray-800 border-transparent",
+                    ? "bg-white text-amber-800 font-semibold shadow-md border-yellow-400 hover:brightness-95"
+                    : "bg-white/35 hover:bg-white/70 hover:scale-105 hover:shadow-sm text-gray-800 border-transparent",
                 ].join(" ")}
               >
                 <span className="text-xs sm:text-sm">{getDeptEmoji(dept)}</span>
