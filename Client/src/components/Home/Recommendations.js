@@ -31,6 +31,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
   // ─── 桌面触控板 refs ───
   const desktopContainerRef = useRef(null);
   const currentRef = useRef(0);
+  const isPrevLoopRef = useRef(false);
   const wheelAccumRef = useRef(0);
   const lastWheelAdvanceRef = useRef(0);
 
@@ -143,15 +144,20 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
   //  桌面端：translateX + 拖拽 + 左右箭头
   // ═══════════════════════════════════════════
 
-  // 无缝循环：过渡结束 → 克隆区回跳
-  const handleTransitionEnd = (e) => {
-    if (e.target !== e.currentTarget) return;
-    if (e.propertyName !== "transform") return;
-    if (current >= total) {
+  // ─── 无缝循环：current 进入克隆区 → 无动画跳回（useEffect 比 transitionEnd 更可靠）───
+  useEffect(() => {
+    if (current < total || isPrevLoopRef.current) return;
+    isPrevLoopRef.current = true;
+    const raf = requestAnimationFrame(() => {
       setAnimating(false);
       setCurrent(current - total);
-    }
-  };
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setAnimating(true));
+      });
+      isPrevLoopRef.current = false;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [current, total]);
 
   useEffect(() => {
     if (animating) return;
@@ -236,12 +242,14 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     pause();
     if (current === 0) {
       // 跳到克隆区（和当前一样）→ 双 RAF → 滑到上一张（最后一张）
+      isPrevLoopRef.current = true;
       setAnimating(false);
       setCurrent(total);
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setAnimating(true);
           setCurrent(total - 1);
+          isPrevLoopRef.current = false;
         });
       });
     } else {
@@ -281,12 +289,14 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
         } else {
           // deltaX < 0 → 手指向右滑 → 上一张（到头回绕）
           if (currentRef.current === 0) {
+            isPrevLoopRef.current = true;
             setAnimating(false);
             setCurrent(total);
             requestAnimationFrame(() => {
               requestAnimationFrame(() => {
                 setAnimating(true);
                 setCurrent(total - 1);
+                isPrevLoopRef.current = false;
               });
             });
           } else {
@@ -348,7 +358,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     <div className="mb-6 mt-4 select-none">
       {/* ─── 共用标题栏 ─── */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold flex items-center gap-2 text-white">
+        <h2 className="text-lg font-semibold flex items-center gap-2 text-yellow-400">
           <span className="bg-gradient-to-r from-green-500 to-teal-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
             推荐
           </span>
@@ -402,7 +412,6 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
                 transform: `translateX(-${safeCurrent * cardStep}px)`,
                 transition: animating ? "transform 0.5s ease" : "none",
               }}
-              onTransitionEnd={handleTransitionEnd}
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerUp}
