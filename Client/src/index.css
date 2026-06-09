@@ -19,16 +19,16 @@ html { scroll-behavior: smooth; }
   display: none;
 }
 
-/* 数字弹跳动效 — 每 8 秒自动循环一次 */
+/* 数字弹跳动效 — 每 4 秒循环一次，清晰感知动态 */
 @keyframes numPop {
   0%   { transform: scale(1); }
-  3%   { transform: scale(1.3); }   /* ≈0.24s 弹起 */
-  5%   { transform: scale(0.95); }  /* ≈0.4s 微回弹 */
-  7%   { transform: scale(1); }     /* ≈0.56s 复位 */
-  100% { transform: scale(1); }     /* 保持到 8s */
+  6%   { transform: scale(1.3); }   /* ≈0.24s 弹起 */
+  10%  { transform: scale(0.95); }  /* ≈0.4s 微回弹 */
+  14%  { transform: scale(1); }     /* ≈0.56s 复位 */
+  100% { transform: scale(1); }     /* 保持到 4s */
 }
 .animate-numPop {
-  animation: numPop 8s ease infinite;
+  animation: numPop 4s ease infinite;
 }
 
 /* 底部操作栏滑入动画 */
