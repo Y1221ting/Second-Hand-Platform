@@ -22,9 +22,15 @@ git pull
 docker compose up -d --build
 ```
 
-**本地构建前端（由我手动操作）**
+**构建 + 推送流程（严格执行）**
 ```
-cd Client && npm run build    # 构建后再 git push
+# 第1步：先本地构建前端，确保构建成功
+cd Client && npm run build
+
+# 第2步：构建成功后，再提交推送
+git add -A
+git commit -m "功能名：具体改了啥"
+git push
 ```
 
 **注意事项**
@@ -96,9 +102,12 @@ cd Client && npm run build    # 构建后再 git push
 - 每改完一个小功能点就停下来，告诉我改完了
 - 不要一次性改完三四个功能才说
 
-### 第三步：每次改动后立即提交推送
+### 第三步：先本地构建，再提交推送
+**顺序：先 `npm run build`，构建成功后再 commit + push**。如果构建失败，先修复再提交，绝不把构建失败的代码推上去。
+
 格式一律为：
 ```
+cd Client && npm run build       # 先本地构建，确认无错误
 git add -A
 git commit -m "功能名：具体改了啥"
 git push
@@ -106,8 +115,10 @@ git push
 
 **重要规则**：
 - ✅ 改完一个小功能就提交一次，不积攒
+- ✅ 每次推送前先 `npm run build`，构建成功才能推
 - ✅ commit message 写清楚改了啥，方便回滚定位
 - ❌ 不要攒一堆才推——出问题回溯会把好的功能也搞丢
+- ❌ 绝不跳过本地构建——构建失败可能是漏文件、语法错误，服务器上再发现就晚了
 
 ### 第四步：通知可部署 + 给出测试方法
 代码推送后，你需要告诉我两件事：
