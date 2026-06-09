@@ -30,35 +30,28 @@ const getDeptEmoji = (dept) => {
 
 const HomeBanner = ({ departments }) => {
   const [stats, setStats] = useState({ userCount: 0, productCount: 0, todayCount: 0 });
+  const [loaded, setLoaded] = useState(false);
   const [showHint, setShowHint] = useState(true);
-  const [animTick, setAnimTick] = useState(0);
   const location = useLocation();
 
   // 从 URL 读取当前选中的学院
   const params = new URLSearchParams(location.search);
   const activeDept = params.get("department") || "";
 
-  // 获取统计数据
+  // 获取统计数据（每 60 秒轮询）
   useEffect(() => {
     const fetchStats = () => {
       fetch("/api/stats")
         .then((res) => res.json())
         .then((data) => {
           setStats(data);
-          setAnimTick((t) => t + 1);
+          setLoaded(true);
         })
         .catch(() => {});
     };
     fetchStats();
-    const pollInterval = setInterval(fetchStats, 60000);
-    // 独立定时器：每 8 秒弹跳一次数字，让页面有"活跃"感
-    const bounceInterval = setInterval(() => {
-      setAnimTick((t) => t + 1);
-    }, 8000);
-    return () => {
-      clearInterval(pollInterval);
-      clearInterval(bounceInterval);
-    };
+    const interval = setInterval(fetchStats, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   // 选中学院后隐藏提示文字
@@ -101,13 +94,13 @@ const HomeBanner = ({ departments }) => {
           <div className="flex items-center flex-wrap gap-x-3 sm:gap-x-4 gap-y-1 text-xs sm:text-sm">
             <span className="flex items-center gap-1 whitespace-nowrap">
               👥 <strong
-                key={"user-" + animTick}
+                key={"user-" + loaded}
                 className="text-sm sm:text-lg inline-block animate-numPop"
               >{stats.userCount}</strong>
             </span>
             <span className="flex items-center gap-1 whitespace-nowrap">
               📦 <strong
-                key={"prod-" + animTick}
+                key={"prod-" + loaded}
                 className="text-sm sm:text-lg inline-block animate-numPop"
                 style={{ animationDelay: "0.08s" }}
               >{stats.productCount}</strong>
@@ -115,7 +108,7 @@ const HomeBanner = ({ departments }) => {
             {stats.todayCount > 0 && (
               <span className="text-amber-800/60 flex items-center gap-1 whitespace-nowrap">
                 📌 今日+<strong
-                  key={"today-" + animTick}
+                  key={"today-" + loaded}
                   className="text-sm sm:text-lg inline-block animate-numPop"
                   style={{ animationDelay: "0.16s" }}
                 >{stats.todayCount}</strong>
