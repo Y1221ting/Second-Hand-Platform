@@ -188,6 +188,16 @@ const Filters = ({
     }
   }, [activeFilter, priceRange]);
 
+  // ── 移动端底部 sheet 打开时锁定 body 滚动 ──
+  useEffect(() => {
+    if (showMobileFilters) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [showMobileFilters]);
+
   // ── 筛选操作 ──
   const selectDepartment = (dept) => {
     handleDepartmentChange({ target: { value: dept } });
@@ -387,10 +397,10 @@ const Filters = ({
         )}
       </div>
 
-      {/* ════════════════ 移动端 ════════════════ */}
+      {/* ════════════════ 移动端 = sheet 底部弹窗 ════════════════ */}
       <div className="md:hidden">
         <button
-          onClick={() => setShowMobileFilters(!showMobileFilters)}
+          onClick={() => setShowMobileFilters(true)}
           className="w-full bg-gray-800 text-white py-2.5 px-4 rounded-lg text-sm flex items-center justify-between"
         >
           <span className="flex items-center gap-2">
@@ -401,99 +411,140 @@ const Filters = ({
               </span>
             )}
           </span>
-          <FaChevronDown className={`text-gray-400 transition-transform ${showMobileFilters ? "rotate-180" : ""}`} />
+          <FaChevronDown className="text-gray-400 text-xs" />
         </button>
 
         {showMobileFilters && (
-          <div className="mt-2 bg-gray-800 rounded-lg p-3 space-y-3">
-            {/* 学院 */}
-            <div>
-              <label className="text-gray-400 text-xs block mb-1">学院</label>
-              <select
-                value={departmentFilter}
-                onChange={(e) => { handleDepartmentChange(e); handleMajorChange({ target: { value: "" } }); }}
-                className="w-full p-2 rounded bg-gray-700 text-white text-sm border border-gray-600"
-              >
-                <option value="">全部学院{counts?.total ? ` (${counts.total})` : ""}</option>
-                {departments.map((dept) => (
-                  <option key={dept} value={dept}>{dept}{counts?.byDepartment?.[dept] ? ` (${counts.byDepartment[dept]})` : ""}</option>
-                ))}
-              </select>
-            </div>
+          <>
+            {/* 遮罩 */}
+            <div
+              className="fixed inset-0 bg-black/50 z-50"
+              onClick={() => setShowMobileFilters(false)}
+            />
+            {/* 底部 sheet */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 rounded-t-2xl max-h-[85vh] overflow-y-auto shadow-2xl animate-slide-up">
+              {/* 拖拽指示条 */}
+              <div className="flex justify-center pt-2 pb-1 sticky top-0 bg-gray-900 z-10">
+                <div className="w-8 h-1 bg-gray-600 rounded-full" />
+              </div>
 
-            {/* 专业 */}
-            <div>
-              <label className="text-gray-400 text-xs block mb-1">专业</label>
-              <select
-                value={majorFilter}
-                onChange={handleMajorChange}
-                disabled={majorDisabled}
-                className={`w-full p-2 rounded bg-gray-700 text-white text-sm border border-gray-600 ${majorDisabled ? "opacity-50" : ""}`}
-              >
-                <option value="">{majorDisabled ? "请先选学院" : "全部专业"}</option>
-                {majors.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-            </div>
+              {/* 标题栏 */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gray-700">
+                <h3 className="text-white font-medium text-base">筛选</h3>
+                <button
+                  onClick={() => setShowMobileFilters(false)}
+                  className="text-gray-400 hover:text-white p-1"
+                >
+                  ✕
+                </button>
+              </div>
 
-            {/* 分类 */}
-            <div>
-              <label className="text-gray-400 text-xs block mb-1">分类</label>
-              <select value={categoryFilter} onChange={handleCategoryFilterChange} className="w-full p-2 rounded bg-gray-700 text-white text-sm border border-gray-600">
-                <option value="">全部分类{counts?.total ? ` (${counts.total})` : ""}</option>
-                {ALL_CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>{cat}{counts?.byCategory?.[cat] ? ` (${counts.byCategory[cat]})` : ""}</option>
-                ))}
-              </select>
-            </div>
+              {/* 筛选内容 */}
+              <div className="p-5 space-y-5">
+                {/* 学院 */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">学院</label>
+                  <select
+                    value={departmentFilter}
+                    onChange={(e) => { handleDepartmentChange(e); handleMajorChange({ target: { value: "" } }); }}
+                    className="w-full p-2.5 rounded-lg bg-gray-800 text-white text-sm border border-gray-600 focus:outline-none focus:border-yellow-500"
+                  >
+                    <option value="">全部学院{counts?.total ? ` (${counts.total})` : ""}</option>
+                    {departments.map((dept) => (
+                      <option key={dept} value={dept}>{dept}{counts?.byDepartment?.[dept] ? ` (${counts.byDepartment[dept]})` : ""}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* 专业 */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">专业</label>
+                  <select
+                    value={majorFilter}
+                    onChange={handleMajorChange}
+                    disabled={majorDisabled}
+                    className={`w-full p-2.5 rounded-lg bg-gray-800 text-white text-sm border border-gray-600 focus:outline-none focus:border-yellow-500 ${majorDisabled ? "opacity-50" : ""}`}
+                  >
+                    <option value="">{majorDisabled ? "请先选学院" : "全部专业"}</option>
+                    {majors.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* 分类 */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">分类</label>
+                  <select
+                    value={categoryFilter}
+                    onChange={handleCategoryFilterChange}
+                    className="w-full p-2.5 rounded-lg bg-gray-800 text-white text-sm border border-gray-600 focus:outline-none focus:border-yellow-500"
+                  >
+                    <option value="">全部分类{counts?.total ? ` (${counts.total})` : ""}</option>
+                    {ALL_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}{counts?.byCategory?.[cat] ? ` (${counts.byCategory[cat]})` : ""}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* 排序 */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">排序</label>
+                  <select
+                    value={sortBy}
+                    onChange={handleSortChange}
+                    className="w-full p-2.5 rounded-lg bg-gray-800 text-white text-sm border border-gray-600 focus:outline-none focus:border-yellow-500"
+                  >
+                    {Object.entries(SORT_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                {/* 价格 */}
+                <div>
+                  <label className="text-gray-300 text-sm font-medium block mb-2">价格范围</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="最低价"
+                      value={priceRange[0] > 0 ? priceRange[0] : ""}
+                      onChange={(e) => {
+                        const min = e.target.value === "" ? 0 : Math.max(0, parseInt(e.target.value) || 0);
+                        handlePriceRangeChange(min, priceRange[1]);
+                      }}
+                      className="w-full p-2.5 rounded-lg bg-gray-800 text-white text-sm text-center border border-gray-600 focus:outline-none focus:border-yellow-500"
+                    />
+                    <span className="text-gray-500">—</span>
+                    <input
+                      type="number"
+                      placeholder="最高价"
+                      value={priceRange[1] < 10000 ? priceRange[1] : ""}
+                      onChange={(e) => {
+                        const max = e.target.value === "" ? 10000 : Math.min(10000, parseInt(e.target.value) || 0);
+                        handlePriceRangeChange(priceRange[0], max);
+                      }}
+                      className="w-full p-2.5 rounded-lg bg-gray-800 text-white text-sm text-center border border-gray-600 focus:outline-none focus:border-yellow-500"
+                    />
+                  </div>
+                </div>
+              </div>
 
-            {/* 排序 */}
-            <div>
-              <label className="text-gray-400 text-xs block mb-1">排序</label>
-              <select value={sortBy} onChange={handleSortChange} className="w-full p-2 rounded bg-gray-700 text-white text-sm border border-gray-600">
-                {Object.entries(SORT_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* 价格 */}
-            <div>
-              <label className="text-gray-400 text-xs block mb-1">价格范围</label>
-              <div className="flex items-center gap-2 mb-2">
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={priceRange[0] > 0 ? priceRange[0] : ""}
-                  onChange={(e) => {
-                    const min = e.target.value === "" ? 0 : Math.max(0, parseInt(e.target.value) || 0);
-                    handlePriceRangeChange(min, priceRange[1]);
-                  }}
-                  className="w-full p-2 rounded bg-gray-700 text-white text-sm border border-gray-600 text-center"
-                />
-                <span className="text-gray-500 text-sm">—</span>
-                <input
-                  type="number"
-                  placeholder="10000"
-                  value={priceRange[1] < 10000 ? priceRange[1] : ""}
-                  onChange={(e) => {
-                    const max = e.target.value === "" ? 10000 : Math.min(10000, parseInt(e.target.value) || 0);
-                    handlePriceRangeChange(priceRange[0], max);
-                  }}
-                  className="w-full p-2 rounded bg-gray-700 text-white text-sm border border-gray-600 text-center"
-                />
+              {/* 底部操作栏 */}
+              <div className="sticky bottom-0 p-4 bg-gray-900 border-t border-gray-700">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { handleResetAll(); setShowMobileFilters(false); }}
+                    className="flex-1 py-2.5 rounded-lg bg-gray-800 text-gray-300 text-sm font-medium hover:bg-gray-700 transition-colors"
+                  >
+                    重置
+                  </button>
+                  <button
+                    onClick={() => setShowMobileFilters(false)}
+                    className="flex-[2] py-2.5 rounded-lg bg-yellow-500 text-gray-900 text-sm font-bold hover:bg-yellow-400 transition-colors"
+                  >
+                    完成
+                  </button>
+                </div>
               </div>
             </div>
-
-            {/* 重置 */}
-            <button
-              onClick={() => { handleResetAll(); setShowMobileFilters(false); }}
-              className="w-full bg-red-500/80 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-500 transition-colors"
-            >
-              重置全部筛选
-            </button>
-          </div>
+          </>
         )}
       </div>
     </div>
