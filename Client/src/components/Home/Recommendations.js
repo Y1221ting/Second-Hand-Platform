@@ -172,7 +172,6 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     pause();
     track.style.transition = "none";
     track.style.cursor = "grabbing";
-    track.setPointerCapture(e.pointerId);
   };
 
   const handlePointerMove = (e) => {
@@ -196,7 +195,6 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     const track = desktopTrackRef.current;
     if (!track) return;
     track.style.cursor = "";
-    track.releasePointerCapture(e.pointerId);
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
     wasDraggedRef.current = true;
