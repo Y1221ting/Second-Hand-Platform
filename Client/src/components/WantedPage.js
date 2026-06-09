@@ -57,6 +57,7 @@ const WantedPage = () => {
 
   // ── 列表筛选 ──
   const [listFilter, setListFilter] = useState("all"); // "all" | "mine"
+  const [selectedTag, setSelectedTag] = useState(null); // 当前选中的热门标签
 
   // ── 获取数据 ──
   const fetchWanteds = useCallback(async (p, search = "", append = false) => {
@@ -205,6 +206,23 @@ const WantedPage = () => {
     }
   };
 
+  // ── 热门标签点击：筛选求购列表 ──
+  const handleTagClick = (tag) => {
+    // 如果已在「我发布的」视图，切回全部
+    if (listFilter === "mine") setListFilter("all");
+    if (selectedTag === tag) {
+      // 取消选中 → 回到全部
+      setSelectedTag(null);
+      setSearchTerm("");
+      fetchWanteds(1, "");
+    } else {
+      // 选中标签 → 按关键词搜索
+      setSelectedTag(tag);
+      setSearchTerm(tag);
+      fetchWanteds(1, tag);
+    }
+  };
+
   // ── 复制工具（HTTP 安全兼容：跳过 navigator.clipboard） ──
   const copyToClipboard = (text) => {
     const ta = document.createElement("textarea");
@@ -266,7 +284,15 @@ const WantedPage = () => {
             <h1 className="text-2xl font-bold text-gray-900">同学求购</h1>
           </div>
           <button
-            onClick={() => setShowForm((v) => !v)}
+            onClick={() => {
+              setShowForm((v) => {
+                if (!v && selectedTag) {
+                  // 有选中标签时预填商品名称
+                  setForm((prev) => ({ ...prev, name: selectedTag }));
+                }
+                return !v;
+              });
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               showForm
                 ? "bg-gray-200 text-gray-600 hover:bg-gray-300"
@@ -370,21 +396,49 @@ const WantedPage = () => {
           </div>
         )}
 
-        {/* ── 热门求购 ── */}
-        <div className="mb-6">
+        {/* ── 热门求购（毛玻璃滑动 Tab，选中后筛选列表） ── */}
+        <div className="mb-5">
           <h2 className="text-base font-semibold text-gray-700 mb-2 flex items-center gap-2">
             🔥 热门求购
           </h2>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 pb-1">
+            {/* 「全部」标签 — 取消筛选 */}
+            <button
+              onClick={() => {
+                if (selectedTag !== null) {
+                  setSelectedTag(null);
+                  setSearchTerm("");
+                  fetchWanteds(1, "");
+                }
+              }}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs transition-all duration-200 border whitespace-nowrap cursor-pointer select-none backdrop-blur-md ${
+                selectedTag === null
+                  ? "bg-white/95 text-gray-900 font-semibold shadow-sm border-green-400/50"
+                  : "bg-white/25 text-gray-600 border-white/60 hover:bg-white/50"
+              }`}
+            >
+              全部
+            </button>
             {HOT_TAGS.map((tag) => (
-              <span
+              <button
                 key={tag}
-                className="text-xs px-3 py-1.5 bg-green-50 text-green-700 rounded-full border border-green-200"
+                onClick={() => handleTagClick(tag)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs transition-all duration-200 border whitespace-nowrap cursor-pointer select-none backdrop-blur-md ${
+                  selectedTag === tag
+                    ? "bg-white/95 text-gray-900 font-semibold shadow-sm border-green-400/50"
+                    : "bg-white/25 text-gray-600 border-white/60 hover:bg-white/50"
+                }`}
               >
                 {tag}
-              </span>
+              </button>
             ))}
           </div>
+          {/* 品类提示条 */}
+          {selectedTag && (
+            <p className="mt-2 text-xs text-gray-400">
+              📌 正在查看「<span className="text-green-600 font-medium">{selectedTag}</span>」相关的求购
+            </p>
+          )}
         </div>
 
         {/* ── 全部求购（带筛选） ── */}
