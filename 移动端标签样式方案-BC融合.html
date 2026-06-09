@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeBanner 移动端 — B+C 融合方案</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f3f4f6;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+  .container { max-width: 420px; width: 100%; }
+
+  .phone-frame {
+    background: #fff;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  }
+  .status-bar {
+    height: 44px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 12px;
+    color: #6b7280;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .banner-base {
+    background: linear-gradient(135deg, #facc15, #eab308, #ca8a04);
+    padding: 14px 16px;
+    color: #1f2937;
+    position: relative;
+    overflow: hidden;
+  }
+  .banner-base h1 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .banner-base .stats {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    margin-bottom: 10px;
+    color: #92400e;
+  }
+
+  .section-label {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .badge {
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    color: white;
+    font-weight: 600;
+  }
+  .badge-purple { background: #8b5cf6; }
+  .comment {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 6px;
+    padding-left: 4px;
+  }
+
+  /* ══════════════════════════════════
+     B+C 融合方案
+     ══════════════════════════════════ */
+  .tags-d {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .tag-d {
+    /* B 的毛玻璃质感 */
+    background: rgba(255, 255, 255, 0.45);
+    backdrop-filter: blur(1.5px);
+    -webkit-backdrop-filter: blur(1.5px);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #1f2937;
+    /* 白色描边 — 清晰圈定边界 */
+    border: 1.5px solid rgba(255, 255, 255, 0.75);
+    /* smooth */
+    transition: all 0.2s ease;
+    cursor: pointer;
+    /* 选中态占位 */
+    position: relative;
+  }
+
+  /* 选中态：白色实底 + 深色文字 + 底部指示线（C 的灵感） */
+  .tag-d.active {
+    background: white;
+    border-color: #d97706;
+    border-width: 2px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15);
+  }
+
+  /* ── 变体1：底部小横线（C 的 tab 指示器风格） ── */
+  .tag-d.v1 {
+    border-radius: 999px 999px 4px 4px;  /* 底部微平 */
+  }
+  .tag-d.v1.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1.5px;
+    left: 25%;
+    width: 50%;
+    height: 3px;
+    background: #d97706;
+    border-radius: 3px;
+  }
+
+  /* ── 变体2：选中标签右下角小勾 ── */
+  .tag-d.v2.active::after {
+    content: '✓';
+    font-size: 9px;
+    color: #d97706;
+    margin-left: 2px;
+    font-weight: 700;
+  }
+
+  /* ── 对比：方案B纯版 ── */
+  .tag-b {
+    background: rgba(255,255,255,0.5);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    border: 1.5px solid rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #1f2937;
+  }
+  .tag-b.active {
+    background: white;
+    border-color: #d97706;
+    border-width: 2px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(217,119,6,0.2);
+  }
+
+  /* ── 对比：方案C纯版 ── */
+  .tags-c {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0;
+    border-bottom: 1.5px solid rgba(0,0,0,0.08);
+    padding-bottom: 0;
+  }
+  .tag-c {
+    flex-shrink: 0;
+    padding: 6px 12px 8px;
+    font-size: 12px;
+    border-bottom: 2.5px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(0,0,0,0.5);
+    white-space: nowrap;
+  }
+  .tag-c.active {
+    color: #1f2937;
+    font-weight: 600;
+    border-bottom-color: #d97706;
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 20px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 标题 -->
+  <h1 style="font-size: 20px; margin-bottom: 4px;">B + C 融合方案</h1>
+  <p style="font-size: 13px; color: #6b7280; margin-bottom: 24px;">
+    取 B 的毛玻璃质感 + C 的选中指示器，空心的"圈定感"
+  </p>
+
+  <!-- ── B版（纯方案B，对比基准） ── -->
+  <div class="section-title">
+    <span>方案 B（纯版）</span>
+    <span class="badge" style="background:#6366f1;">对比</span>
+  </div>
+  <p class="section-label">半透明白 + 白色描边 + 毛玻璃</p>
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="banner-base">
+      <h1>🏫 校园二手集市</h1>
+      <div class="stats">👥 1,284 &nbsp; 📦 3,567 &nbsp; 📌 +23</div>
+      <div class="tags-d">
+        <span class="tag-b">💻 计算机学院</span>
+        <span class="tag-b">📊 经管学院</span>
+        <span class="tag-b active">🔌 电子信息</span>
+        <span class="tag-b">🌍 外国语</span>
+        <span class="tag-b">🎨 艺术学院</span>
+        <span class="tag-b">⚙️ 机械学院</span>
+      </div>
+    </div>
+  </div>
+  <p class="comment">白色描边画出边界 + 毛玻璃隐约透出底色，有质感但圈定感够</p>
+
+  <hr class="divider">
+
+  <!-- ── B+C 融合 变体1 ── -->
+  <div class="section-title">
+    <span>【融合版 · 变体①】毛玻璃 + 底部指示线</span>
+    <span class="badge badge-purple">推荐</span>
+  </div>
+  <p class="section-label">B 的毛玻璃药丸 + C 的选中底部横线，每个标签有边界的"泡泡"</p>
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="banner-base">
+      <h1>🏫 校园二手集市</h1>
+      <div class="stats">👥 1,284 &nbsp; 📦 3,567 &nbsp; 📌 +23</div>
+      <div class="tags-d">
+        <span class="tag-d v1">💻 计算机学院</span>
+        <span class="tag-d v1">📊 经管学院</span>
+        <span class="tag-d v1 active">🔌 电子信息</span>
+        <span class="tag-d v1">🌍 外国语</span>
+        <span class="tag-d v1">🎨 艺术学院</span>
+        <span class="tag-d v1">⚙️ 机械学院</span>
+      </div>
+      <p style="font-size: 10px; color: #92400e; opacity: 0.5; margin-top: 6px;">
+        ↑ 未选中 = 半透明泡泡 + 白边空心圈定 &nbsp;|&nbsp; 选中 = 白实底 + 底部分隔线
+      </p>
+    </div>
+  </div>
+  <div style="background:#fef3c7; border-radius: 12px; padding: 14px; margin-top: 8px;">
+    <p style="font-size: 13px; color: #92400e;">
+      <strong>设计逻辑</strong><br>
+      未选中：<code>rgba(255,255,255,0.45)</code> 半透 + <code>1.5px solid rgba(255,255,255,0.75)</code> 描边 → 像"泡泡"悬浮在黄色上，有边界又不压背景<br>
+      选中：白底 + 琥珀色描边 + 底部 3px 金色横线 → 像"选中了"的 tab<br>
+      毛玻璃 <code>backdrop-filter: blur(1.5px)</code> → 隐约透出斜线纹理，不闷
+    </p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ── B+C 融合 变体2 ── -->
+  <div class="section-title">
+    <span>【融合版 · 变体②】毛玻璃 + 选中打勾 ✓</span>
+    <span class="badge" style="background:#8b5cf6;">备选</span>
+  </div>
+  <p class="section-label">选中标签加一个金色小勾 ✓，和底部指示线二选一</p>
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="banner-base">
+      <h1>🏫 校园二手集市</h1>
+      <div class="stats">👥 1,284 &nbsp; 📦 3,567 &nbsp; 📌 +23</div>
+      <div class="tags-d">
+        <span class="tag-d v2">💻 计算机学院</span>
+        <span class="tag-d v2">📊 经管学院</span>
+        <span class="tag-d v2 active">🔌 电子信息✓</span>
+        <span class="tag-d v2">🌍 外国语</span>
+        <span class="tag-d v2">🎨 艺术学院</span>
+        <span class="tag-d v2">⚙️ 机械学院</span>
+      </div>
+    </div>
+  </div>
+  <p class="comment">底部指示线 vs 小勾 ✓，两种选中态标识任选</p>
+
+  <hr class="divider">
+
+  <!-- 原方案C对比 -->
+  <div class="section-title">
+    <span>方案 C（纯版，对比参考）</span>
+    <span class="badge" style="background:#d97706;">参考</span>
+  </div>
+  <p class="section-label">纯底部横线 Tab 风格</p>
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="banner-base">
+      <h1>🏫 校园二手集市</h1>
+      <div class="stats">👥 1,284 &nbsp; 📦 3,567 &nbsp; 📌 +23</div>
+      <div class="tags-c">
+        <span class="tag-c">💻 计算机</span>
+        <span class="tag-c">📊 经管</span>
+        <span class="tag-c active">🔌 电子信息</span>
+        <span class="tag-c">🌍 外语</span>
+        <span class="tag-c">🎨 艺术</span>
+        <span class="tag-c">⚙️ 机械</span>
+      </div>
+    </div>
+  </div>
+  <p class="comment">纯底部横线，圈定感弱，需要用户"意会"这是可点击的</p>
+
+  <hr class="divider">
+
+  <div style="background:#f0f9ff; border-radius:12px; padding:16px;">
+    <p style="font-size:14px; font-weight:600; margin-bottom:8px;">🎯 总结</p>
+    <table style="width:100%; font-size:13px; border-collapse:collapse;">
+      <tr>
+        <th style="text-align:left; padding:6px 8px; border-bottom:1px solid #e5e7eb;"></th>
+        <th style="text-align:center; padding:6px 8px; border-bottom:1px solid #e5e7eb;">圈定感</th>
+        <th style="text-align:center; padding:6px 8px; border-bottom:1px solid #e5e7eb;">精致度</th>
+        <th style="text-align:center; padding:6px 8px; border-bottom:1px solid #e5e7eb;">改动量</th>
+      </tr>
+      <tr>
+        <td style="padding:6px 8px;">方案 B 纯版</td>
+        <td style="text-align:center; padding:6px 8px; color:#10b981;">★★★</td>
+        <td style="text-align:center; padding:6px 8px; color:#10b981;">★★★</td>
+        <td style="text-align:center; padding:6px 8px;">小</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 8px; font-weight:600;">融合变体①</td>
+        <td style="text-align:center; padding:6px 8px; color:#10b981;">★★★★</td>
+        <td style="text-align:center; padding:6px 8px; color:#10b981;">★★★★</td>
+        <td style="text-align:center; padding:6px 8px;">小+</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 8px; border-bottom:none;">融合变体②</td>
+        <td style="text-align:center; padding:6px 8px; border-bottom:none; color:#10b981;">★★★</td>
+        <td style="text-align:center; padding:6px 8px; border-bottom:none; color:#10b981;">★★★★</td>
+        <td style="text-align:center; padding:6px 8px; border-bottom:none;">小</td>
+      </tr>
+    </table>
+    <p style="font-size:13px; margin-top:10px; color:#1f2937;">
+      <strong>推荐变体①</strong>：毛玻璃泡泡 + 白描边 + 选中底部指示线。
+      未选中是"空心圈定"，选中后"实心加重+指示线"，可点击感最强。
+    </p>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeBanner 移动端标签样式方案</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f3f4f6;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+  }
+  .container { max-width: 420px; width: 100%; }
+
+  .phone-frame {
+    background: #fff;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+  }
+  .status-bar {
+    height: 44px;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    font-size: 12px;
+    color: #6b7280;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .banner-base {
+    background: linear-gradient(135deg, #facc15, #eab308, #ca8a04);
+    padding: 14px 16px;
+    color: #1f2937;
+    position: relative;
+    overflow: hidden;
+  }
+  .banner-base h1 {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .banner-base .stats {
+    display: flex;
+    gap: 12px;
+    font-size: 11px;
+    margin-bottom: 10px;
+    color: #92400e;
+  }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .section-label {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
+    padding-left: 4px;
+  }
+  .section-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .badge {
+    font-size: 10px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    color: white;
+    font-weight: 600;
+  }
+  .badge-green { background: #10b981; }
+  .badge-blue { background: #6366f1; }
+  .badge-amber { background: #d97706; }
+  .comment {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 6px;
+    padding-left: 4px;
+  }
+
+  /* ── 方案A：白色实心底+阴影 ── */
+  .tag-a {
+    background: white;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.10);
+    border: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #1f2937;
+  }
+  .tag-a.active {
+    background: #1f2937;
+    color: #facc15;
+    border-color: #1f2937;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  }
+
+  /* ── 方案B：半透明白底+可见描边 ── */
+  .tag-b {
+    background: rgba(255,255,255,0.5);
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    border: 1.5px solid rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #1f2937;
+    backdrop-filter: blur(2px);
+  }
+  .tag-b.active {
+    background: white;
+    border-color: #d97706;
+    border-width: 2px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(217,119,6,0.2);
+  }
+
+  /* ── 方案C：底部横线标签（类似浏览器Tab） ── */
+  .tags-c {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0;
+    scrollbar-width: none;
+    border-bottom: 1.5px solid rgba(0,0,0,0.08);
+    padding-bottom: 0;
+  }
+  .tag-c {
+    flex-shrink: 0;
+    padding: 6px 12px 8px;
+    font-size: 12px;
+    border-bottom: 2.5px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: rgba(0,0,0,0.5);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tag-c.active {
+    color: #1f2937;
+    font-weight: 600;
+    border-bottom-color: #d97706;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- 当前线上版（对比基准） -->
+  <div class="section-title">
+    <span>当前线上版</span>
+    <span class="badge" style="background:#9ca3af;">对比</span>
+  </div>
+  <p class="section-label">标签半透明白底 + 无边框，和黄色背景融为一体</p>
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="banner-base">
+      <h1>🏫 校园二手集市</h1>
+      <div class="stats">👥 1,284 &nbsp; 📦 3,567 &nbsp; 📌 +23</div>
+      <div class="tags">
+        <span style="background:rgba(255,255,255,0.35); padding:4px 10px; border-radius:999px; font-size:11px; border:2px solid transparent;">💻 计算机学院</span>
+        <span style="background:rgba(255,255,255,0.35); padding:4px 10px; border-radius:999px; font-size:11px; border:2px solid transparent;">📊 经管学院</span>
+        <span style="background:rgba(255,255,255,0.35); padding:4px 10px; border-radius:999px; font-size:11px; border:2px solid transparent;">🌍 外国语</span>
+        <span style="background:white; padding:4px 10px; border-radius:999px; font-size:11px; border:2px solid #eab308; font-weight:600; box-shadow:0 2px 6px rgba(234,179,8,0.2);">🔌 电子信息</span>
+        <span style="background:rgba(255,255,255,0.35); padding:4px 10px; border-radius:999px; font-size:11px; border:2px solid transparent;">🎨 艺术学院</span>
+        <span style="background:rgba(255,255,255,0.35); padding:4px 10px; border-radius:999px; font-size:11px; border:2px solid transparent;">⚙️ 机械学院</span>
+      </div>
+    </div>
+  </div>
+  <p class="comment">⚠ 未选中的标签只有 35% 透明白，几乎看不出是按钮</p>
+
+  <hr style="border:none;border-top:1px solid #e5e7eb;margin:12px 0;">
+
+  <!-- ── 方案A ── -->
+  <div class="section-title">
+    <span>【方案A】白色药丸 + 阴影 + 描边</span>
+    <span class="badge badge-green">推荐</span>
+  </div>
+  <p class="section-label">每个标签像独立的按钮，白色实底+浅灰边框+阴影，选中变深色底+金色字</p>
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="banner-base">
+      <h1>🏫 校园二手集市</h1>
+      <div class="stats">👥 1,284 &nbsp; 📦 3,567 &nbsp; 📌 +23</div>
+      <div class="tags">
+        <span class="tag-a">💻 计算机学院</span>
+        <span class="tag-a">📊 经管学院</span>
+        <span class="tag-a">🌍 外国语</span>
+        <span class="tag-a active">🔌 电子信息</span>
+        <span class="tag-a">🎨 艺术学院</span>
+        <span class="tag-a">⚙️ 机械学院</span>
+      </div>
+    </div>
+  </div>
+  <p class="comment">✅ 每个标签都有清晰边界，一眼看出是按钮。选中态反差明显</p>
+
+  <!-- ── 方案B ── -->
+  <div class="section-title">
+    <span>【方案B】半透明白 + 白色描边 + 毛玻璃</span>
+    <span class="badge badge-blue">推荐</span>
+  </div>
+  <p class="section-label">标签半透明但加了白色描边，保留了黄色背景的透感，又有清晰轮廓</p>
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="banner-base">
+      <h1>🏫 校园二手集市</h1>
+      <div class="stats">👥 1,284 &nbsp; 📦 3,567 &nbsp; 📌 +23</div>
+      <div class="tags">
+        <span class="tag-b">💻 计算机学院</span>
+        <span class="tag-b">📊 经管学院</span>
+        <span class="tag-b">🌍 外国语</span>
+        <span class="tag-b active">🔌 电子信息</span>
+        <span class="tag-b">🎨 艺术学院</span>
+        <span class="tag-b">⚙️ 机械学院</span>
+      </div>
+    </div>
+  </div>
+  <p class="comment">✅ 白色描边画出每个标签的边界，又没有完全盖住黄色底色，视觉上更融合</p>
+
+  <!-- ── 方案C ── -->
+  <div class="section-title">
+    <span>【方案C】底部横线标签（浏览器 Tab 风格）</span>
+    <span class="badge badge-amber">P2</span>
+  </div>
+  <p class="section-label">水平横滚，选中标签底部有一条黄色指示线，适合标签多的情况</p>
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>📶 🔋</span></div>
+    <div class="banner-base">
+      <h1>🏫 校园二手集市</h1>
+      <div class="stats">👥 1,284 &nbsp; 📦 3,567 &nbsp; 📌 +23</div>
+      <div class="tags-c">
+        <span class="tag-c">💻 计算机</span>
+        <span class="tag-c">📊 经管</span>
+        <span class="tag-c active">🔌 电子信息</span>
+        <span class="tag-c">🌍 外语</span>
+        <span class="tag-c">🎨 艺术</span>
+        <span class="tag-c">⚙️ 机械</span>
+      </div>
+    </div>
+  </div>
+  <p class="comment">⚠ 横滚 + 底部指示线更紧凑，但可点击感不如方案A/B强，适合标签太多的场景</p>
+
+  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
+
+  <div style="background:#fef3c7; border-radius:12px; padding:16px;">
+    <p style="font-size:14px; font-weight:600; margin-bottom:8px;">💡 我的建议</p>
+    <p style="font-size:13px; color:#92400e;">
+      <strong>方案A</strong>（白色药丸）最直接——每个标签像独立的 Chip 按钮，谁看了都知道能点。</p>
+    <p style="font-size:13px; color:#92400e; margin-top:4px;">
+      <strong>方案B</strong>（半透明+描边）更精致——保留黄色底色的透感，又不失轮廓清晰。</p>
+    <p style="font-size:13px; color:#92400e; margin-top:4px;">
+      推荐选 <strong>A 或 B</strong>，改动很小（只是加几个 Tailwind class 的事）。</p>
+  </div>
+
+</div>
+
+</body>
+</html>

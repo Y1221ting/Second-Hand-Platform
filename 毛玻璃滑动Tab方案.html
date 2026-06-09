@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>毛玻璃滑动Tab — 移动端方案</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f3f4f6;
+    padding: 60px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .frame {
+    max-width: 375px;
+    width: 100%;
+    background: #fff;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+  }
+  .status {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  /* ── Banner ── */
+  .banner {
+    background: linear-gradient(135deg, #facc15, #eab308, #ca8a04);
+    padding: 16px 20px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  /* 斜线纹理 */
+  .banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.06) 20px, rgba(255,255,255,0.06) 21px);
+    pointer-events: none;
+  }
+  .banner-content {
+    position: relative;
+    z-index: 1;
+  }
+  .banner h1 {
+    font-size: 17px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 4px;
+  }
+  .banner .stats {
+    font-size: 11px;
+    color: #92400e;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 14px;
+  }
+
+  /* ── 毛玻璃滑动 Tab Bar ── */
+  .tab-bar {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    margin: 0 -20px;
+    padding: 0 20px;
+  }
+  .tab-bar::-webkit-scrollbar { display: none; }
+
+  .tab-track {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 2px; /* 让毛玻璃呼吸 */
+  }
+
+  /* 单个 Tab — 毛玻璃药丸 */
+  .tab {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    user-select: none;
+
+    /* 毛玻璃核心 */
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  /* 选中态 */
+  .tab.active {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-color: rgba(217, 119, 6, 0.4);
+    color: #1f2937;
+    font-weight: 600;
+    box-shadow: 0 2px 12px rgba(217, 119, 6, 0.12);
+  }
+
+  /* ── 内容示意 ── */
+  .content-area {
+    background: #f9fafb;
+    padding: 24px 20px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 13px;
+  }
+  .content-area strong { color: #6b7280; }
+
+  .title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 32px 0 4px;
+    text-align: center;
+  }
+  .desc {
+    font-size: 13px;
+    color: #6b7280;
+    text-align: center;
+    margin-bottom: 20px;
+    max-width: 375px;
+  }
+
+  .tag {
+    display: inline-block;
+    background: #e5e7eb;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    color: #374151;
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="title">👆 毛玻璃滑动 Tab</div>
+<p class="desc">在黄色横幅内，标签横向排列，可左右滑动 ←→<br>毛玻璃质感透出背景纹理，选中标签高亮</p>
+
+<div class="frame">
+  <div class="status"><span>9:41</span><span>📶 🔋</span></div>
+  <div class="banner">
+    <div class="banner-content">
+      <h1>🏫 校园二手集市</h1>
+      <div class="stats">
+        <span>👥 1,284</span>
+        <span>📦 3,567</span>
+        <span>📌 +23</span>
+      </div>
+
+      <!-- 毛玻璃 Tab Bar -->
+      <div class="tab-bar">
+        <div class="tab-track">
+          <span class="tab">💻 计算机学院</span>
+          <span class="tab">📊 经济管理学院</span>
+          <span class="tab active">🔌 电子信息学院</span>
+          <span class="tab">🌍 外国语学院</span>
+          <span class="tab">🎨 艺术学院</span>
+          <span class="tab">⚙️ 机械工程学院</span>
+          <span class="tab">🧪 化学化工学院</span>
+          <span class="tab">📐 数学学院</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="content-area">
+    当前筛选：<strong>🔌 电子信息学院</strong> 的商品
+  </div>
+</div>
+
+<br>
+
+<div style="max-width: 375px; background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+  <p style="font-size: 14px; font-weight: 600; margin-bottom: 10px;">🎨 设计说明</p>
+  <table style="font-size: 12px; width: 100%; border-collapse: collapse;">
+    <tr><td style="padding: 4px 8px;"><span class="tag">毛玻璃</span></td><td style="padding: 4px 8px; color: #6b7280;"><code>backdrop-filter: blur(6px)</code> 透出黄色渐变 + 斜线纹理</td></tr>
+    <tr><td style="padding: 4px 8px;"><span class="tag">描边</span></td><td style="padding: 4px 8px; color: #6b7280;"><code>1px solid rgba(255,255,255,0.6)</code> 白色半透描边圈定边界</td></tr>
+    <tr><td style="padding: 4px 8px;"><span class="tag">选中态</span></td><td style="padding: 4px 8px; color: #6b7280;">白度提高到 92% + 阴影轻微浮起，金色调边框</td></tr>
+    <tr><td style="padding: 4px 8px;"><span class="tag">滑动</span></td><td style="padding: 4px 8px; color: #6b7280;"><code>overflow-x: auto</code> 原生滑动手势，学院多也不换行</td></tr>
+  </table>
+  <p style="font-size: 12px; color: #f59e0b; margin-top: 10px;">
+    ⚡ 效果：未选中时像"半透明浮气泡"，选中时变实 + 略微浮起，可点击感明显
+  </p>
+</div>
+
+</body>
+</html>

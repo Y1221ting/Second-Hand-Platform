@@ -466,44 +466,79 @@ exports.getRecommendations = async (req, res) => {
   try {
     const userId = req.query.userId || "";
     const limit = Math.min(parseInt(req.query.limit) || 6, 20);
-    const excludeId = req.query.excludeId || "";
+    const excludeId = typeof req.query.excludeId === "string" ? req.query.excludeId : "";
     const department = typeof req.query.department === "string" ? req.query.department : "";
+    const major = typeof req.query.major === "string" ? req.query.major : "";
+    const category = typeof req.query.category === "string" ? req.query.category : "";
+    const sellerId = typeof req.query.sellerId === "string" ? req.query.sellerId : "";
 
     const exclusions = excludeId ? [excludeId] : [];
+
+    // 基础筛选：在售 + 排除指定商品
     const baseFilter = {
       _id: { $nin: exclusions },
       status: { $nin: ["sold_out", "inactive"] },
     };
+    // 排除当前用户自己的商品
     if (userId) baseFilter["uploadedBy.id"] = { $ne: userId };
+    // 排除指定卖家的商品（如在自己店铺页时）
+    if (sellerId && sellerId !== userId) {
+      baseFilter["uploadedBy.id"] = { $ne: sellerId };
+    }
+    // 同分类推荐（如当前在看教材，推荐也是教材）
+    if (category) baseFilter.category = category;
 
     const usedIds = [...exclusions];
     let remaining = limit;
 
-    // 第 1 层：同学院商品
+    // ── 第 1 层：同学院商品（按浏览量排序，同专业优先） ──
     let departmentProducts = [];
     if (department && remaining > 0) {
-      departmentProducts = await Product.find({
-        ...baseFilter,
-        _id: { $nin: usedIds },
-        "uploadedBy.department": department,
-      })
-        .sort({ views: -1, createdAt: -1 })
-        .limit(remaining)
-        .select("name images price uploadedBy category status quantity createdAt views");
-      usedIds.push(...departmentProducts.map(p => p._id));
-      remaining = limit - departmentProducts.length;
+      // 同专业优先
+      if (major) {
+        const majorProducts = await Product.find({
+          ...baseFilter,
+          _id: { $nin: usedIds },
+          "uploadedBy.department": department,
+          "uploadedBy.major": major,
+        })
+          .sort({ views: -1, createdAt: -1 })
+          .limit(remaining)
+          .select("name images price uploadedBy category status quantity createdAt views");
+        usedIds.push(...majorProducts.map(p => p._id));
+        departmentProducts = majorProducts;
+        remaining = limit - departmentProducts.length;
+      }
+      // 同学院其他专业补全
+      if (remaining > 0) {
+        const otherDeptProducts = await Product.find({
+          ...baseFilter,
+          _id: { $nin: usedIds },
+          "uploadedBy.department": department,
+        })
+          .sort({ views: -1, createdAt: -1 })
+          .limit(remaining)
+          .select("name images price uploadedBy category status quantity createdAt views");
+        usedIds.push(...otherDeptProducts.map(p => p._id));
+        departmentProducts = [...departmentProducts, ...otherDeptProducts];
+        remaining = limit - departmentProducts.length;
+      }
     }
 
-    // 第 2 层：热门兜底（按浏览量）
+    // ── 第 2 层：随机兜底（用 $sample 保证每次不同） ──
     let fillProducts = [];
     if (remaining > 0) {
-      fillProducts = await Product.find({
-        ...baseFilter,
-        _id: { $nin: usedIds },
-      })
-        .sort({ views: -1, createdAt: -1 })
-        .limit(remaining)
-        .select("name images price uploadedBy category status quantity createdAt views");
+      const fillFilter = { ...baseFilter, _id: { $nin: usedIds } };
+      fillProducts = await Product.aggregate([
+        { $match: fillFilter },
+        { $sample: { size: remaining } },
+        {
+          $project: {
+            name: 1, images: 1, price: 1, "uploadedBy": 1,
+            category: 1, status: 1, quantity: 1, createdAt: 1, views: 1,
+          },
+        },
+      ]);
     }
 
     const combined = [
@@ -513,7 +548,7 @@ exports.getRecommendations = async (req, res) => {
 
     // 列表页只返回首张图片 + PII 脱敏
     const result = combined.map(p => {
-      let obj = p.toObject();
+      let obj = p.toObject ? p.toObject() : p;
       if (obj.images && obj.images.length > 0) {
         obj.images = [obj.images[0]];
       }
