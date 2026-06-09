@@ -24,6 +24,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
   const dragStartYRef = useRef(0);
   const dragStartTimeRef = useRef(0);
   const baseTranslateRef = useRef(0);
+  const wasDraggedRef = useRef(false);
 
   // ─── 桌面触控板 refs ───
   const desktopContainerRef = useRef(null);
@@ -198,6 +199,8 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     track.releasePointerCapture(e.pointerId);
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
+    wasDraggedRef.current = true;
+    setTimeout(() => { wasDraggedRef.current = false; }, 300);
     const deltaX = e.clientX - dragStartXRef.current;
     const velocity = Math.abs(deltaX) / (Date.now() - dragStartTimeRef.current || 1);
     const indexDelta = -Math.round(deltaX / cardStep);
@@ -208,10 +211,6 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     const target = Math.max(0, Math.min(items.length - 1, current + indexDelta + flick));
     setAnimating(true);
     setCurrent(target);
-    track.style.pointerEvents = "none";
-    requestAnimationFrame(() => {
-      if (desktopTrackRef.current) desktopTrackRef.current.style.pointerEvents = "";
-    });
     resume();
   };
 
@@ -221,6 +220,14 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
     if (!track) return;
     track.style.cursor = "";
     resume();
+  };
+
+  // 卡片点击：拖拽后不跳转详情，纯点击放行
+  const handleCardClick = (e) => {
+    if (wasDraggedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
   };
 
   // 左右箭头
@@ -401,7 +408,7 @@ const Recommendations = ({ userId, excludeId, category, department, major, selle
               onPointerCancel={handlePointerCancel}
             >
               {items.map((product, idx) => (
-                <div key={`${product._id}-${idx}`} className={CARD_CLASS}>
+                <div key={`${product._id}-${idx}`} className={CARD_CLASS} onClickCapture={handleCardClick}>
                   <ProductCard product={product} isRecommended={true} />
                 </div>
               ))}
