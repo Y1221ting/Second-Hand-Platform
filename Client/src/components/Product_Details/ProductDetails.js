@@ -33,6 +33,12 @@ const ProductDetails = ({ productId }) => {
   const [contactLoading, setContactLoading] = useState(false);
   const touchStartX = useRef(0); // 图片滑动切换用
 
+  // 举报弹窗
+  const [showReportPanel, setShowReportPanel] = useState(false);
+  const [reportReason, setReportReason] = useState("信息不实");
+  const [reportDetail, setReportDetail] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
+
   // 获取卖家联系方式
   const handleContactSeller = async () => {
     if (!userId) {
@@ -162,6 +168,34 @@ const ProductDetails = ({ productId }) => {
       }
     } catch (err) {
       alert("网络错误，请稍后重试");
+    }
+  };
+
+  const handleReport = async () => {
+    if (!user) return;
+    setReportSubmitting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/reports", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ productId, reason: reportReason, detail: reportDetail }),
+      });
+      if (res.ok) {
+        alert("举报已提交，我们会尽快处理");
+        setShowReportPanel(false);
+        setReportDetail("");
+      } else {
+        const data = await res.json();
+        alert(data.message || "举报失败");
+      }
+    } catch {
+      alert("网络错误");
+    } finally {
+      setReportSubmitting(false);
     }
   };
 
@@ -450,6 +484,66 @@ const ProductDetails = ({ productId }) => {
           )}
         </div>
       </div>
+
+      {/* 举报入口 — 非本人商品 */}
+      {userId !== productDetails.uploadedBy?.id && (
+        <div className="mt-6 px-4">
+          <button
+            onClick={() => setShowReportPanel(true)}
+            className="text-sm text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1"
+          >
+            ⚑ 举报此商品
+          </button>
+        </div>
+      )}
+
+      {/* 举报弹窗 */}
+      {showReportPanel && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
+          onClick={() => { setShowReportPanel(false); setReportDetail(""); }}
+        >
+          <div
+            className="bg-gray-900 rounded-lg p-3 space-y-2 w-72 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-white text-sm font-medium">举报商品</p>
+            <select
+              value={reportReason}
+              onChange={(e) => setReportReason(e.target.value)}
+              className="w-full bg-gray-700 text-white rounded py-1.5 px-2 text-xs border border-gray-600"
+            >
+              <option value="信息不实">信息不实</option>
+              <option value="违禁品">违禁品</option>
+              <option value="重复发布">重复发布</option>
+              <option value="人身攻击/骚扰">人身攻击/骚扰</option>
+              <option value="其他">其他</option>
+            </select>
+            <textarea
+              value={reportDetail}
+              onChange={(e) => setReportDetail(e.target.value)}
+              placeholder="补充说明（选填）"
+              className="w-full bg-gray-700 text-white rounded py-1 px-2 text-xs border border-gray-600 resize-none"
+              rows="2"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleReport}
+                disabled={reportSubmitting}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded py-1.5 text-xs font-medium disabled:opacity-50 transition-colors"
+              >
+                {reportSubmitting ? "提交中..." : "确认举报"}
+              </button>
+              <button
+                onClick={() => { setShowReportPanel(false); setReportDetail(""); }}
+                className="flex-1 bg-gray-600 hover:bg-gray-500 text-white rounded py-1.5 text-xs transition-colors"
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 商品详情页推荐 */}
       <Recommendations
