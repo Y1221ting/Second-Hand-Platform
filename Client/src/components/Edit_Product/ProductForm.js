@@ -115,6 +115,7 @@ const ProductForm = ({
           id="images"
           name="images"
           accept="image/*"
+          multiple
           onChange={handleImageChange}
           className="w-full border rounded-lg py-2 px-3"
         />

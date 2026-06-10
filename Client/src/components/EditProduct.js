@@ -72,11 +72,11 @@ const EditProduct = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // Handle image file change
+  // Handle image file change — 支持多选追加
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setNewImages(prev => [...prev, file]);
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setNewImages(prev => [...prev, ...files]);
       setImageFieldError("");
     }
     e.target.value = ""; // reset input

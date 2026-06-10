@@ -272,16 +272,15 @@ const AddProduct = () => {
     });
   };
 
-  // 选择图片时自动压缩
+  // 选择图片时自动压缩，支持多选追加
   const handleImageChange = async (e) => {
     const files = Array.from(e.target.files);
     const compressed = await Promise.all(files.map(compressImage));
-    // 生成预览 URL
-    previewUrlsRef.current.forEach((u) => URL.revokeObjectURL(u)); // 释放旧的
+    // 新增预览 URL（保留已有预览）
     const urls = compressed.map((file) => URL.createObjectURL(file));
-    previewUrlsRef.current = urls;
-    setPreviewUrls(urls);
-    setFormData({ ...formData, images: compressed });
+    previewUrlsRef.current = [...previewUrlsRef.current, ...urls];
+    setPreviewUrls((prev) => [...prev, ...urls]);
+    setFormData((prev) => ({ ...prev, images: [...prev.images, ...compressed] }));
   };
 
   // 删除已选的某张图片
